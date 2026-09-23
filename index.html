@@ -194,7 +194,15 @@ main { max-width: 1280px; margin: 0 auto; padding: 1rem; }
 .mstats div { background: var(--panel-2); border-radius: 10px; padding: .5rem .7rem; }
 .mstats b { display: block; font-size: 1.2rem; }
 .mstats span { font-size: .75rem; color: var(--muted); }
-#landChart { width: 100%; height: auto; display: block; margin-bottom: .8rem; }
+.landChart { width: 100%; height: auto; display: block; margin-bottom: .8rem; }
+.tempo-row { display: flex; align-items: center; justify-content: space-between; gap: .5rem; margin-bottom: .4rem; }
+.tbtn { width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--line); background: var(--panel-2); font-size: 1.2rem; font-weight: 700; }
+.bpm { font-size: .9rem; color: var(--muted); }
+.bpm b { font-size: 1.6rem; color: var(--ink); font-variant-numeric: tabular-nums; }
+#bpmRange { width: 100%; accent-color: var(--accent); margin-bottom: .6rem; }
+.beat { width: 16px; height: 16px; border-radius: 50%; background: var(--panel-2); border: 1px solid var(--line); transition: background .05s; }
+.beat.on { background: var(--accent); box-shadow: 0 0 0 5px color-mix(in srgb, var(--accent) 25%, transparent); }
+.beat.down.on { background: var(--good); box-shadow: 0 0 0 5px color-mix(in srgb, var(--good) 25%, transparent); }
 .tips { margin: 0 0 1rem; padding: 0; list-style: none; display: grid; gap: .5rem; }
 .tips li { background: var(--panel-2); border-radius: 10px; padding: .6rem .8rem; font-size: .9rem; border-left: 4px solid var(--accent); }
 .mbtns { display: flex; gap: .6rem; justify-content: flex-end; flex-wrap: wrap; }
@@ -249,7 +257,14 @@ main { max-width: 1280px; margin: 0 auto; padding: 1rem; }
       <div class="card">
         <h3>Mode</h3>
         <div class="seg" id="modeSeg">
-          <button data-v="lock">Lock-in</button><button data-v="flow">Flow</button>
+          <button data-v="lock">Lock-in</button><button data-v="flow">Flow</button><button data-v="tempo">⏱ Tempo</button>
+        </div>
+        <div id="tempoPanel" hidden>
+          <div class="tempo-row"><button class="tbtn" id="bpmDown" aria-label="Slower">−</button><div class="bpm"><b id="bpmVal">60</b> BPM</div><button class="tbtn" id="bpmUp" aria-label="Faster">+</button></div>
+          <input type="range" id="bpmRange" min="30" max="200" step="1" aria-label="Tempo">
+          <div class="seg" id="perSeg"><button data-v="1">1 note/beat</button><button data-v="2">2</button><button data-v="3">3</button><button data-v="4">4</button></div>
+          <label class="toggle"><input type="checkbox" id="optLadder"><span><b>Tempo ladder</b><small>Pass a run and the next one is 4 BPM faster; struggle and it's 4 slower. Speed only goes up once the notes are clean.</small></span></label>
+          <div class="calib">Timing offset <b id="latVal">auto</b> <button id="tcalBtn">Calibrate timing</button></div>
         </div>
         <h3>Target accuracy</h3>
         <div class="seg" id="tierSeg">
@@ -267,6 +282,7 @@ main { max-width: 1280px; margin: 0 auto; padding: 1rem; }
     <div class="stage">
       <div class="stagebar">
         <div class="title" id="exTitle">—</div>
+        <div class="beat" id="beatDot" hidden title="Metronome"></div>
         <div class="mic"><span id="micState">Mic off</span><div class="meter"><i id="meter"></i></div></div>
         <button class="btn ghost" id="stopBtn" hidden>Stop</button>
         <button class="btn" id="startBtn">▶ Start</button>
@@ -345,6 +361,7 @@ main { max-width: 1280px; margin: 0 auto; padding: 1rem; }
       <div class="card"><h2>Scoring the first landing</h2><p>Real playing gives you no time to fix a note. What counts is where your finger lands before you adjust it.</p><p class="in">Each note is scored from the first steady ¼ second you play. In Lock-in mode you then correct the note and hold it in tune, so the last thing you practise is the right spot.</p></div>
       <div class="card"><h2>Tightening the target step by step</h2><p>Mastery learning: pass one level (85% or more) before you tighten the target.</p><p class="in">🥉 ±25¢ → 🥈 ±15¢ → 🥇 ±10¢ for each drill. The app suggests the next level for you.</p></div>
       <div class="card"><h2>Removing the help over time</h2><p>Studies of the "guidance hypothesis" show that constant feedback can make you depend on it. Removing it gradually makes the skill stick.</p><p class="in">Once you have a medal, turn on <b>Hide fingering</b> (practise remembering where the note is) and <b>Ears first</b> (you only see the needle after you land).</p></div>
+      <div class="card"><h2>Accuracy first, then speed</h2><p>Speed comes from making small, steady increases once the notes are already clean. Pushing the tempo while notes are still out of tune just practises the mistakes.</p><p class="in"><b>Tempo</b> mode plays a metronome. A note only counts if it's in tune <i>and</i> on the beat. The <b>tempo ladder</b> adds 4 BPM after each passed run and backs off when you struggle. The coach points out when shifts are making you late.</p></div>
       <div class="card"><h2>Practise the hard part on its own</h2><p>Break a hard skill into parts, drill the hardest one separately, then put it back in context.</p><p class="in"><b>Shift pairs</b> repeat each down-shift on its own, and the guide notes show the classic route (slide the old finger, then drop the new one). <b>From the top</b> then puts the shift back into a scale, starting high so you shift down while you're fresh.</p></div>
       <div class="card"><h2>Mixing and spacing your practice</h2><p>Switching between drills and spreading sessions over several days feels harder at the time, but you remember more.</p><p class="in"><b>Note Hunt</b> gives you random notes from both positions, picking your weakest notes more often. The "Next up" card switches you between drills. Short daily sessions build your streak.</p></div>
       <div class="card"><h2>Hear the note before you play it</h2><p>You can only play in tune if you can hear the right note in your head first.</p><p class="in"><b>Hear it first</b> plays each note before you play it. The <b>tonic drone</b> helps you hear how each note sounds against the key. Listen for the ring when the tonic, 4th and 5th are in tune.</p></div>
@@ -429,7 +446,7 @@ function applyRange() {
 // ---------- Storage ----------
 const STORE_KEY = "fingerboard-coach.v1";
 const defaults = () => ({ xp: 0, notes: {}, ex: {}, days: {}, sessions: [], selected: "p3-A", cfg: { ...DEFAULT_CFG }, custom: [], runs: {},
-  settings: { mode: "lock", tier: 1, drone: false, hear: false, hide: false, ears: false, chime: true, a4: 440 } });
+  settings: { mode: "lock", tier: 1, drone: false, hear: false, hide: false, ears: false, chime: true, a4: 440, bpm: 60, per: 1, ladder: true, latencyMs: null } });
 function loadDB() {
   const d = defaults();
   try {
@@ -537,6 +554,76 @@ function droneMidis() {
   return 440 * Math.pow(2, (m + 7 - 69) / 12) < RANGE.lowHz * 0.6 ? [m, m + 7] : [m];
 }
 
+// ---------- Metronome ----------
+// Clicks are scheduled on the audio clock a little ahead of time. The click is a short burst of filtered
+// noise: it has no pitch, so the detector can't mistake it for a note.
+let metro = null, noiseBuf = null;
+function startMetronome(bpm, beats) {
+  stopMetronome();
+  const beatS = 60 / bpm, startCtx = ctx.currentTime + 0.3;
+  metro = { beatS, startCtx, next: 0, beats, timer: setInterval(metroTick, 25) };
+  metroTick();
+  return performance.now() + (startCtx - ctx.currentTime) * 1000; // performance-clock time of the first click
+}
+function metroTick() {
+  while (metro && metro.next < metro.beats && metro.startCtx + metro.next * metro.beatS < ctx.currentTime + 0.15) {
+    click(metro.startCtx + metro.next * metro.beatS, metro.next % 4 === 0);
+    metro.next++;
+  }
+}
+function stopMetronome() { if (metro) { clearInterval(metro.timer); metro = null; } }
+function click(at, accent) {
+  if (!noiseBuf) {
+    noiseBuf = ctx.createBuffer(1, Math.round(ctx.sampleRate * 0.02), ctx.sampleRate);
+    const d = noiseBuf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 3);
+  }
+  const src = ctx.createBufferSource(), bp = ctx.createBiquadFilter(), g = ctx.createGain();
+  src.buffer = noiseBuf; bp.type = "bandpass"; bp.frequency.value = accent ? 3200 : 2400; bp.Q.value = 1.2; g.gain.value = accent ? 0.9 : 0.55;
+  src.connect(bp).connect(g).connect(ctx.destination);
+  if (SIM) g.connect(hp); // the simulator hears the click too, as a real mic would
+  src.start(at);
+}
+const outLatencyMs = () => ((ctx.outputLatency || 0) + (ctx.baseLatency || 0)) * 1000;
+// Delay from a scheduled click to detecting a note played on it: speaker output + mic input + analysis
+const latencyMs = () => (DB.settings.latencyMs !== null ? DB.settings.latencyMs : Math.round(outLatencyMs() + 40));
+// On-time window: a share of each note's length that shrinks with the medal level, 30–120 ms
+const timingTol = (slot, tier) => Math.round(Math.max(30, Math.min(120, [0, 0.25, 0.18, 0.12][tier] * slot)));
+
+// Timing calibration: play 8 notes on the click, alternating strings, and measure the delay
+let tcal = null;
+async function calibrateTiming() {
+  if (!(await startAudio())) return;
+  if (run) stopRun();
+  const beatMs = 750, count = 4, n = 8;
+  const start = startMetronome(80, count + n);
+  tcal = { frames: [], start, beatMs, clicks: Array.from({ length: n }, (_, k) => start + (count + k) * beatMs), end: start + (count + n) * beatMs + 600 };
+  setMsg("⏱ After 4 clicks, play 8 short notes on the click, alternating two open strings (A, E, A, E…).");
+}
+// A note starts where the rounded pitch changes and holds for most of the next few frames
+function noteOnsets(fr) {
+  const on = [];
+  let cur = null;
+  fr.forEach((f, i) => {
+    if (f.m === null || Math.round(f.m) === cur) return;
+    const next = fr.slice(i, i + 6).filter((x) => x.m !== null);
+    if (next.length >= 4 && next.filter((x) => Math.round(x.m) === Math.round(f.m)).length >= 4) { on.push(f.t); cur = Math.round(f.m); }
+  });
+  return on;
+}
+function tcalStep(t) {
+  const k = Math.floor((t - tcal.start) / tcal.beatMs);
+  $("#bigNote").textContent = k < 4 ? String(4 - Math.max(0, k)) : "♪";
+  if (t < tcal.end) return;
+  const on = noteOnsets(tcal.frames), offs = [];
+  for (const c of tcal.clicks) { const o = on.find((x) => x > c - 250 && x < c + 450); if (o !== undefined) offs.push(o - c); }
+  tcal = null; stopMetronome(); renderIdle();
+  if (offs.length < 5) return setMsg(`I caught ${offs.length} of the 8 notes. Try again, and alternate strings so each note is a new pitch.`, "bad");
+  DB.settings.latencyMs = Math.max(0, Math.round(median(offs)));
+  save(); syncSettingsUI();
+  setMsg(`✓ Timing calibrated: your speakers and mic add about ${DB.settings.latencyMs} ms. Early and late are now measured against the click you hear.`, "good");
+}
+
 // ---------- Main loop ----------
 function loop(t) {
   requestAnimationFrame(loop);
@@ -548,7 +635,9 @@ function loop(t) {
   let m = null;
   if (t >= suppressUntil && r.freq) m = 69 + 12 * Math.log2(r.freq / DB.settings.a4);
   frames.push({ t, m, f: r.freq });
-  while (frames.length && frames[0].t < t - 600) frames.shift();
+  while (frames.length && frames[0].t < t - 5000) frames.shift(); // Tempo mode scores notes from recent history
+  if (metro) metroTick();
+  if (tcal) { tcal.frames.push({ t, m }); return tcalStep(t); }
 
   if (calib) return calibStep(t);
 
@@ -561,11 +650,14 @@ function loop(t) {
 
 function stableMedian(t) {
   if (!frames.length || frames[0].t > t - STABLE_MS) return null;
-  const w = frames.filter((x) => x.t > t - STABLE_MS);
-  if (w.length < 5 || w.some((x) => x.m === null)) return null;
-  const ms = w.map((x) => x.m);
-  if (Math.max(...ms) - Math.min(...ms) > 0.4) return null;
-  return median(ms);
+  const w = [];
+  for (let i = frames.length - 1; i >= 0 && frames[i].t > t - STABLE_MS; i--) w.push(frames[i]);
+  const v = w.filter((x) => x.m !== null).map((x) => x.m);
+  if (w.length < 5 || v.length < w.length * 0.8) return null;
+  // steady = at least 80% of frames within ±20¢ of the median, so a click or bow noise doesn't reset it
+  const med = median(v);
+  if (v.filter((m) => Math.abs(m - med) <= 0.2).length < w.length * 0.8) return null;
+  return med;
 }
 
 // ---------- Calibration ----------
@@ -606,17 +698,26 @@ function buildHunt() {
 function startRun() {
   const ex = exById(DB.selected);
   const s = DB.settings;
+  if (s.mode === "tempo" && !ctx) { startAudio().then((ok) => ok && startRun()); return; }
   run = { ex, seq: ex.hunt ? buildHunt() : ex.notes, idx: 0, mode: s.mode, tier: s.tier, tol: TIERS[s.tier].tol,
     results: [], combo: 0, maxCombo: 0, xp: 0, t0: performance.now() };
+  if (s.mode === "tempo") {
+    const beatMs = 60000 / s.bpm, slot = beatMs / s.per, countIn = 4;
+    const first = startMetronome(s.bpm, countIn + Math.ceil(run.seq.length / s.per) + 1);
+    run.tempo = { bpm: s.bpm, per: s.per, beatMs, slot, t0: first + countIn * beatMs, lat: latencyMs(), outLat: outLatencyMs(), tolMs: timingTol(slot, s.tier), evalIdx: 0, counting: true, onTime: 0 };
+    $("#beatDot").hidden = false;
+  } else { stopMetronome(); $("#beatDot").hidden = true; }
   $("#results").hidden = true;
   $("#startBtn").textContent = "↻ Restart"; $("#stopBtn").hidden = false;
   buildPath(); buildBoard();
   newTarget(performance.now());
-  setMsg(s.mode === "lock" ? "Play the note and hold it in tune until the ring fills." : "Flow: play through at your own pace. Each note is scored where it first lands.");
+  setMsg(s.mode === "lock" ? "Play the note and hold it in tune until the ring fills." : s.mode === "flow" ? "Flow: play through at your own pace. Each note is scored where it first lands."
+    : `⏱ ${s.bpm} BPM, ${s.per} note${s.per > 1 ? "s" : ""} per beat. Four clicks count you in, then play each note on its beat.`);
 }
 
 function stopRun() {
   run = null;
+  stopMetronome(); $("#beatDot").hidden = true;
   $("#startBtn").textContent = "▶ Start"; $("#stopBtn").hidden = true;
   $("#holdArc").style.strokeDashoffset = 414.7;
   buildPath(); buildBoard(); renderIdle();
@@ -626,6 +727,7 @@ function stopRun() {
 function newTarget(t) {
   const cur = run.seq[run.idx];
   run.st = { landed: false, wrong: null, hold: 0, start: t, readyAt: t };
+  if (run.mode === "tempo") return renderTarget(), updatePath();
   if (run.mode === "lock" && DB.settings.hear) {
     tone(midiFreq(cur.midi), 0.7, 0.2, "triangle");
     run.st.readyAt = suppressUntil = t + 950;
@@ -634,6 +736,7 @@ function newTarget(t) {
 }
 
 function runStep(t, dt, stable) {
+  if (run.mode === "tempo") return tempoStep(t);
   const cur = run.seq[run.idx], st = run.st;
   if (t < st.readyAt) return;
   if (!st.landed) {
@@ -665,7 +768,7 @@ function land(dev, t) {
   const cur = run.seq[run.idx], st = run.st;
   st.landed = true;
   const ok = st.wrong === null && Math.abs(dev) <= run.tol;
-  run.results[run.idx] = { item: cur, cents: dev, wrong: st.wrong, ok, ms: t - st.start };
+  run.results[run.idx] = { item: cur, cents: dev, wrong: st.wrong, ok, inTune: ok, timing: null, onTime: null, missed: false, ms: t - st.start };
   if (ok) {
     run.combo++; run.maxCombo = Math.max(run.maxCombo, run.combo);
     run.xp += 10 * TIERS[run.tier].mult + Math.min(run.combo, 10);
@@ -685,6 +788,51 @@ function land(dev, t) {
   if (run.mode === "flow") advance(t);
 }
 
+// Tempo mode: the target follows the metronome. Each note owns the half-slot either side of its beat,
+// and is scored once its window has passed, from the frames heard in it.
+function tempoStep(t) {
+  const T = run.tempo, n = run.seq.length, beat = t - T.lat;
+  const i = Math.floor((beat - T.t0) / T.slot + 0.5);
+  if (i >= 0 && Math.min(i, n - 1) !== run.idx) { run.idx = Math.min(i, n - 1); newTarget(t); }
+  while (T.evalIdx < n && beat >= T.t0 + T.evalIdx * T.slot + T.slot / 2 + Math.min(T.slot, 250)) scoreTempoNote(T.evalIdx++);
+  if (T.evalIdx >= n) finishRun();
+}
+
+function scoreTempoNote(k) {
+  const T = run.tempo, it = run.seq[k], prev = run.seq[k - 1];
+  const exp = T.t0 + k * T.slot, from = exp - T.slot / 2, to = exp + T.slot / 2;
+  const fr = frames.filter((f) => f.t - T.lat >= from && f.t - T.lat < to + T.slot); // a note can ring into the next slot
+  const hold = Math.min(150, T.slot * 0.45);
+  const near = (f, m) => f.m !== null && Math.abs(f.m - m) * 100 <= CAPTURE;
+  const settles = (j, m) => { const w = fr.filter((f) => f.t >= fr[j].t && f.t < fr[j].t + hold); return w.length >= 3 && w.filter((f) => near(f, m)).length >= w.length * 0.75; };
+  const j = fr.findIndex((f, idx) => f.t - T.lat < to && near(f, it.midi) && settles(idx, it.midi));
+  let res;
+  if (j >= 0) {
+    const body = fr.filter((f) => f.t >= fr[j].t && f.t < fr[j].t + Math.min(STABLE_MS, T.slot * 0.8) && near(f, it.midi)).map((f) => f.m);
+    const cents = (median(body) - it.midi) * 100, timing = fr[j].t - T.lat - exp;
+    const inTune = Math.abs(cents) <= run.tol, onTime = Math.abs(timing) <= T.tolMs;
+    res = { item: it, cents, timing, inTune, onTime, wrong: null, ok: inTune && onTime, missed: false };
+  } else {
+    // a steady different pitch (not the previous note ringing on, not a guide note) is a wrong note
+    const w = fr.findIndex((f, idx) => f.t - T.lat < to && f.m !== null && !near(f, it.midi) && !(prev && near(f, prev.midi)) && !(it.guide && near(f, it.guide.midi)) && settles(idx, Math.round(f.m)));
+    res = { item: it, cents: null, timing: null, inTune: false, onTime: false, wrong: w >= 0 ? Math.round(fr[w].m) : null, ok: false, missed: true };
+  }
+  run.results[k] = res;
+  if (res.onTime) T.onTime++;
+  if (res.ok) { run.combo++; run.maxCombo = Math.max(run.maxCombo, run.combo); run.xp += 10 * TIERS[run.tier].mult + Math.min(run.combo, 10); }
+  else { run.combo = 0; if (res.inTune || res.onTime) run.xp += 3; }
+  if (res.cents !== null || res.wrong !== null) {
+    const ns = (DB.notes[it.key] ||= { n: 0, recent: [], wrong: 0 });
+    if (res.cents !== null) { ns.n++; ns.recent.push(Math.round(res.cents)); if (ns.recent.length > 20) ns.recent.shift(); }
+    if (res.wrong !== null) ns.wrong++;
+  }
+  const when = res.timing === null ? "" : Math.abs(res.timing) <= T.tolMs ? "on time" : `${Math.abs(res.timing).toFixed(0)} ms ${res.timing > 0 ? "late" : "early"}`;
+  run.lastTiming = when;
+  if (res.missed) setMsg(res.wrong !== null ? `✗ ${it.label}${it.oct}: heard ${noteName(res.wrong)} instead.` : `✗ Didn't hear ${it.label}${it.oct} on its beat. Keep going with the click.`, "bad");
+  else setMsg(`${res.ok ? "✓" : "•"} ${it.label}${it.oct} ${res.cents > 0 ? "+" : "−"}${Math.abs(res.cents).toFixed(0)}¢ · ${when}${run.combo >= 3 ? ` · combo ×${run.combo}` : ""}`, res.ok ? "good" : "bad");
+  updatePath(); renderStats(true);
+}
+
 function advance(t) {
   if (run.mode === "lock" && DB.settings.chime) chime();
   run.idx++;
@@ -693,6 +841,7 @@ function advance(t) {
 }
 
 function finishRun() {
+  stopMetronome(); $("#beatDot").hidden = true;
   const r = run, res = r.results, ex = r.ex;
   const okN = res.filter((x) => x.ok).length, score = okN / res.length, passed = score >= PASS;
   const rec = (DB.ex[recKey(ex.id)] ||= { best: 0, runs: 0, last: 0, bestScore: {} });
@@ -701,14 +850,23 @@ function finishRun() {
   rec.bestScore[r.tier] = Math.max(prevBestScore, score);
   let medal = false;
   if (passed && r.tier > rec.best) { rec.best = r.tier; medal = true; r.xp += 100 * r.tier; }
+  if (r.tempo) {
+    // Tempo ladder: up after a pass, down after a rough run, otherwise stay until it passes
+    const lad = ((rec.tempo ||= {})[r.tempo.per] ||= { best: 0, next: r.tempo.bpm });
+    if (passed) { lad.best = Math.max(lad.best, r.tempo.bpm); lad.next = r.tempo.bpm + (r.tempo.bpm < 100 ? 4 : 6); r.xp += Math.round(r.tempo.bpm / 4); }
+    else lad.next = score < 0.6 ? Math.max(30, r.tempo.bpm - 4) : r.tempo.bpm;
+    r.ladder = { ...lad };
+    if (DB.settings.ladder) DB.settings.bpm = lad.next;
+  }
   const lvlBefore = levelOf(DB.xp);
   DB.xp += r.xp;
   const today = dayKey();
   DB.days[today] = (DB.days[today] || 0) + 1;
-  const avgAbs = mean(res.map((x) => Math.abs(x.cents)));
-  DB.sessions.unshift({ t: Date.now(), cfg: ex.custom ? "custom" : CFG_KEY, ex: ex.id, label: drillLabel(ex), tier: r.tier, mode: r.mode, score, avgAbs });
+  const landed = res.filter((x) => x.cents !== null);
+  const avgAbs = landed.length ? mean(landed.map((x) => Math.abs(x.cents))) : 0;
+  DB.sessions.unshift({ t: Date.now(), cfg: ex.custom ? "custom" : CFG_KEY, ex: ex.id, label: drillLabel(ex), tier: r.tier, mode: r.mode, bpm: r.tempo ? r.tempo.bpm : undefined, score, avgAbs });
   DB.sessions = DB.sessions.slice(0, 60);
-  if (medal && DB.settings.tier < 3) DB.settings.tier = r.tier + 1;
+  if (medal && DB.settings.tier < 3 && !r.tempo) DB.settings.tier = r.tier + 1; // in Tempo mode the ladder raises speed instead
   save();
   run = null;
   $("#startBtn").textContent = "▶ Start"; $("#stopBtn").hidden = true;
@@ -728,8 +886,10 @@ function recordRun(r, res, tips) {
   const score = res.filter((x) => x.ok).length / res.length;
   entry.runs.unshift({
     date: new Date().toISOString(), mode: r.mode, tolerance: r.tol, score: Math.round(score * 1000) / 1000, passed: score >= PASS,
+    ...(r.tempo ? { bpm: r.tempo.bpm, notesPerBeat: r.tempo.per, timingToleranceMs: r.tempo.tolMs } : {}),
     landings: res.map((x, i) => ({ note: DrillIO.noteText(x.item), string: x.item.string, finger: x.item.finger === "4x" ? "4x" : +x.item.finger, position: x.item.pos,
-      cents: Math.round(x.cents * 10) / 10, inTune: x.ok, wrongNoteFirst: x.wrong === null ? null : DrillIO.midiText(x.wrong), shift: shiftDir(r.seq[i - 1], x.item) })),
+      cents: x.cents === null ? null : Math.round(x.cents * 10) / 10, inTune: x.inTune, wrongNoteFirst: x.wrong === null ? null : DrillIO.midiText(x.wrong), shift: shiftDir(r.seq[i - 1], x.item),
+      ...(r.tempo ? { timingMs: x.timing === null ? null : Math.round(x.timing), onTime: x.onTime, missed: x.missed } : {}) })),
     coachNotes: tips.map((t) => t.replace(/<[^>]+>/g, "")),
   });
   entry.runs = entry.runs.slice(0, 5);
@@ -748,7 +908,7 @@ function buildReport(key) {
   }
   return {
     format: DrillIO.REPORT_FORMAT, exported: new Date().toISOString(),
-    howToRead: "cents = first steady landing before any correction (+ sharp, − flat). After a shift down, sharp = stopped short; after a shift up, sharp = overshot. Full format: the app's My drills tab.",
+    howToRead: "cents = first steady landing before any correction (+ sharp, − flat). After a shift down, sharp = stopped short; after a shift up, sharp = overshot. In tempo runs, timingMs = + late / − early against the click as heard. Full format: the app's My drills tab.",
     drill: entry.drill,
     context: { drill: entry.label, key: entry.key, a4: DB.settings.a4, medal: rec.best ? TIERS[rec.best].name : "none", totalRuns: rec.runs || entry.runs.length },
     runs: entry.runs,
@@ -778,7 +938,7 @@ function buildTips(res, tol, seq, ex) {
   res.forEach((x, i) => {
     const shifted = shiftDir(seq[i - 1], x.item);
     const k = x.item.key + (shifted || "");
-    (groups[k] ||= { item: x.item, shifted, c: [] }).c.push(x.cents);
+    if (x.cents !== null) (groups[k] ||= { item: x.item, shifted, c: [] }).c.push(x.cents);
   });
   const habits = Object.values(groups)
     .filter((g) => g.c.length >= 1 && Math.abs(mean(g.c)) > tol * 0.8 && (g.c.every((c) => c > 0) || g.c.every((c) => c < 0)))
@@ -795,13 +955,33 @@ function buildTips(res, tol, seq, ex) {
     const accidentalSlip = Math.abs(x.wrong - x.item.midi) === 1;
     tips.push(`You played <b>${noteName(x.wrong)}</b> instead of <b>${noteName(x.item.midi)}</b>.${accidentalSlip ? ` ${keyPhrase(ex)} it's ${x.item.label}. Check the finger pattern: ${x.item.midi > x.wrong ? "this finger sits higher" : "this finger sits lower"} than you placed it.` : " Check the hand frame for this position."}`);
   }
-  const all = res.map((x) => x.cents), m = mean(all);
+  const all = res.filter((x) => x.cents !== null).map((x) => x.cents), m = all.length ? mean(all) : 0;
   if (Math.abs(m) > 8 && tips.length < 4) tips.push(`Overall you ran ${m > 0 ? "sharp" : "flat"} (${m > 0 ? "+" : ""}${m.toFixed(0)}¢ on average). ${m > 0 ? `${Math.max(...res.map((x) => x.item.pos)) >= 3 ? "In higher positions the hand often creeps toward the bridge." : "Your hand may be creeping toward the bridge."} Keep your thumb under the 1st–2nd finger.` : "Often the hand doesn't fully reach the position. Check where your thumb is and where your palm meets the violin's shoulder."}`);
   const half = Math.ceil(res.length / 2);
   if (!ex.hunt && !ex.custom && !ex.id.startsWith("down") && res.length > 6) {
     const up = mean(all.slice(0, half)), down = mean(all.slice(half));
     if (Math.abs(up - down) > 12 && tips.length < 4) tips.push(`Going up you averaged ${up > 0 ? "+" : ""}${up.toFixed(0)}¢; coming down ${down > 0 ? "+" : ""}${down.toFixed(0)}¢. Your fingers are drifting ${up > down ? "sharp going up" : "flat going up"}. Keep lower fingers down as you climb so they anchor the hand.`);
   }
+  return tips;
+}
+
+function tempoTips(r, res) {
+  const T = r.tempo, tips = [], L = r.ladder;
+  tips.push(L.next > T.bpm ? `⏱ <b>${T.bpm} BPM passed.</b> The ladder moves you to ${L.next} BPM next.` : L.next < T.bpm ? `⏱ <b>${T.bpm} BPM is too fast for now.</b> Next run: ${L.next} BPM. Clean notes first, then speed.` : `⏱ Stay at <b>${T.bpm} BPM</b> until 85% of notes are in tune and on time.`);
+  const timed = res.map((x, i) => ({ x, sh: shiftDir(r.seq[i - 1], x.item) })).filter((o) => o.x.timing !== null);
+  if (timed.length >= 3) {
+    const m = mean(timed.map((o) => o.x.timing));
+    if (Math.abs(m) > T.tolMs * 0.5) tips.push(`You're <b>${m > 0 ? "dragging" : "rushing"}</b>: notes start ${Math.abs(m).toFixed(0)} ms ${m > 0 ? "after" : "before"} the click on average. ${m > 0 ? "Start each note on the click, and get the finger ready during the note before." : "Wait for the click, and let each note last its full length."}`);
+    // Compare notes reached by a shift down, a shift up, or no shift against everything else
+    const fmt = (v) => `${v > 0 ? "+" : ""}${v.toFixed(0)} ms`;
+    const late = ["down", "up"].map((k) => {
+      const g = timed.filter((o) => o.sh === k).map((o) => o.x.timing), rest = timed.filter((o) => o.sh !== k).map((o) => o.x.timing);
+      return g.length >= 2 && rest.length >= 2 ? { k, g: mean(g), rest: mean(rest) } : null;
+    }).filter((o) => o && o.g - o.rest > 40).sort((a, b) => b.g - b.rest - (a.g - a.rest))[0];
+    if (late) tips.push(`<b>Shifts ${late.k} are making you late</b>: those notes arrive ${fmt(late.g)} vs ${fmt(late.rest)} for the rest. Start moving the hand a little earlier; the slide belongs at the end of the note before.`);
+  }
+  const missed = res.filter((x) => x.missed && x.wrong === null).length;
+  if (missed / res.length > 0.15) tips.push(`${missed} note${missed > 1 ? "s" : ""} weren't heard on their beat. Drop 4–8 BPM: speed only helps once each note speaks clearly.`);
   return tips;
 }
 
@@ -841,7 +1021,7 @@ function render() {
     else if (!cur) { ref = Math.round(smooth); dev = (smooth - ref) * 100; }
   }
   const tol = run ? run.tol : TIERS[DB.settings.tier].tol;
-  const hideNeedle = run && DB.settings.ears && !run.st.landed;
+  const hideNeedle = run && DB.settings.ears && (run.mode === "tempo" || !run.st.landed);
   if (dev !== null && !hideNeedle) {
     const c = Math.max(-50, Math.min(50, dev));
     needle.style.left = 50 + c + "%";
@@ -858,7 +1038,16 @@ function render() {
     else if (smooth !== null && cur) { $("#cents").textContent = "—"; $("#dir").textContent = `Hearing ${noteName(Math.round(smooth))}`; }
     else { $("#cents").textContent = "—"; $("#dir").textContent = ""; }
   }
-  if (run && run.mode === "lock") $("#holdArc").style.strokeDashoffset = 414.7 * (1 - Math.min(1, run.st.hold / HOLD_MS));
+  if (run && run.mode === "tempo") {
+    // The ring sweeps once per beat; the dot flashes on each click; four counts before the first note
+    const T = run.tempo, since = performance.now() - T.outLat - T.t0, phase = (((since % T.beatMs) + T.beatMs) % T.beatMs) / T.beatMs;
+    $("#holdArc").style.strokeDashoffset = 414.7 * (1 - phase);
+    const dot = $("#beatDot");
+    dot.classList.toggle("on", phase < 0.15);
+    dot.classList.toggle("down", Math.round(since / T.beatMs) % 4 === 0);
+    if (since < 0) { T.counting = true; $("#bigNote").textContent = String(Math.min(4, Math.ceil(-since / T.beatMs))); }
+    else if (T.counting) { T.counting = false; renderTarget(); }
+  } else if (run && run.mode === "lock") $("#holdArc").style.strokeDashoffset = 414.7 * (1 - Math.min(1, run.st.hold / HOLD_MS));
   else if (run) $("#holdArc").style.strokeDashoffset = 414.7;
 
   // Live finger dot on the board
@@ -884,7 +1073,8 @@ function nearestFingering(m) {
 function renderStats(pop) {
   if (!run) { $("#runstats").innerHTML = ""; return; }
   const ok = run.results.filter((x) => x && x.ok).length;
-  $("#runstats").innerHTML = `<span>Note <b>${Math.min(run.idx + 1, run.seq.length)}</b>/${run.seq.length}</span><span>In tune <b>${ok}</b></span><span>Combo <b class="${pop && run.combo > 1 ? "combo-pop" : ""}">×${run.combo}</b></span><span>XP <b>+${run.xp}</b></span><span>Goal <b>${TIERS[run.tier].icon} ±${run.tol}¢</b></span>`;
+  const tempo = run.tempo ? `<span>♩ = <b>${run.tempo.bpm}</b></span><span>On time <b>${run.tempo.onTime}</b>${run.lastTiming ? ` <span class="muted">(${run.lastTiming})</span>` : ""}</span>` : "";
+  $("#runstats").innerHTML = `${tempo}<span>Note <b>${Math.min(run.idx + 1, run.seq.length)}</b>/${run.seq.length}</span><span>${run.tempo ? "In tune & on time" : "In tune"} <b>${ok}</b></span><span>Combo <b class="${pop && run.combo > 1 ? "combo-pop" : ""}">×${run.combo}</b></span><span>XP <b>+${run.xp}</b></span><span>Goal <b>${TIERS[run.tier].icon} ±${run.tol}¢</b></span>`;
 }
 
 // Path chips
@@ -903,8 +1093,10 @@ function updatePath() {
   if (!run) return;
   document.querySelectorAll("#path .chip").forEach((c) => {
     const i = +c.dataset.i, r = run.results[i];
-    c.className = "chip" + (i === run.idx ? " cur" : "") + (r ? (r.ok ? " ok" : Math.abs(r.cents) <= run.tol * 2 && r.wrong === null ? " near" : " bad") : "");
-    c.title = r ? `${r.cents > 0 ? "+" : ""}${r.cents.toFixed(0)}¢${r.wrong !== null ? " (wrong note first)" : ""}` : "";
+    const near = r && !r.missed && r.wrong === null && (run.tempo ? r.inTune || r.onTime : Math.abs(r.cents) <= run.tol * 2);
+    c.className = "chip" + (i === run.idx ? " cur" : "") + (r ? (r.ok ? " ok" : near ? " near" : " bad") : "");
+    c.title = !r ? "" : r.missed ? (r.wrong !== null ? `wrong note: ${noteName(r.wrong)}` : "not heard on its beat")
+      : `${r.cents > 0 ? "+" : ""}${r.cents.toFixed(0)}¢${r.timing !== null && r.timing !== undefined ? `, ${r.timing > 0 ? "+" : ""}${r.timing.toFixed(0)} ms` : ""}${r.wrong !== null ? " (wrong note first)" : ""}`;
   });
   renderStats();
 }
@@ -976,7 +1168,8 @@ function showResults(o) {
   const { r, res, score, passed, medal, okN, avgAbs } = o;
   const T = TIERS[r.tier];
   const tips = buildTips(res, r.tol, r.seq, r.ex);
-  const downs = res.filter((x, i) => shiftDir(r.seq[i - 1], x.item) === "down");
+  if (r.tempo) tips.unshift(...tempoTips(r, res));
+  const downs = res.filter((x, i) => shiftDir(r.seq[i - 1], x.item) === "down" && x.cents !== null);
   if (downs.length >= 2) {
     const ok = downs.filter((x) => x.ok).length, avg = mean(downs.map((x) => x.cents));
     const trend = Math.abs(avg) < r.tol / 2 ? "no consistent lean" : avg > 0 ? "you tend to stop short (sharp)" : "you tend to overshoot (flat)";
@@ -988,27 +1181,25 @@ function showResults(o) {
   const secs = ((performance.now() - r.t0) / 1000).toFixed(0);
   const head = medal ? `<div class="medal-big">${T.icon}</div><div><h2 style="margin:0">${T.name} earned!</h2><div class="muted">${r.ex.group} · ${r.ex.name}</div></div>`
     : passed ? `<div class="medal-big">✓</div><div><h2 style="margin:0">Passed ${T.name}</h2><div class="muted">${r.ex.group} · ${r.ex.name}</div></div>`
-    : `<div class="medal-big">🎯</div><div><h2 style="margin:0">${need} more in-tune note${need > 1 ? "s" : ""} for ${T.name}</h2><div class="muted">Need ${Math.round(PASS * 100)}% within ±${r.tol}¢ · ${r.ex.name}</div></div>`;
-  // landing chart
-  const W = 660, H = 170, mid = H / 2 - 8, sc = (H / 2 - 22) / 50, bw = Math.min(34, (W - 20) / res.length - 6);
-  let ch = `<rect x="0" y="${mid - r.tol * sc}" width="${W}" height="${2 * r.tol * sc}" fill="var(--good)" opacity=".12"/><line x1="0" x2="${W}" y1="${mid}" y2="${mid}" stroke="var(--muted)" stroke-width=".7"/>`;
-  ch += `<text x="4" y="12" font-size="10" fill="var(--muted)">sharp</text><text x="4" y="${H - 22}" font-size="10" fill="var(--muted)">flat</text>`;
-  res.forEach((x, i) => {
-    const cx = 36 + i * ((W - 50) / res.length), c = Math.max(-50, Math.min(50, x.cents)), hgt = Math.max(2, Math.abs(c) * sc);
-    ch += `<rect x="${cx}" y="${c > 0 ? mid - hgt : mid}" width="${bw}" height="${hgt}" rx="3" fill="${x.wrong !== null ? "var(--bad)" : colorFor(Math.abs(x.cents), r.tol)}"><title>${noteName(x.item.midi)} ${x.cents > 0 ? "+" : ""}${x.cents.toFixed(0)}¢</title></rect>`;
-    ch += `<text x="${cx + bw / 2}" y="${H - 4}" text-anchor="middle" font-size="10" fill="var(--muted)">${x.item.label}${x.wrong !== null ? "✗" : ""}</text>`;
-  });
+    : `<div class="medal-big">🎯</div><div><h2 style="margin:0">${need} more ${r.tempo ? "clean" : "in-tune"} note${need > 1 ? "s" : ""} for ${T.name}</h2><div class="muted">Need ${Math.round(PASS * 100)}% within ±${r.tol}¢${r.tempo ? ` and ±${r.tempo.tolMs} ms` : ""} · ${r.ex.name}</div></div>`;
+  const labels = res.map((x) => x.item.label + (x.wrong !== null ? "✗" : ""));
+  const pitchChart = barChart(res.map((x) => x.cents), labels, r.tol, 50, "sharp", "flat",
+    res.map((x) => (x.wrong !== null ? "var(--bad)" : colorFor(Math.abs(x.cents || 0), r.tol))), res.map((x) => `${noteName(x.item.midi)} ${x.cents === null ? "missed" : (x.cents > 0 ? "+" : "") + x.cents.toFixed(0) + "¢"}`));
+  const timingChart = r.tempo ? barChart(res.map((x) => x.timing), labels, r.tempo.tolMs, Math.round(r.tempo.slot / 2), "late", "early",
+    res.map((x) => colorFor(Math.abs(x.timing || 0), r.tempo.tolMs)), res.map((x) => `${noteName(x.item.midi)} ${x.timing === null ? "missed" : (x.timing > 0 ? "+" : "") + x.timing.toFixed(0) + " ms"}`)) : "";
+  const onTimeN = res.filter((x) => x.onTime).length;
   const next = recommend();
   $("#resultsBox").innerHTML = `
     <div class="mhead">${head}<div class="score" style="color:${passed ? "var(--good)" : "var(--near)"}">${Math.round(score * 100)}%</div></div>
     <div class="mstats">
-      <div><b>${okN}/${res.length}</b><span>landed within ±${r.tol}¢</span></div>
+      <div><b>${okN}/${res.length}</b><span>${r.tempo ? `in tune & on time at ${r.tempo.bpm} BPM` : `landed within ±${r.tol}¢`}</span></div>
       <div><b>${avgAbs.toFixed(1)}¢</b><span>average miss</span></div>
-      <div><b>×${r.maxCombo}</b><span>best combo</span></div>
+      ${r.tempo ? `<div><b>${onTimeN}/${res.length}</b><span>on time (±${r.tempo.tolMs} ms)</span></div>` : `<div><b>×${r.maxCombo}</b><span>best combo</span></div>`}
       <div><b>+${r.xp}</b><span>XP${o.levelUp ? " · LEVEL UP!" : ""} · ${secs}s</span></div>
     </div>
     <h3>First landing of each note</h3>
-    <svg id="landChart" viewBox="0 0 ${W} ${H}">${ch}</svg>
+    ${pitchChart}
+    ${r.tempo ? `<h3>Timing of each note (vs the click)</h3>${timingChart}` : ""}
     <h3>Coach's notes</h3>
     <ul class="tips">${tips.map((t) => `<li>${t}</li>`).join("")}</ul>
     <div class="mbtns">
@@ -1025,6 +1216,23 @@ function showResults(o) {
   if (nb) nb.onclick = () => { selectEx(next.id, next.tier); startRun(); };
   setMsg(passed ? "Nice work. Press Space to go again, or take the next drill." : "Look over the coach's notes, then try again.");
   $("#runstats").innerHTML = "";
+}
+
+// Diverging bar per note around a centre line; null = missed (×)
+function barChart(vals, labels, tol, max, top, bottom, colors, titles) {
+  const W = 660, H = 150, mid = H / 2 - 8, sc = (H / 2 - 22) / max, n = vals.length, bw = Math.min(34, (W - 20) / n - 6);
+  let ch = `<rect x="0" y="${mid - Math.min(tol, max) * sc}" width="${W}" height="${2 * Math.min(tol, max) * sc}" fill="var(--good)" opacity=".12"/><line x1="0" x2="${W}" y1="${mid}" y2="${mid}" stroke="var(--muted)" stroke-width=".7"/>`;
+  ch += `<text x="4" y="12" font-size="10" fill="var(--muted)">${top}</text><text x="4" y="${H - 22}" font-size="10" fill="var(--muted)">${bottom}</text>`;
+  vals.forEach((v, i) => {
+    const cx = 36 + i * ((W - 50) / n);
+    if (v === null) ch += `<text x="${cx + bw / 2}" y="${mid + 5}" text-anchor="middle" font-size="14" font-weight="700" fill="var(--bad)"><title>${titles[i]}</title>×</text>`;
+    else {
+      const c = Math.max(-max, Math.min(max, v)), hgt = Math.max(2, Math.abs(c) * sc);
+      ch += `<rect x="${cx}" y="${c > 0 ? mid - hgt : mid}" width="${bw}" height="${hgt}" rx="3" fill="${colors[i]}"><title>${titles[i]}</title></rect>`;
+    }
+    ch += `<text x="${cx + bw / 2}" y="${H - 4}" text-anchor="middle" font-size="10" fill="var(--muted)">${labels[i]}</text>`;
+  });
+  return `<svg class="landChart" viewBox="0 0 ${W} ${H}">${ch}</svg>`;
 }
 
 // Recommendation: lowest medal first, rotating so you don't repeat the same drill (interleaving)
@@ -1070,6 +1278,10 @@ function selectEx(id, tier) {
   if (!exById(id)) id = EXERCISES[0].id;
   DB.selected = id;
   DB.settings.tier = tier || Math.min(3, ((exRec(id) || {}).best || 0) + 1);
+  const ex = exById(id);
+  if (ex.custom && ex.def.notesPerBeat) DB.settings.per = ex.def.notesPerBeat;
+  const lad = ((exRec(id) || {}).tempo || {})[DB.settings.per];
+  if (DB.settings.ladder) DB.settings.bpm = (lad && lad.next) || (ex.custom && ex.def.bpm) || DB.settings.bpm;
   applyRange();
   save();
   $("#results").hidden = true;
@@ -1091,6 +1303,11 @@ function syncSettingsUI() {
   document.querySelectorAll("#tierSeg button").forEach((b) => b.classList.toggle("on", +b.dataset.v === s.tier));
   $("#optHear").checked = s.hear; $("#optDrone").checked = s.drone; $("#optHide").checked = s.hide; $("#optEars").checked = s.ears; $("#optChime").checked = s.chime;
   $("#optHear").disabled = s.mode !== "lock";
+  $("#tempoPanel").hidden = s.mode !== "tempo";
+  $("#bpmVal").textContent = s.bpm; $("#bpmRange").value = s.bpm;
+  document.querySelectorAll("#perSeg button").forEach((b) => b.classList.toggle("on", +b.dataset.v === s.per));
+  $("#optLadder").checked = s.ladder;
+  $("#latVal").textContent = s.latencyMs === null ? "auto" : s.latencyMs + " ms";
   $("#a4Val").textContent = s.a4;
   const tol = TIERS[s.tier].tol;
   $("#gzone").style.width = tol + "%"; // track spans ±50¢ = 100%
@@ -1215,6 +1432,14 @@ document.querySelectorAll("#tierSeg button").forEach((b) => (b.onclick = () => {
 const bindOpt = (id, key, after) => ($(id).onchange = (e) => { DB.settings[key] = e.target.checked; save(); if (after) after(); if (run) renderTarget(); });
 bindOpt("#optHear", "hear"); bindOpt("#optHide", "hide"); bindOpt("#optEars", "ears"); bindOpt("#optChime", "chime");
 bindOpt("#optDrone", "drone", async () => { if (await startAudio()) applyDrone(); });
+const setBpm = (v) => { DB.settings.bpm = Math.max(30, Math.min(200, Math.round(v))); save(); syncSettingsUI(); if (run && run.tempo) startRun(); };
+$("#bpmDown").onclick = () => setBpm(DB.settings.bpm - 2);
+$("#bpmUp").onclick = () => setBpm(DB.settings.bpm + 2);
+$("#bpmRange").onchange = (e) => setBpm(+e.target.value);
+$("#bpmRange").oninput = (e) => ($("#bpmVal").textContent = e.target.value);
+document.querySelectorAll("#perSeg button").forEach((b) => (b.onclick = () => { DB.settings.per = +b.dataset.v; save(); syncSettingsUI(); if (run && run.tempo) startRun(); }));
+$("#optLadder").onchange = (e) => { DB.settings.ladder = e.target.checked; save(); };
+$("#tcalBtn").onclick = calibrateTiming;
 $("#calibBtn").onclick = async () => {
   if (!(await startAudio())) return;
   if (run) stopRun();

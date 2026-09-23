@@ -50,6 +50,8 @@
     const repeat = d.repeat === undefined ? 1 : d.repeat;
     if (!Number.isInteger(repeat) || repeat < 1 || repeat > LIMITS.repeat) err(".repeat", `a whole number from 1 to ${LIMITS.repeat}.`);
     if (d.upAndBack !== undefined && typeof d.upAndBack !== "boolean") err(".upAndBack", "must be true or false.");
+    if (d.bpm !== undefined && (!Number.isInteger(d.bpm) || d.bpm < 30 || d.bpm > 200)) err(".bpm", "a whole number from 30 to 200 (beats per minute).");
+    if (d.notesPerBeat !== undefined && (!Number.isInteger(d.notesPerBeat) || d.notesPerBeat < 1 || d.notesPerBeat > 4)) err(".notesPerBeat", "1, 2, 3 or 4.");
     if (!Array.isArray(d.notes) || d.notes.length < 2) { err(".notes", "required, a list of at least 2 notes."); return { errors, warnings }; }
     if (d.notes.length > LIMITS.notes) err(".notes", `at most ${LIMITS.notes} notes; use "repeat" to loop a shorter pattern.`);
 
@@ -132,6 +134,8 @@
     });
     if (d.upAndBack) out.upAndBack = true;
     if (d.repeat && d.repeat > 1) out.repeat = d.repeat;
+    if (d.bpm) out.bpm = d.bpm;
+    if (d.notesPerBeat) out.notesPerBeat = d.notesPerBeat;
     return out;
   }
 
@@ -176,6 +180,8 @@ A drill is a JSON object. Paste it into the **My drills** tab (Import), or save 
   - guide (optional): a guide note for a shift, e.g. "A5". It is shown when this note is reached by a shift, and sounding it is not counted as a wrong note. It must be on the same string. Classic use when shifting down from finger 1 to finger 2: the guide is where finger 1 lands in the new position.
 - upAndBack (optional, default false): after the last note, play the notes again in reverse without repeating the turning note.
 - repeat (optional, 1–${LIMITS.repeat}, default 1): play the whole sequence this many times.
+- bpm (optional, 30–200): starting tempo for Tempo mode (metronome). After that the tempo ladder takes over.
+- notesPerBeat (optional, 1–4, default 1): how many notes fit in each click in Tempo mode.
 
 ## Rules
 - Two notes in a row must not have the same pitch, because the app moves on when the pitch changes. This also applies where a repeat loops back to the start and where upAndBack turns around.
@@ -190,6 +196,7 @@ A drill is a JSON object. Paste it into the **My drills** tab (Import), or save 
 - Keep it to 8–24 notes, so one run takes under a minute.
 - Add guide notes to shifts down onto a higher finger.
 - Once the isolated move is reliable, put it back into a longer scale passage.
+- For speed work, set bpm about 20% below the tempo where the player's notes stay clean. The tempo ladder then adds 4 BPM after each passed run.
 
 ## Example
 {
@@ -214,7 +221,8 @@ A drill is a JSON object. Paste it into the **My drills** tab (Import), or save 
 - context: key, a4 (the player's tuning in Hz), medal, number of runs.
 - runs: the last 5 runs, newest first. Each run has:
   - date
-  - mode: "lock" (the player holds each note in tune before moving on) or "flow" (they play straight through)
+  - mode: "lock" (the player holds each note in tune before moving on), "flow" (they play straight through) or "tempo" (with a metronome; a note counts only if it's in tune and on the beat)
+  - bpm, notesPerBeat and timingToleranceMs: only in tempo runs
   - tolerance: ±cents counted as in tune
   - score: fraction of notes in tune
   - passed: true when score ≥ 0.85
@@ -222,6 +230,7 @@ A drill is a JSON object. Paste it into the **My drills** tab (Import), or save 
     - cents: the first steady landing, before any correction. Positive = sharp, negative = flat.
     - wrongNoteFirst: a different pitch the player played before finding the note, or null.
     - shift: "up", "down" or null.
+    - timingMs, onTime and missed: only in tempo runs. timingMs is when the note started compared with the click as heard: + late, − early. missed = the note wasn't heard in its beat window, so cents and timingMs are null.
   - coachNotes: the app's own feedback for that run.
 - noteTrends: for each note in the drill, collected across all practice: avgCents over the last 20 landings, inTuneRate (share within ±15¢), landings and wrongNotes.
 
@@ -230,6 +239,7 @@ How to read landings:
 - After a shift up, sharp = overshot and flat = fell short.
 - A consistent sign on the same note is a habit; scattered signs point to an unstable hand frame.
 - 10¢ is roughly 1–2 mm of finger movement in 3rd–5th position.
+- In tempo runs, shifted notes arriving later than the others means the shift starts too late. Missed notes plus a low score mean the tempo is too fast; accuracy should come before speed.
 `;
 
   const api = { FORMAT, REPORT_FORMAT, FORMAT_DOC, parseNote, noteText, midiText, parseImport, validateDrill, toExercise, fromSequence, slug };

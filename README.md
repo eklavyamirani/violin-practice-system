@@ -4,6 +4,14 @@ A practice app that listens through your microphone while you play scales in any
 
 Use the **Scale** card to pick a key (12 per scale type), a scale type (major, natural minor, harmonic minor, melodic minor), a string pair (G·D, D·A, A·E) and two positions (1st–7th). It generates the drills for that setup: each string on its own in each position, both strings together, a run with one shift between the two positions, an adaptive Note Hunt, and *Shifting down* drills (repeated down-shift pairs on each string with guide notes, plus a run that starts at the top so you shift down first). Medals and history are kept separately for each setup. Where each note tends to land is tracked per physical spot on the string, so it's shared across scales.
 
+## Tempo mode
+
+Choose **⏱ Tempo** under Mode to practise with a metronome. After a four-click count-in, the drill moves on with the beat. A note counts only if it's in tune *and* on time; the on-time window gets tighter at each medal level.
+
+- Set the BPM and notes per beat (1–4). With **Tempo ladder** on, a passed run adds 4 BPM next time and a rough run takes 4 off.
+- Press **Calibrate timing** once: after the count-in, play 8 notes on the click, alternating two open strings. This measures the delay your speakers and mic add, so early and late are judged against the click you hear.
+- Results show a timing chart next to the pitch chart, and the coach flags rushing, dragging, and shifts that make you late.
+
 ## Custom drills with Claude
 
 The **My drills** tab lets you import drills written for you, for example by Claude after you describe a specific problem. It also exports reports so Claude can see how you did.

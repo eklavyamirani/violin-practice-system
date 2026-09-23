@@ -34,6 +34,10 @@ bad({ title: "x", notes: [n("C6", "E", 1, 5), n("C6", "E", 3, 3)] }, "same pitch
 bad({ title: "x", notes: [n("C6", "E", 1, 5), n("B5", "E", 2, 3), n("C6", "E", 1, 5)], repeat: 2 }, "repeat loops back");
 bad({ title: "x", notes: [n("C6", "E", 1, 5), n("B5", "E", 2, 3)], upAndBack: true, repeat: 2 }, "repeat loops back");
 bad({ title: "x", notes: [n("A4", "A", 0), n("B5", "E", 2, 3)].map((x, i) => (i ? x : { ...x, note: "B4" })) }, "open A string");
+bad({ title: "x", notes: [n("C6", "E", 1, 5), n("B5", "E", 2, 3)], bpm: 400 }, ".bpm");
+bad({ title: "x", notes: [n("C6", "E", 1, 5), n("B5", "E", 2, 3)], notesPerBeat: 8 }, ".notesPerBeat");
+const tempoDrill = D.parseImport(JSON.stringify({ title: "Fast", notes: [n("C6", "E", 1, 5), n("B5", "E", 2, 3)], bpm: 72, notesPerBeat: 2 }));
+check("bpm and notesPerBeat kept", tempoDrill.drills[0].bpm === 72 && tempoDrill.drills[0].notesPerBeat === 2, tempoDrill);
 check("bad JSON", D.parseImport("{ not json").errors[0].startsWith("That isn't valid JSON"));
 
 // Finger/position that don't fit the note warn but still import
