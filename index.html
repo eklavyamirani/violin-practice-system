@@ -133,6 +133,26 @@ main { max-width: 1280px; margin: 0 auto; padding: 1rem; }
 #board.hideguide .guide { display: none; }
 #mm { font-size: .82rem; color: var(--muted); min-height: 2.4em; margin-top: .3rem; }
 
+/* My drills */
+.dgrid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 1rem; align-items: start; }
+.small { font-size: .84rem; margin: .1rem 0 .6rem; }
+.row { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; margin-top: .6rem; }
+#importText { width: 100%; min-height: 150px; font: .82rem/1.4 ui-monospace, Menlo, monospace; color: var(--ink); background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; padding: .6rem; resize: vertical; }
+.filebtn { cursor: pointer; }
+#importMsg ul { margin: .6rem 0 0; padding-left: 1.1rem; font-size: .85rem; }
+#importMsg .ok { color: var(--good); font-weight: 600; margin-top: .6rem; }
+#importMsg .errs li { color: var(--bad); }
+#importMsg .warns li { color: var(--near); }
+.drow { display: flex; justify-content: space-between; gap: .8rem; align-items: center; padding: .55rem 0; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.drow:last-child { border-bottom: 0; }
+.drow .nm { font-weight: 600; }
+.drow .sub { font-size: .8rem; color: var(--muted); }
+.drow .acts { display: flex; gap: .35rem; flex-wrap: wrap; }
+.drow .acts button { border: 1px solid var(--line); background: var(--panel-2); border-radius: 8px; padding: .25rem .55rem; font-size: .8rem; }
+.drow .acts button.go { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 700; }
+.drow .acts button.del { color: var(--bad); }
+.formatcard pre { white-space: pre-wrap; font: .8rem/1.5 ui-monospace, Menlo, monospace; margin: 0; max-height: 75vh; overflow: auto; background: var(--panel-2); border-radius: 10px; padding: .8rem; }
+
 /* Progress */
 .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: .8rem; margin-bottom: 1rem; }
 .tile .v { font-size: 1.7rem; font-weight: 800; }
@@ -185,7 +205,7 @@ main { max-width: 1280px; margin: 0 auto; padding: 1rem; }
 @media (max-width: 980px) {
   #tab-practice.active { grid-template-columns: 1fr; }
   .side { order: 2; }
-  .pgrid { grid-template-columns: 1fr; }
+  .pgrid, .dgrid { grid-template-columns: 1fr; }
 }
 @media (max-width: 640px) {
   main { padding: .75rem 1rem; }
@@ -203,6 +223,7 @@ main { max-width: 1280px; margin: 0 auto; padding: 1rem; }
   <div class="brand">𝄞 Fingerboard Coach <small id="cfgLabel"></small></div>
   <nav class="tabs">
     <button data-tab="practice" class="active">Practice</button>
+    <button data-tab="drills">My drills</button>
     <button data-tab="progress">Progress</button>
     <button data-tab="how">Why it works</button>
   </nav>
@@ -277,6 +298,30 @@ main { max-width: 1280px; margin: 0 auto; padding: 1rem; }
     </div>
   </section>
 
+  <!-- MY DRILLS -->
+  <section id="tab-drills" class="tab">
+    <div class="dgrid">
+      <div style="display:grid;gap:1rem;align-content:start">
+        <div class="card">
+          <h3>Import a drill</h3>
+          <p class="muted small">Paste a drill from Claude (a code fence around it is fine), or load a .json file. The format is described on the right.</p>
+          <textarea id="importText" spellcheck="false" placeholder='{ "format": "fingerboard-coach/drill@1", "title": "…", "notes": [ … ] }'></textarea>
+          <div class="row">
+            <button class="btn" id="importBtn">Import</button>
+            <label class="btn ghost filebtn">Load file…<input type="file" id="importFile" accept=".json,application/json,text/plain" hidden></label>
+          </div>
+          <div id="importMsg"></div>
+        </div>
+        <div class="card"><h3>My drills</h3><div id="customList"></div></div>
+        <div class="card"><h3>Reports on other drills</h3><p class="muted small">Every drill you finish keeps its last 5 runs. Copy a report and paste it to Claude to talk through what's going wrong.</p><div id="reportList"></div></div>
+      </div>
+      <div class="card formatcard">
+        <div class="row" style="justify-content:space-between;margin:0 0 .6rem"><h3 style="margin:0">Drill &amp; report format</h3><button class="btn ghost" id="copyFormat">Copy format for Claude</button></div>
+        <pre id="formatDoc"></pre>
+      </div>
+    </div>
+  </section>
+
   <!-- PROGRESS -->
   <section id="tab-progress" class="tab">
     <div class="tiles" id="tiles"></div>
@@ -328,6 +373,7 @@ main { max-width: 1280px; margin: 0 auto; padding: 1rem; }
 
 <script src="pitch.js"></script>
 <script src="scales.js"></script>
+<script src="drills.js"></script>
 <script>
 "use strict";
 const $ = (s) => document.querySelector(s);
@@ -350,26 +396,39 @@ const DEFAULT_CFG = { tonic: "G", type: "major", strings: ["A", "E"], positions:
 let CFG, CFG_KEY, EXERCISES, ALL_FINGERINGS, RANGE;
 const keyName = () => `${Scales.prettyTonic(CFG.tonic)} ${Scales.SCALE_TYPES[CFG.type].name}`;
 const exById = (id) => EXERCISES.find((e) => e.id === id);
-const exRec = (id) => DB.ex[CFG_KEY + "|" + id];
+const recKey = (id) => (id.startsWith("c-") ? "custom|" : CFG_KEY + "|") + id;
+const exRec = (id) => DB.ex[recKey(id)];
+// Moving between positions is a shift; open strings (no position) are not
+const shiftDir = (prev, cur) => (prev && prev.pos && cur.pos && prev.pos !== cur.pos ? (cur.pos < prev.pos ? "down" : "up") : null);
+const posText = (it) => (it.pos ? ord(it.pos) : "open");
+const keyPhrase = (ex) => (ex.custom ? (ex.key ? `In ${ex.key}` : "In this drill") : `In ${keyName()}`);
 
 function applyConfig() {
   CFG = DB.cfg;
   CFG_KEY = Scales.cfgKey(CFG);
-  EXERCISES = Scales.buildDrills(CFG);
+  EXERCISES = Scales.buildDrills(CFG).concat(DB.custom.map(DrillIO.toExercise));
   ALL_FINGERINGS = exById("hunt").pool;
   if (!exById(DB.selected)) DB.selected = EXERCISES[0].id;
-  const midis = EXERCISES.flatMap((e) => (e.hunt ? e.pool : e.notes)).map((n) => n.midi);
+  applyRange();
+}
+
+// Detection range, drone and fingerboard follow the notes in play: the whole scale setup, or one imported drill
+function activeNotes() {
+  const ex = exById(DB.selected);
+  return ex.custom ? ex.notes : EXERCISES.filter((e) => !e.custom).flatMap((e) => (e.hunt ? e.pool : e.notes));
+}
+function applyRange() {
+  const midis = activeNotes().map((n) => n.midi);
   const lowHz = 440 * Math.pow(2, (Math.min(...midis) - 69) / 12), highHz = 440 * Math.pow(2, (Math.max(...midis) - 69) / 12);
-  RANGE = { lowHz, min: lowHz * 0.8, max: Math.min(2600, highHz * 1.25), hp: Math.min(350, lowHz * 0.5) };
+  const key = `${Math.min(...midis)}-${Math.max(...midis)}-${droneTonicPc()}`;
+  RANGE = { lowHz, min: lowHz * 0.8, max: Math.min(2600, highHz * 1.25), hp: Math.min(350, lowHz * 0.5), key };
   if (hp) hp.frequency.value = RANGE.hp;
-  const [lo, hi] = CFG.strings;
-  SX = { [lo]: 72, [hi]: 128 };
-  if (droneNodes) { DB.settings.drone = false; applyDrone(); DB.settings.drone = true; applyDrone(); }
+  if (droneNodes && droneNodes.key !== key) { DB.settings.drone = false; applyDrone(); DB.settings.drone = true; applyDrone(); }
 }
 
 // ---------- Storage ----------
 const STORE_KEY = "fingerboard-coach.v1";
-const defaults = () => ({ xp: 0, notes: {}, ex: {}, days: {}, sessions: [], selected: "p3-A", cfg: { ...DEFAULT_CFG },
+const defaults = () => ({ xp: 0, notes: {}, ex: {}, days: {}, sessions: [], selected: "p3-A", cfg: { ...DEFAULT_CFG }, custom: [], runs: {},
   settings: { mode: "lock", tier: 1, drone: false, hear: false, hide: false, ears: false, chime: true, a4: 440 } });
 function loadDB() {
   const d = defaults();
@@ -456,7 +515,7 @@ function applyDrone() {
     const g = ctx.createGain(); g.gain.value = 0; g.gain.linearRampToValueAtTime(0.07, ctx.currentTime + 0.5);
     const oscs = droneMidis().map((m) => { const o = ctx.createOscillator(); o.frequency.value = midiFreq(m); o.connect(g); o.start(); return o; }); // pure sines
     g.connect(ctx.destination);
-    droneNodes = { g, oscs };
+    droneNodes = { g, oscs, key: RANGE.key };
   } else if (!DB.settings.drone && droneNodes) {
     const { g, oscs } = droneNodes; droneNodes = null;
     g.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.3);
@@ -465,8 +524,13 @@ function applyDrone() {
 }
 
 // Tonic (plus fifth when it fits) pitched below the lowest drill note, so the detector ignores it
+function droneTonicPc() {
+  const ex = exById(DB.selected);
+  if (ex && ex.custom && ex.drone) return ((DrillIO.parseNote(ex.drone + "4").midi % 12) + 12) % 12;
+  return Scales.spell(CFG.tonic, Scales.SCALE_TYPES[CFG.type]).tonicPc;
+}
 function droneMidis() {
-  const tpc = Scales.spell(CFG.tonic, Scales.SCALE_TYPES[CFG.type]).tonicPc;
+  const tpc = droneTonicPc();
   let m = 24 + tpc;
   while (440 * Math.pow(2, (m + 12 - 69) / 12) < RANGE.lowHz * 0.45) m += 12;
   if (440 * Math.pow(2, (m - 69) / 12) < 60) m += 12;
@@ -587,7 +651,7 @@ function runStep(t, dt, stable) {
       if (st.wrong === null) run.combo = 0;
       st.wrong = played;
       const up = played < cur.midi;
-      const tipG = Math.abs(played - cur.midi) === 1 ? ` In ${keyName()} this note is ${cur.label}.` : "";
+      const tipG = Math.abs(played - cur.midi) === 1 ? ` ${keyPhrase(run.ex)} this note is ${cur.label}.` : "";
       setMsg(`✗ That's ${noteName(played)}. The target is ${noteName(cur.midi)}. Move ${up ? "higher, toward the bridge" : "lower, toward the scroll"}.${tipG}`, "bad");
     }
   } else if (run.mode === "lock") {
@@ -631,7 +695,7 @@ function advance(t) {
 function finishRun() {
   const r = run, res = r.results, ex = r.ex;
   const okN = res.filter((x) => x.ok).length, score = okN / res.length, passed = score >= PASS;
-  const rec = (DB.ex[CFG_KEY + "|" + ex.id] ||= { best: 0, runs: 0, last: 0, bestScore: {} });
+  const rec = (DB.ex[recKey(ex.id)] ||= { best: 0, runs: 0, last: 0, bestScore: {} });
   rec.runs++; rec.last = Date.now();
   const prevBestScore = rec.bestScore[r.tier] || 0;
   rec.bestScore[r.tier] = Math.max(prevBestScore, score);
@@ -642,7 +706,7 @@ function finishRun() {
   const today = dayKey();
   DB.days[today] = (DB.days[today] || 0) + 1;
   const avgAbs = mean(res.map((x) => Math.abs(x.cents)));
-  DB.sessions.unshift({ t: Date.now(), cfg: CFG_KEY, ex: ex.id, label: `${keyName()} · ${ex.group === "Put it together" ? "" : ex.group.replace(" position", "") + " "}${ex.name}`, tier: r.tier, mode: r.mode, score, avgAbs });
+  DB.sessions.unshift({ t: Date.now(), cfg: ex.custom ? "custom" : CFG_KEY, ex: ex.id, label: drillLabel(ex), tier: r.tier, mode: r.mode, score, avgAbs });
   DB.sessions = DB.sessions.slice(0, 60);
   if (medal && DB.settings.tier < 3) DB.settings.tier = r.tier + 1;
   save();
@@ -653,15 +717,66 @@ function finishRun() {
   renderAll();
 }
 
+const drillLabel = (ex) => (ex.custom ? `My drill · ${ex.name}` : `${keyName()} · ${ex.group === "Put it together" ? "" : ex.group.replace(" position", "") + " "}${ex.name}`);
+
+// Keep the last 5 runs of every drill, note by note, for reports
+function recordRun(r, res, tips) {
+  const key = recKey(r.ex.id);
+  const entry = (DB.runs[key] ||= { label: drillLabel(r.ex), key: r.ex.custom ? r.ex.key || null : keyName(), runs: [] });
+  entry.label = drillLabel(r.ex);
+  entry.drill = r.ex.hunt ? null : r.ex.custom ? r.ex.def : DrillIO.fromSequence(drillLabel(r.ex), r.ex.notes, { key: keyName(), tips: r.ex.tip, drone: CFG.tonic });
+  const score = res.filter((x) => x.ok).length / res.length;
+  entry.runs.unshift({
+    date: new Date().toISOString(), mode: r.mode, tolerance: r.tol, score: Math.round(score * 1000) / 1000, passed: score >= PASS,
+    landings: res.map((x, i) => ({ note: DrillIO.noteText(x.item), string: x.item.string, finger: x.item.finger === "4x" ? "4x" : +x.item.finger, position: x.item.pos,
+      cents: Math.round(x.cents * 10) / 10, inTune: x.ok, wrongNoteFirst: x.wrong === null ? null : DrillIO.midiText(x.wrong), shift: shiftDir(r.seq[i - 1], x.item) })),
+    coachNotes: tips.map((t) => t.replace(/<[^>]+>/g, "")),
+  });
+  entry.runs = entry.runs.slice(0, 5);
+  save();
+}
+
+function buildReport(key) {
+  const entry = DB.runs[key], rec = DB.ex[key] || {};
+  const notes = entry.runs.flatMap((r) => r.landings);
+  const seen = new Map();
+  for (const l of notes) {
+    const k = DrillIO.parseNote(l.note).midi + l.string;
+    if (seen.has(k)) continue;
+    const s = noteStats(k);
+    seen.set(k, { note: l.note, string: l.string, avgCents: s ? Math.round(s.avg * 10) / 10 : null, inTuneRate: s ? Math.round(s.hit * 100) / 100 : null, landings: s ? s.n : 0, wrongNotes: s ? s.wrong : 0 });
+  }
+  return {
+    format: DrillIO.REPORT_FORMAT, exported: new Date().toISOString(),
+    howToRead: "cents = first steady landing before any correction (+ sharp, − flat). After a shift down, sharp = stopped short; after a shift up, sharp = overshot. Full format: the app's My drills tab.",
+    drill: entry.drill,
+    context: { drill: entry.label, key: entry.key, a4: DB.settings.a4, medal: rec.best ? TIERS[rec.best].name : "none", totalRuns: rec.runs || entry.runs.length },
+    runs: entry.runs,
+    noteTrends: [...seen.values()],
+  };
+}
+
+async function copyText(text, btn) {
+  try { await navigator.clipboard.writeText(text); }
+  catch (e) { const t = document.createElement("textarea"); t.value = text; document.body.appendChild(t); t.select(); document.execCommand("copy"); t.remove(); }
+  if (btn) { const old = btn.textContent; btn.textContent = "Copied ✓"; setTimeout(() => (btn.textContent = old), 1500); }
+}
+function download(name, text) {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([text], { type: "application/json" }));
+  a.download = name; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
 // ---------- Feedback helpers ----------
 function mmOff(item, cents) { return distMM(item.string, item.midi + cents / 100) - distMM(item.string, item.midi); }
-function fingerLabel(it) { return it.finger === "4x" ? "4 (stretched)" : it.finger; }
+function fingerLabel(it) { return it.finger === "4x" ? "4 (stretched)" : it.finger === "0" ? "0 (open)" : it.finger; }
 
 function buildTips(res, tol, seq, ex) {
   const tips = [];
   const groups = {};
   res.forEach((x, i) => {
-    const shifted = i > 0 && seq[i - 1].pos !== x.item.pos ? (x.item.pos < seq[i - 1].pos ? "down" : "up") : null;
+    const shifted = shiftDir(seq[i - 1], x.item);
     const k = x.item.key + (shifted || "");
     (groups[k] ||= { item: x.item, shifted, c: [] }).c.push(x.cents);
   });
@@ -670,7 +785,7 @@ function buildTips(res, tol, seq, ex) {
     .sort((a, b) => Math.abs(mean(b.c)) - Math.abs(mean(a.c)));
   for (const g of habits.slice(0, 3)) {
     const a = mean(g.c), mm = Math.abs(mmOff(g.item, a)).toFixed(1), sharp = a > 0;
-    const who = `<b>${noteName(g.item.midi)}</b> (${g.item.string} string, finger ${fingerLabel(g.item)}, ${ord(g.item.pos)})`;
+    const who = `<b>${noteName(g.item.midi)}</b> (${g.item.string} string, finger ${fingerLabel(g.item)}, ${posText(g.item)})`;
     if (g.shifted === "up") tips.push(`Your shift up to ${who} ${sharp ? "overshoots" : "falls short"} by ~${Math.abs(a).toFixed(0)}¢ (≈${mm} mm). ${sharp ? "Slide more lightly and stop sooner" : "Let the whole hand travel, not just the finger"}. Slow shifts first, then speed up.`);
     else if (g.shifted === "down") tips.push(`Your shift down to ${who} ${sharp ? "stops short" : "overshoots"} by ~${Math.abs(a).toFixed(0)}¢ (≈${mm} mm). ${sharp ? "The hand isn't coming back far enough. Let the thumb lead it back" : "Release the pressure sooner and let the hand settle"}${g.item.guide ? `, and aim for the guide note ${g.item.guide.label}${g.item.guide.oct} with finger ${g.item.from.finger}` : ""}.`);
     else tips.push(`${who} lands ${Math.abs(a).toFixed(0)}¢ ${sharp ? "sharp" : "flat"}${g.c.length > 1 ? " every time" : ""}, about ${mm} mm too far ${sharp ? "toward the bridge" : "toward the scroll"}. Aim a hair ${sharp ? "lower" : "higher"}.`);
@@ -678,12 +793,12 @@ function buildTips(res, tol, seq, ex) {
   const wrongs = [...new Map(res.filter((x) => x.wrong !== null).map((x) => [x.wrong + "|" + x.item.midi, x])).values()];
   for (const x of wrongs.slice(0, 2)) {
     const accidentalSlip = Math.abs(x.wrong - x.item.midi) === 1;
-    tips.push(`You played <b>${noteName(x.wrong)}</b> instead of <b>${noteName(x.item.midi)}</b>.${accidentalSlip ? ` In ${keyName()} it's ${x.item.label}. Check the finger pattern: ${x.item.midi > x.wrong ? "this finger sits higher" : "this finger sits lower"} than you placed it.` : " Check the hand frame for this position."}`);
+    tips.push(`You played <b>${noteName(x.wrong)}</b> instead of <b>${noteName(x.item.midi)}</b>.${accidentalSlip ? ` ${keyPhrase(ex)} it's ${x.item.label}. Check the finger pattern: ${x.item.midi > x.wrong ? "this finger sits higher" : "this finger sits lower"} than you placed it.` : " Check the hand frame for this position."}`);
   }
   const all = res.map((x) => x.cents), m = mean(all);
   if (Math.abs(m) > 8 && tips.length < 4) tips.push(`Overall you ran ${m > 0 ? "sharp" : "flat"} (${m > 0 ? "+" : ""}${m.toFixed(0)}¢ on average). ${m > 0 ? `${Math.max(...res.map((x) => x.item.pos)) >= 3 ? "In higher positions the hand often creeps toward the bridge." : "Your hand may be creeping toward the bridge."} Keep your thumb under the 1st–2nd finger.` : "Often the hand doesn't fully reach the position. Check where your thumb is and where your palm meets the violin's shoulder."}`);
   const half = Math.ceil(res.length / 2);
-  if (!ex.hunt && !ex.id.startsWith("down") && res.length > 6) {
+  if (!ex.hunt && !ex.custom && !ex.id.startsWith("down") && res.length > 6) {
     const up = mean(all.slice(0, half)), down = mean(all.slice(half));
     if (Math.abs(up - down) > 12 && tips.length < 4) tips.push(`Going up you averaged ${up > 0 ? "+" : ""}${up.toFixed(0)}¢; coming down ${down > 0 ? "+" : ""}${down.toFixed(0)}¢. Your fingers are drifting ${up > down ? "sharp going up" : "flat going up"}. Keep lower fingers down as you climb so they anchor the hand.`);
   }
@@ -701,10 +816,10 @@ function renderTarget() {
   const cur = run.seq[run.idx], prev = run.seq[run.idx - 1];
   $("#bigNote").innerHTML = noteHTML(cur.midi);
   const showMap = !hide || run.st.landed;
-  const dir = prev && prev.pos !== cur.pos ? (cur.pos < prev.pos ? "down" : "up") : null;
+  const dir = shiftDir(prev, cur);
   const shift = dir ? `<div class="badge">${dir === "down" ? "⇣" : "⇡"} Shift ${dir} to ${ord(cur.pos)} position</div>${cur.guide ? `<div class="guide">Slide ${prev.finger} to <b>${cur.guide.label}${cur.guide.oct}</b> (guide note), then drop ${cur.finger}</div>` : ""}` : "";
   $("#fing").innerHTML = showMap
-    ? `<div class="big">${cur.string} string · finger ${fingerLabel(cur)}</div><div>${ord(cur.pos)} position</div>${run.ex.hunt ? "" : `<div class="frame">${run.ex.frame}</div>`}${shift}`
+    ? `<div class="big">${cur.string} string · finger ${fingerLabel(cur)}</div><div>${cur.pos ? ord(cur.pos) + " position" : "open string"}</div>${run.ex.hunt ? "" : `<div class="frame">${run.ex.frame}</div>`}${shift}`
     : `<div class="big">Find it from memory</div><div class="muted">String, finger and position are hidden until you land.</div>${dir ? `<div class="badge">${dir === "down" ? "⇣ Shift down" : "⇡ Shift up"}</div>` : ""}`;
   $("#board").classList.toggle("hideguide", !showMap);
   updateBoardTarget();
@@ -749,7 +864,7 @@ function render() {
   // Live finger dot on the board
   const dot = $("#liveDot"), mmEl = $("#mm");
   const boardItem = cur || (smooth !== null ? nearestFingering(smooth) : null);
-  if (dot && boardItem && smooth !== null && Math.abs(smooth - boardItem.midi) < 1.5 && !hideNeedle) {
+  if (dot && boardItem && SX[boardItem.string] !== undefined && smooth !== null && Math.abs(smooth - boardItem.midi) < 1.5 && !hideNeedle) {
     const y = yOf(boardItem.string, smooth);
     dot.setAttribute("cx", SX[boardItem.string]); dot.setAttribute("cy", y);
     dot.setAttribute("fill", colorFor(Math.abs((smooth - boardItem.midi) * 100), tol));
@@ -779,7 +894,8 @@ function buildPath() {
   el.innerHTML = "";
   if (!seq.length) { el.innerHTML = `<span class="muted">12 random notes, picked more often where you're weakest.</span>`; return; }
   seq.forEach((it, i) => {
-    if (i > 0 && seq[i - 1].pos !== it.pos) el.insertAdjacentHTML("beforeend", `<span class="shiftmark">${it.pos < seq[i - 1].pos ? "⇣" : "⇡"}${ord(it.pos)}</span>`);
+    const dir = shiftDir(seq[i - 1], it);
+    if (dir) el.insertAdjacentHTML("beforeend", `<span class="shiftmark">${dir === "down" ? "⇣" : "⇡"}${ord(it.pos)}</span>`);
     el.insertAdjacentHTML("beforeend", `<span class="chip" data-i="${i}">${noteHTML(it.midi)}</span>`);
   });
 }
@@ -797,22 +913,38 @@ function updatePath() {
 const NUT = 26, PXMM = 2.65;
 let SX = { A: 72, E: 128 };
 const yOf = (s, m) => NUT + distMM(s, m) * PXMM;
+let BOARD = { strings: ["A", "E"], lowPos: 3 };
+function boardLayout() {
+  const ex = exById(DB.selected);
+  if (!ex.custom) {
+    const lo = CFG.strings[0];
+    return { strings: CFG.strings, lowPos: CFG.positions[0],
+      lines: CFG.positions.map((p) => ({ p, y: yOf(lo, ALL_FINGERINGS.find((it) => it.string === lo && it.pos === p && it.finger === "1").midi) })) };
+  }
+  const strings = Scales.STRING_ORDER.filter((s) => ex.notes.some((n) => n.string === s));
+  const positions = [...new Set(ex.notes.map((n) => n.pos).filter(Boolean))].sort((a, b) => a - b);
+  // Mark each position where its 1st finger sits, when the drill uses finger 1 there
+  const lines = positions.map((p) => { const f1 = ex.notes.find((n) => n.pos === p && n.finger === "1"); return f1 && { p, y: yOf(f1.string, f1.midi) }; }).filter(Boolean);
+  return { strings, lowPos: positions[0], lines };
+}
 function buildBoard() {
   const svg = $("#board");
   const seq = run ? run.seq : exById(DB.selected).hunt ? ALL_FINGERINGS : exById(DB.selected).notes;
-  const [lo, hi] = CFG.strings;
-  const maxMM = Math.max(...EXERCISES.flatMap((e) => (e.hunt ? e.pool : e.notes)).map((n) => distMM(n.string, n.midi)));
+  BOARD = boardLayout();
+  const xs = { 1: [100], 2: [72, 128], 3: [60, 100, 140], 4: [54, 85, 116, 147] }[BOARD.strings.length];
+  SX = Object.fromEntries(BOARD.strings.map((s, i) => [s, xs[i]]));
+  const lo = BOARD.strings[0];
+  const maxMM = Math.max(...activeNotes().map((n) => distMM(n.string, n.midi)));
   const bottom = Math.max(260, Math.round(NUT + maxMM * PXMM + 30));
   svg.setAttribute("viewBox", `0 0 200 ${bottom + 16}`);
   let h = `<polygon points="42,${NUT} 158,${NUT} 170,${bottom} 30,${bottom}" fill="var(--board)"/>`;
   h += `<rect x="40" y="${NUT - 6}" width="120" height="7" rx="2" fill="var(--string)"/>`;
   h += `<text x="100" y="12" text-anchor="middle" font-size="10" fill="var(--muted)">scroll ↑ · bridge ↓</text>`;
-  for (const s of [lo, hi]) h += `<text x="${SX[s]}" y="${bottom + 13}" text-anchor="middle" font-size="11" font-weight="700" fill="var(--muted)">${s}</text>`;
-  for (const p of CFG.positions) {
-    const y = yOf(lo, ALL_FINGERINGS.find((it) => it.string === lo && it.pos === p && it.finger === "1").midi);
+  for (const s of BOARD.strings) h += `<text x="${SX[s]}" y="${bottom + 13}" text-anchor="middle" font-size="11" font-weight="700" fill="var(--muted)">${s}</text>`;
+  for (const { p, y } of BOARD.lines) {
     h += `<line x1="36" x2="164" y1="${y}" y2="${y}" stroke="var(--board-line)" stroke-dasharray="3 4"/><text x="2" y="${y + 4}" font-size="10" fill="var(--muted)">${ord(p)}</text>`;
   }
-  for (const s of [lo, hi]) h += `<line x1="${SX[s]}" x2="${SX[s]}" y1="${NUT}" y2="${bottom}" stroke="var(--string)" stroke-width="${s === lo ? 1.6 : 1.1}"/>`;
+  for (const s of BOARD.strings) h += `<line x1="${SX[s]}" x2="${SX[s]}" y1="${NUT}" y2="${bottom}" stroke="var(--string)" stroke-width="${s === lo ? 1.6 : 1.1}"/>`;
   const seen = new Set();
   h += `<g class="guide">`;
   for (const it of seq) {
@@ -820,8 +952,8 @@ function buildBoard() {
     seen.add(it.key + it.finger);
     const y = yOf(it.string, it.midi), x = SX[it.string];
     const same = seq.filter((o) => o.key === it.key).map((o) => o.finger);
-    const off = same.length > 1 && [...new Set(same)].length > 1 ? (it.pos === CFG.positions[0] ? -16 : 16) : 0;
-    if (!off || it.pos === CFG.positions[0]) h += `<circle cx="${x}" cy="${y}" r="8" fill="var(--panel-2)" opacity=".85"/>`;
+    const off = same.length > 1 && [...new Set(same)].length > 1 ? (it.pos === BOARD.lowPos ? -16 : 16) : 0;
+    if (!off || it.pos === BOARD.lowPos) h += `<circle cx="${x}" cy="${y}" r="8" fill="var(--panel-2)" opacity=".85"/>`;
     h += `<text x="${x + (off ? off * 1.1 : 0)}" y="${y + 4}" text-anchor="middle" font-size="${off ? 9 : 10}" font-weight="700" fill="${off ? "var(--muted)" : "var(--ink)"}">${it.finger}</text>`;
   }
   h += `</g><g id="tgt" class="guide"></g><circle id="liveDot" r="7" stroke="#fff" stroke-width="2" style="opacity:0;transition:cy .08s linear"/>`;
@@ -836,7 +968,7 @@ function updateBoardTarget() {
   const y1 = yOf(cur.string, cur.midi - run.tol / 100), y2 = yOf(cur.string, cur.midi + run.tol / 100);
   g.innerHTML = `<circle cx="${x}" cy="${y}" r="13" fill="none" stroke="var(--accent)" stroke-width="3"><animate attributeName="r" values="12;15;12" dur="1.2s" repeatCount="indefinite"/></circle>
     <rect x="${x - 11}" y="${y1}" width="22" height="${Math.max(2, y2 - y1)}" fill="var(--good)" opacity=".75"/>
-    <text x="${x + (cur.string === CFG.strings[0] ? -26 : 26)}" y="${y + 5}" text-anchor="middle" font-size="14" font-weight="800" fill="var(--accent)">${fingerLabel(cur).replace(" (stretched)", "x")}</text>`;
+    <text x="${x + (cur.string === BOARD.strings[0] ? -26 : 26)}" y="${y + 5}" text-anchor="middle" font-size="14" font-weight="800" fill="var(--accent)">${fingerLabel(cur).replace(" (stretched)", "x")}</text>`;
 }
 
 // Results modal
@@ -844,13 +976,14 @@ function showResults(o) {
   const { r, res, score, passed, medal, okN, avgAbs } = o;
   const T = TIERS[r.tier];
   const tips = buildTips(res, r.tol, r.seq, r.ex);
-  const downs = res.filter((x, i) => i > 0 && r.seq[i - 1].pos > x.item.pos);
+  const downs = res.filter((x, i) => shiftDir(r.seq[i - 1], x.item) === "down");
   if (downs.length >= 2) {
     const ok = downs.filter((x) => x.ok).length, avg = mean(downs.map((x) => x.cents));
     const trend = Math.abs(avg) < r.tol / 2 ? "no consistent lean" : avg > 0 ? "you tend to stop short (sharp)" : "you tend to overshoot (flat)";
     tips.unshift(`<b>Down-shift landings: ${ok}/${downs.length} in tune</b>, averaging ${avg > 0 ? "+" : ""}${avg.toFixed(0)}¢: ${trend}.`);
   }
   const need = Math.ceil(PASS * res.length) - okN;
+  recordRun(r, res, tips);
   if (!tips.length) tips.push(passed ? "A clean run. Next, try it with <b>Hide fingering</b> or <b>Ears first</b> on, or go for the next medal." : "Close! Play it slower. Listen for each note before you place the finger.");
   const secs = ((performance.now() - r.t0) / 1000).toFixed(0);
   const head = medal ? `<div class="medal-big">${T.icon}</div><div><h2 style="margin:0">${T.name} earned!</h2><div class="muted">${r.ex.group} · ${r.ex.name}</div></div>`
@@ -879,13 +1012,15 @@ function showResults(o) {
     <h3>Coach's notes</h3>
     <ul class="tips">${tips.map((t) => `<li>${t}</li>`).join("")}</ul>
     <div class="mbtns">
+      <button class="btn ghost" id="rReport" title="A JSON report of this drill and your recent runs, to paste to Claude">📋 Copy report for Claude</button>
       <button class="btn ghost" id="rClose">Close</button>
       <button class="btn ghost" id="rAgain">↻ Again</button>
-      ${next.id !== r.ex.id || next.tier !== DB.settings.tier ? `<button class="btn" id="rNext">Next: ${exById(next.id).name} ${TIERS[next.tier].icon}</button>` : ""}
+      ${!r.ex.custom && (next.id !== r.ex.id || next.tier !== DB.settings.tier) ? `<button class="btn" id="rNext">Next: ${exById(next.id).name} ${TIERS[next.tier].icon}</button>` : ""}
     </div>`;
   $("#results").hidden = false;
   $("#rClose").onclick = () => { $("#results").hidden = true; renderIdle(); buildPath(); buildBoard(); };
   $("#rAgain").onclick = () => startRun();
+  $("#rReport").onclick = (e) => copyText(JSON.stringify(buildReport(recKey(r.ex.id)), null, 2), e.target);
   const nb = $("#rNext");
   if (nb) nb.onclick = () => { selectEx(next.id, next.tier); startRun(); };
   setMsg(passed ? "Nice work. Press Space to go again, or take the next drill." : "Look over the coach's notes, then try again.");
@@ -897,7 +1032,7 @@ function recommend() {
   const mine = DB.sessions.filter((s) => s.cfg === CFG_KEY);
   const last = mine[0];
   const totalRuns = mine.length;
-  const regular = EXERCISES.filter((e) => !e.hunt);
+  const regular = EXERCISES.filter((e) => !e.hunt && !e.custom);
   const huntDue = totalRuns >= 3 && mine.slice(0, 3).every((s) => s.ex !== "hunt");
   if (huntDue) return { id: "hunt", tier: Math.min(3, ((exRec("hunt") || {}).best || 0) + 1), why: "Time to mix it up. Random notes, weighted toward your weakest ones." };
   const cands = regular.map((e, i) => ({ e, i, best: (exRec(e.id) || {}).best || 0, last: (exRec(e.id) || {}).last || 0 }))
@@ -935,6 +1070,7 @@ function selectEx(id, tier) {
   if (!exById(id)) id = EXERCISES[0].id;
   DB.selected = id;
   DB.settings.tier = tier || Math.min(3, ((exRec(id) || {}).best || 0) + 1);
+  applyRange();
   save();
   $("#results").hidden = true;
   renderAll();
@@ -963,11 +1099,12 @@ function syncSettingsUI() {
 function renderProgress() {
   const played = Object.values(DB.notes).reduce((a, s) => a + s.n, 0);
   const recentAll = Object.values(DB.notes).flatMap((s) => s.recent);
-  const medals = EXERCISES.reduce((a, e) => a + ((exRec(e.id) || {}).best || 0), 0);
+  const builtIn = EXERCISES.filter((e) => !e.custom);
+  const medals = builtIn.reduce((a, e) => a + ((exRec(e.id) || {}).best || 0), 0);
   $("#tiles").innerHTML = [
     [`🔥 ${streak()}`, "day streak"], [`Lv ${levelOf(DB.xp)}`, `${DB.xp} XP`], [played, "notes landed"],
     [recentAll.length ? Math.round((recentAll.filter((c) => Math.abs(c) <= 15).length / recentAll.length) * 100) + "%" : "—", "recent landings within ±15¢"],
-    [`${medals}/${EXERCISES.length * 3}`, `medals in ${keyName()}`],
+    [`${medals}/${builtIn.length * 3}`, `medals in ${keyName()}`],
   ].map(([v, l]) => `<div class="card tile"><div class="v">${v}</div><div class="l">${l}</div></div>`).join("");
 
   const keys = [...new Map(ALL_FINGERINGS.map((it) => [it.key, it])).values()];
@@ -1005,7 +1142,8 @@ function renderConfig() {
   const opts = (sel) => [1, 2, 3, 4, 5, 6, 7].map((p) => `<option value="${p}" ${p === sel ? "selected" : ""}>${ord(p)}</option>`).join("");
   $("#cfgP1").innerHTML = opts(c.positions[0]); $("#cfgP2").innerHTML = opts(c.positions[1]);
   $("#cfgLabel").textContent = Scales.cfgLabel(c);
-  $("#droneName").textContent = `${Scales.prettyTonic(c.tonic)} drone`;
+  const ex = exById(DB.selected);
+  $("#droneName").textContent = `${ex.custom && ex.drone ? DrillIO.parseNote(ex.drone + "4").label : Scales.prettyTonic(c.tonic)} drone`;
 }
 
 function changeConfig(patch) {
@@ -1021,13 +1159,47 @@ function changeConfig(patch) {
   selectEx(exById(keep) ? keep : EXERCISES[0].id);
 }
 
+function renderDrillsTab() {
+  const medals = (key) => { const b = (DB.ex[key] || {}).best || 0; return b ? TIERS[b].icon : ""; };
+  const last = (key) => { const e = DB.runs[key]; return e && e.runs.length ? `last ${Math.round(e.runs[0].score * 100)}%` : "not played yet"; };
+  $("#customList").innerHTML = DB.custom.length ? DB.custom.map((d) => {
+    const ex = DrillIO.toExercise(d), key = recKey(ex.id);
+    return `<div class="drow" data-id="${ex.id}"><div><div class="nm">${escapeHTML(d.title)} ${medals(key)}</div><div class="sub">${escapeHTML(ex.frame)} · ${last(key)}${d.goal ? `<br>${escapeHTML(d.goal)}` : ""}</div></div>
+      <div class="acts"><button class="go" data-act="play">▶ Practice</button>${DB.runs[key] ? `<button data-act="copy">📋 Copy report</button><button data-act="save">⬇ Report</button>` : ""}<button data-act="json">Copy drill</button><button class="del" data-act="del">Delete</button></div></div>`;
+  }).join("") : `<p class="muted small">No imported drills yet. Ask Claude for one, using the format on the right.</p>`;
+  const others = Object.keys(DB.runs).filter((k) => !k.startsWith("custom|"));
+  $("#reportList").innerHTML = others.length ? others.map((k) => `<div class="drow" data-key="${escapeHTML(k)}"><div><div class="nm">${escapeHTML(DB.runs[k].label)} ${medals(k)}</div><div class="sub">${DB.runs[k].runs.length} run${DB.runs[k].runs.length > 1 ? "s" : ""} kept · ${last(k)}</div></div>
+      <div class="acts"><button data-act="copy">📋 Copy report</button><button data-act="save">⬇ Report</button></div></div>`).join("") : `<p class="muted small">Finish a run of any drill and its report appears here.</p>`;
+}
+const escapeHTML = (t) => String(t).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+
+function importDrills(text) {
+  const r = DrillIO.parseImport(text);
+  const list = (items, cls) => (items.length ? `<ul class="${cls}">${items.map((m) => `<li>${escapeHTML(m)}</li>`).join("")}</ul>` : "");
+  if (r.errors.length) { $("#importMsg").innerHTML = `${list(r.errors, "errs")}${list(r.warnings, "warns")}<p class="muted small">Nothing was imported. You can paste these messages back to Claude.</p>`; return; }
+  for (const d of r.drills) {
+    const i = DB.custom.findIndex((c) => c.title === d.title);
+    if (i >= 0) DB.custom[i] = d; else DB.custom.push(d);
+  }
+  save(); applyConfig(); renderAll();
+  const first = DrillIO.toExercise(r.drills[0]);
+  $("#importMsg").innerHTML = `<div class="ok">✓ Imported ${r.drills.map((d) => `“${escapeHTML(d.title)}”`).join(", ")}.</div>${list(r.warnings, "warns")}<div class="row"><button class="btn" id="importGo">▶ Practice ${r.drills.length > 1 ? "the first one" : "it"} now</button></div>`;
+  $("#importGo").onclick = () => practiceDrill(first.id);
+}
+
+function practiceDrill(id) {
+  if (run) stopRun();
+  selectEx(id);
+  document.querySelector('.tabs button[data-tab="practice"]').click();
+}
+
 function renderAll() {
   renderConfig();
   renderHUD(); renderNext(); renderExList(); syncSettingsUI();
   const ex = exById(DB.selected);
   $("#exTitle").textContent = `${ex.group} · ${ex.name}`;
   if (!run) { renderIdle(); buildPath(); buildBoard(); }
-  renderProgress();
+  renderProgress(); renderDrillsTab();
 }
 
 // ---------- Wiring ----------
@@ -1054,7 +1226,7 @@ $("#resetBtn").onclick = () => {
   const s = DB.settings; DB = defaults(); DB.settings = s; save(); renderAll();
 };
 document.addEventListener("keydown", async (e) => {
-  if (["INPUT", "SELECT"].includes(e.target.tagName)) return;
+  if (["INPUT", "SELECT", "TEXTAREA"].includes(e.target.tagName)) return;
   if (e.code === "Space") { e.preventDefault(); if (await startAudio()) startRun(); }
   if (e.code === "Escape") { if (!$("#results").hidden) $("#results").hidden = true; else if (run) stopRun(); }
 });
@@ -1071,6 +1243,33 @@ if (SIM) {
   $("#simStop").onclick = () => simGain && simGain.gain.setValueAtTime(0, ctx.currentTime);
   window.__sim = { play, stop: () => simGain.gain.setValueAtTime(0, ctx.currentTime), target };
 }
+
+$("#formatDoc").textContent = DrillIO.FORMAT_DOC;
+$("#copyFormat").onclick = (e) => copyText(DrillIO.FORMAT_DOC, e.target);
+$("#importBtn").onclick = () => importDrills($("#importText").value);
+$("#importFile").onchange = async (e) => { const f = e.target.files[0]; if (f) { const t = await f.text(); $("#importText").value = t; importDrills(t); } e.target.value = ""; };
+$("#customList").onclick = (e) => {
+  const b = e.target.closest("button"), row = e.target.closest(".drow");
+  if (!b || !row) return;
+  const id = row.dataset.id, d = DB.custom.find((c) => DrillIO.toExercise(c).id === id), key = recKey(id);
+  if (b.dataset.act === "play") practiceDrill(id);
+  if (b.dataset.act === "copy") copyText(JSON.stringify(buildReport(key), null, 2), b);
+  if (b.dataset.act === "save") download(`${DrillIO.slug(d.title)}-report.json`, JSON.stringify(buildReport(key), null, 2));
+  if (b.dataset.act === "json") copyText(JSON.stringify(d, null, 2), b);
+  if (b.dataset.act === "del" && confirm(`Delete “${d.title}”? Its medals and reports go too.`)) {
+    DB.custom = DB.custom.filter((c) => c !== d); delete DB.ex[key]; delete DB.runs[key];
+    if (DB.selected === id) DB.selected = "p3-A";
+    $("#importMsg").innerHTML = "";
+    save(); applyConfig(); renderAll();
+  }
+};
+$("#reportList").onclick = (e) => {
+  const b = e.target.closest("button"), row = e.target.closest(".drow");
+  if (!b || !row) return;
+  const key = row.dataset.key, text = JSON.stringify(buildReport(key), null, 2);
+  if (b.dataset.act === "copy") copyText(text, b);
+  if (b.dataset.act === "save") download(`${DrillIO.slug(DB.runs[key].label)}-report.json`, text);
+};
 
 $("#cfgType").onchange = (e) => changeConfig({ type: e.target.value });
 $("#cfgTonic").onchange = (e) => changeConfig({ tonic: e.target.value });
