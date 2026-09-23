@@ -16,9 +16,12 @@ function tone(freq, cents, noise = 0.02) {
 }
 
 let fails = 0, worst = 0;
-for (const midi of [74, 76, 78, 79, 81, 83, 84, 86, 88, 90, 91]) {
+// Every semitone from A3 (G string, 1st position) to B6 (E string, 7th position),
+// with the detector range narrowed around each note the way the app does for a drill
+for (let midi = 57; midi <= 95; midi++) {
+  const hz = midiToFreq(midi), range = { minFreq: Math.min(500, hz * 0.8), maxFreq: Math.max(1800, hz * 1.25) };
   for (const cents of [-40, -15, 0, 12, 33]) {
-    const { freq } = detectPitch(tone(midiToFreq(midi), cents), sr);
+    const { freq } = detectPitch(tone(hz, cents), sr, range);
     const got = freq ? (freqToMidi(freq) - midi) * 100 : NaN;
     const err = Math.abs(got - cents);
     worst = Math.max(worst, err || 999);
