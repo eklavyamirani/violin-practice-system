@@ -108,6 +108,7 @@ main { max-width: 1280px; margin: 0 auto; padding: 1rem; }
 .fing { font-size: 1.05rem; }
 .fing .big { font-size: 1.35rem; font-weight: 700; }
 .fing .frame { font-family: ui-monospace, Menlo, monospace; color: var(--muted); margin-top: .3rem; }
+.fing .guide { font-size: .88rem; color: var(--muted); margin-top: .35rem; }
 .badge { display: inline-block; margin-top: .5rem; padding: .15rem .55rem; border-radius: 999px; background: color-mix(in srgb, var(--accent) 15%, transparent); color: var(--accent); font-weight: 700; font-size: .8rem; }
 
 .gauge { padding: 1rem 1.2rem 1.2rem; }
@@ -299,6 +300,7 @@ main { max-width: 1280px; margin: 0 auto; padding: 1rem; }
       <div class="card"><h2>Scoring the first landing</h2><p>Real playing gives you no time to fix a note. What counts is where your finger lands before you adjust it.</p><p class="in">Each note is scored from the first steady ¼ second you play. In Lock-in mode you then correct the note and hold it in tune, so the last thing you practise is the right spot.</p></div>
       <div class="card"><h2>Tightening the target step by step</h2><p>Mastery learning: pass one level (85% or more) before you tighten the target.</p><p class="in">🥉 ±25¢ → 🥈 ±15¢ → 🥇 ±10¢ for each drill. The app suggests the next level for you.</p></div>
       <div class="card"><h2>Removing the help over time</h2><p>Studies of the "guidance hypothesis" show that constant feedback can make you depend on it. Removing it gradually makes the skill stick.</p><p class="in">Once you have a medal, turn on <b>Hide fingering</b> (practise remembering where the note is) and <b>Ears first</b> (you only see the needle after you land).</p></div>
+      <div class="card"><h2>Practise the hard part on its own</h2><p>Break a hard skill into parts, drill the hardest one separately, then put it back in context.</p><p class="in"><b>Shift pairs</b> repeat each down-shift on its own, and the guide notes show the classic route (slide the old finger, then drop the new one). <b>From the top</b> then puts the shift back into a scale, starting high so you shift down while you're fresh.</p></div>
       <div class="card"><h2>Mixing and spacing your practice</h2><p>Switching between drills and spreading sessions over several days feels harder at the time, but you remember more.</p><p class="in"><b>Note Hunt</b> gives you random notes from both positions, picking your weakest notes more often. The "Next up" card switches you between drills. Short daily sessions build your streak.</p></div>
       <div class="card"><h2>Hear the note before you play it</h2><p>You can only play in tune if you can hear the right note in your head first.</p><p class="in"><b>Hear it first</b> plays each note before you play it. The <b>tonic drone</b> helps you hear how each note sounds against the key. Listen for the ring when the tonic, 4th and 5th are in tune.</p></div>
     </div>
@@ -576,6 +578,10 @@ function runStep(t, dt, stable) {
     if (Math.abs(dev) <= CAPTURE) return land(dev, t);
     const prev = run.seq[run.idx - 1];
     if (prev && Math.abs(stable - prev.midi) * 100 <= CAPTURE) return; // still sounding the previous note
+    if (cur.guide && Math.abs(stable - cur.guide.midi) * 100 <= CAPTURE) { // sliding through the guide note
+      if (!st.guideSeen) { st.guideSeen = true; setMsg(`Guide note ${cur.guide.label}${cur.guide.oct} ✓ Now drop ${cur.finger} onto ${cur.label}${cur.oct}.`, "good"); }
+      return;
+    }
     const played = Math.round(stable);
     if (st.wrong !== played) {
       if (st.wrong === null) run.combo = 0;
@@ -651,12 +657,12 @@ function finishRun() {
 function mmOff(item, cents) { return distMM(item.string, item.midi + cents / 100) - distMM(item.string, item.midi); }
 function fingerLabel(it) { return it.finger === "4x" ? "4 (stretched)" : it.finger; }
 
-function buildTips(res, tol, seq, isHunt) {
+function buildTips(res, tol, seq, ex) {
   const tips = [];
   const groups = {};
   res.forEach((x, i) => {
-    const shifted = i > 0 && seq[i - 1].pos !== x.item.pos;
-    const k = x.item.key + (shifted ? "s" : "");
+    const shifted = i > 0 && seq[i - 1].pos !== x.item.pos ? (x.item.pos < seq[i - 1].pos ? "down" : "up") : null;
+    const k = x.item.key + (shifted || "");
     (groups[k] ||= { item: x.item, shifted, c: [] }).c.push(x.cents);
   });
   const habits = Object.values(groups)
@@ -665,7 +671,8 @@ function buildTips(res, tol, seq, isHunt) {
   for (const g of habits.slice(0, 3)) {
     const a = mean(g.c), mm = Math.abs(mmOff(g.item, a)).toFixed(1), sharp = a > 0;
     const who = `<b>${noteName(g.item.midi)}</b> (${g.item.string} string, finger ${fingerLabel(g.item)}, ${ord(g.item.pos)})`;
-    if (g.shifted) tips.push(`Your shift to ${who} ${sharp ? "overshoots" : "falls short"} by ~${Math.abs(a).toFixed(0)}¢ (≈${mm} mm). ${sharp ? "Slide more lightly and stop sooner" : "Let the whole hand travel, not just the finger"}. Slow shifts first, then speed up.`);
+    if (g.shifted === "up") tips.push(`Your shift up to ${who} ${sharp ? "overshoots" : "falls short"} by ~${Math.abs(a).toFixed(0)}¢ (≈${mm} mm). ${sharp ? "Slide more lightly and stop sooner" : "Let the whole hand travel, not just the finger"}. Slow shifts first, then speed up.`);
+    else if (g.shifted === "down") tips.push(`Your shift down to ${who} ${sharp ? "stops short" : "overshoots"} by ~${Math.abs(a).toFixed(0)}¢ (≈${mm} mm). ${sharp ? "The hand isn't coming back far enough. Let the thumb lead it back" : "Release the pressure sooner and let the hand settle"}${g.item.guide ? `, and aim for the guide note ${g.item.guide.label}${g.item.guide.oct} with finger ${g.item.from.finger}` : ""}.`);
     else tips.push(`${who} lands ${Math.abs(a).toFixed(0)}¢ ${sharp ? "sharp" : "flat"}${g.c.length > 1 ? " every time" : ""}, about ${mm} mm too far ${sharp ? "toward the bridge" : "toward the scroll"}. Aim a hair ${sharp ? "lower" : "higher"}.`);
   }
   const wrongs = [...new Map(res.filter((x) => x.wrong !== null).map((x) => [x.wrong + "|" + x.item.midi, x])).values()];
@@ -676,7 +683,7 @@ function buildTips(res, tol, seq, isHunt) {
   const all = res.map((x) => x.cents), m = mean(all);
   if (Math.abs(m) > 8 && tips.length < 4) tips.push(`Overall you ran ${m > 0 ? "sharp" : "flat"} (${m > 0 ? "+" : ""}${m.toFixed(0)}¢ on average). ${m > 0 ? `${Math.max(...res.map((x) => x.item.pos)) >= 3 ? "In higher positions the hand often creeps toward the bridge." : "Your hand may be creeping toward the bridge."} Keep your thumb under the 1st–2nd finger.` : "Often the hand doesn't fully reach the position. Check where your thumb is and where your palm meets the violin's shoulder."}`);
   const half = Math.ceil(res.length / 2);
-  if (!isHunt && res.length > 6) {
+  if (!ex.hunt && !ex.id.startsWith("down") && res.length > 6) {
     const up = mean(all.slice(0, half)), down = mean(all.slice(half));
     if (Math.abs(up - down) > 12 && tips.length < 4) tips.push(`Going up you averaged ${up > 0 ? "+" : ""}${up.toFixed(0)}¢; coming down ${down > 0 ? "+" : ""}${down.toFixed(0)}¢. Your fingers are drifting ${up > down ? "sharp going up" : "flat going up"}. Keep lower fingers down as you climb so they anchor the hand.`);
   }
@@ -694,10 +701,11 @@ function renderTarget() {
   const cur = run.seq[run.idx], prev = run.seq[run.idx - 1];
   $("#bigNote").innerHTML = noteHTML(cur.midi);
   const showMap = !hide || run.st.landed;
-  const shift = prev && prev.pos !== cur.pos ? `<div class="badge">⇅ Shift to ${ord(cur.pos)} position</div>` : "";
+  const dir = prev && prev.pos !== cur.pos ? (cur.pos < prev.pos ? "down" : "up") : null;
+  const shift = dir ? `<div class="badge">${dir === "down" ? "⇣" : "⇡"} Shift ${dir} to ${ord(cur.pos)} position</div>${cur.guide ? `<div class="guide">Slide ${prev.finger} to <b>${cur.guide.label}${cur.guide.oct}</b> (guide note), then drop ${cur.finger}</div>` : ""}` : "";
   $("#fing").innerHTML = showMap
     ? `<div class="big">${cur.string} string · finger ${fingerLabel(cur)}</div><div>${ord(cur.pos)} position</div>${run.ex.hunt ? "" : `<div class="frame">${run.ex.frame}</div>`}${shift}`
-    : `<div class="big">Find it from memory</div><div class="muted">String, finger and position are hidden until you land.</div>${shift}`;
+    : `<div class="big">Find it from memory</div><div class="muted">String, finger and position are hidden until you land.</div>${dir ? `<div class="badge">${dir === "down" ? "⇣ Shift down" : "⇡ Shift up"}</div>` : ""}`;
   $("#board").classList.toggle("hideguide", !showMap);
   updateBoardTarget();
 }
@@ -771,7 +779,7 @@ function buildPath() {
   el.innerHTML = "";
   if (!seq.length) { el.innerHTML = `<span class="muted">12 random notes, picked more often where you're weakest.</span>`; return; }
   seq.forEach((it, i) => {
-    if (i > 0 && seq[i - 1].pos !== it.pos) el.insertAdjacentHTML("beforeend", `<span class="shiftmark">⇅${ord(it.pos)}</span>`);
+    if (i > 0 && seq[i - 1].pos !== it.pos) el.insertAdjacentHTML("beforeend", `<span class="shiftmark">${it.pos < seq[i - 1].pos ? "⇣" : "⇡"}${ord(it.pos)}</span>`);
     el.insertAdjacentHTML("beforeend", `<span class="chip" data-i="${i}">${noteHTML(it.midi)}</span>`);
   });
 }
@@ -835,7 +843,13 @@ function updateBoardTarget() {
 function showResults(o) {
   const { r, res, score, passed, medal, okN, avgAbs } = o;
   const T = TIERS[r.tier];
-  const tips = buildTips(res, r.tol, r.seq, !!r.ex.hunt);
+  const tips = buildTips(res, r.tol, r.seq, r.ex);
+  const downs = res.filter((x, i) => i > 0 && r.seq[i - 1].pos > x.item.pos);
+  if (downs.length >= 2) {
+    const ok = downs.filter((x) => x.ok).length, avg = mean(downs.map((x) => x.cents));
+    const trend = Math.abs(avg) < r.tol / 2 ? "no consistent lean" : avg > 0 ? "you tend to stop short (sharp)" : "you tend to overshoot (flat)";
+    tips.unshift(`<b>Down-shift landings: ${ok}/${downs.length} in tune</b>, averaging ${avg > 0 ? "+" : ""}${avg.toFixed(0)}¢: ${trend}.`);
+  }
   const need = Math.ceil(PASS * res.length) - okN;
   if (!tips.length) tips.push(passed ? "A clean run. Next, try it with <b>Hide fingering</b> or <b>Ears first</b> on, or go for the next medal." : "Close! Play it slower. Listen for each note before you place the finger.");
   const secs = ((performance.now() - r.t0) / 1000).toFixed(0);
@@ -918,6 +932,7 @@ function renderExList() {
 }
 
 function selectEx(id, tier) {
+  if (!exById(id)) id = EXERCISES[0].id;
   DB.selected = id;
   DB.settings.tier = tier || Math.min(3, ((exRec(id) || {}).best || 0) + 1);
   save();

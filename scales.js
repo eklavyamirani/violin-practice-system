@@ -113,6 +113,30 @@
     return up && down ? { up, down, octave: false } : null;
   }
 
+  // Tag each note reached by a shift with its direction. A down-shift onto a higher finger gets a guide
+  // note: the old finger slides to its spot in the new position, then the new finger drops.
+  function annotateShifts(seq, sp) {
+    return seq.map((b, i) => {
+      const a = seq[i - 1];
+      if (!a || a.pos === b.pos) return b;
+      const out = { ...b, shift: b.pos < a.pos ? "down" : "up", from: a };
+      if (out.shift === "down" && a.string === b.string && a.finger !== "4x" && +a.finger < +b.finger) out.guide = fingering(b.string, b.pos, a.finger, sp);
+      return out;
+    });
+  }
+
+  // Isolated down-shifts on one string, each pair played twice: same-finger slides, then the scale step
+  // that crosses the shift (1st finger in the high position down to the note below, in the low position)
+  function downShiftPairs(string, p1, p2, sp) {
+    const gap = p2 - p1, pairs = [];
+    for (const f of ["1", "2", "3"]) pairs.push([fingering(string, p2, f, sp), fingering(string, p1, f, sp)]);
+    if (gap >= 2 && gap <= 4) pairs.push([fingering(string, p2, "1", sp), fingering(string, p1, String(gap), sp)]);
+    // The pitch detector needs each note to differ from the last, so no pair may start where the previous one ended
+    const perms = (xs) => (xs.length <= 1 ? [xs] : xs.flatMap((x, i) => perms([...xs.slice(0, i), ...xs.slice(i + 1)]).map((r) => [x, ...r])));
+    const order = perms(pairs).find((o) => o.every((pr, i) => !i || pr[0].midi !== o[i - 1][1].midi)) || pairs;
+    return { pairs: order, seq: annotateShifts(order.flatMap(([a, b]) => [a, b, a, b]), sp) };
+  }
+
   // Build all drills for a configuration
   function buildDrills(cfg) {
     const type = SCALE_TYPES[cfg.type];
@@ -134,13 +158,29 @@
       const k = run.up.findIndex((x) => x.pos === p2);
       const a = run.up[k - 1], b = run.up[k];
       const frame = `${ordinal(p1)}: ${run.up.slice(0, k).map((x) => x.finger).join(" ")} ⇡ ${ordinal(p2)}: ${run.up.slice(k).map((x) => x.finger).join(" ")}`;
-      drills.push({ id: "shift", group: "Put it together", name: `${first.label}${first.oct}→${last.label}${last.oct} with a shift`, notes: upDown(run.up, run.down), frame,
+      drills.push({ id: "shift", group: "Put it together", name: `${first.label}${first.oct}→${last.label}${last.oct} with a shift`, notes: annotateShifts(upDown(run.up, run.down), spDown), frame,
         tip: `Shift on ${a.label} → ${b.label}: slide lightly on ${a.finger}, then land ${b.finger} in ${ordinal(p2)} position.${last.finger === "4x" ? ` Stretch 4 up for the top ${last.label}.` : ""}` });
     }
     const pool = new Map();
     for (const sp of [spUp, spDown]) for (const p of [p1, p2]) for (const s of [lo, hi]) for (const it of fingers4(s, p, sp)) pool.set(it.key + it.finger + it.pos, it);
     drills.push({ id: "hunt", group: "Put it together", name: "Note Hunt (adaptive)", hunt: true, pool: [...pool.values()], frame: "12 random notes",
       tip: "No pattern to lean on: remember the spot, then land it. Your weakest notes come up most." });
+
+    // Shifting down: isolate the move on each string, then put it back into a scale that starts at the top
+    const downTip = "Let the thumb and the whole hand travel back together, lightly. Coming down, most players stop short and land sharp. On guide-note shifts, slide the old finger to the guide note, then drop the new finger.";
+    for (const s of [lo, hi]) {
+      const { pairs, seq } = downShiftPairs(s, p1, p2, spDown);
+      drills.push({ id: `down-${s}`, group: "Shifting down", name: `${s} string: shift pairs`, notes: seq,
+        frame: `${ordinal(p2)} ⇣ ${ordinal(p1)}: ${pairs.map(([a, b]) => `${a.finger}→${b.finger}`).join(" ")}`, tip: downTip });
+    }
+    if (run) {
+      const top = run.down[run.down.length - 1], bottom = run.down[0];
+      const notes = annotateShifts([...run.down].reverse().concat(run.up.slice(1)), spDown);
+      const k = notes.findIndex((x) => x.shift === "down");
+      drills.push({ id: "down-run", group: "Shifting down", name: `From the top: ${top.label}${top.oct}→${bottom.label}${bottom.oct}`, notes,
+        frame: `${ordinal(p2)}: ${notes.slice(0, k).map((x) => x.finger).join(" ")} ⇣ ${ordinal(p1)}: ${notes.slice(k, run.down.length).map((x) => x.finger).join(" ")}`,
+        tip: `Start high and shift down while you're fresh, then climb back up. ${notes[k].guide ? `On ${notes[k - 1].label} → ${notes[k].label}, slide ${notes[k - 1].finger} to ${notes[k].guide.label}, then drop ${notes[k].finger}.` : `Shift down on ${notes[k - 1].label} → ${notes[k].label}.`}` });
+    }
     return drills;
   }
 
