@@ -42,6 +42,7 @@ python3 -m http.server 8765
 
 Then open http://localhost:8765 and allow microphone access. Chrome and Safari both work. It needs no installs and no internet, and your progress stays in the browser.
 
+- **iPad:** turn on **iPad mic mode** in Settings. The iPad's raw mic (which gives the most accurate pitch on Mac and iPhone) comes through about 40 dB too quiet to use, so this switches to Safari's voice-processed mic.
 - `mic-check.html` runs a few microphone setups side by side and produces a report. Use it when the app can't hear the mic on a particular device.
 - `?sim` in the URL replaces the mic with a synthetic tone generator (useful for trying it without a violin).
 - `node test/pitch.test.js` checks the pitch detector against synthesized violin-like tones (A3–B6).

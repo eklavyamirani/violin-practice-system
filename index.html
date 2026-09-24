@@ -300,6 +300,7 @@ main { max-width: 1280px; margin: 0 auto; padding: 1rem; }
         <label class="toggle"><input type="checkbox" id="optHide"><span><b>Hide fingering</b><small>Memory test: find the note without the map.</small></span></label>
         <label class="toggle"><input type="checkbox" id="optEars"><span><b>Ears first</b><small>Needle stays hidden until you land. Wean yourself off the screen.</small></span></label>
         <label class="toggle"><input type="checkbox" id="optChime"><span><b>Chime on lock</b></span></label>
+        <label class="toggle"><input type="checkbox" id="optVoiceMic"><span><b>iPad mic mode</b><small>Uses Safari's voice-processed mic. Turn this on if the app can't hear you on iPad (its raw mic is too quiet). Leave it off on other devices.</small></span></label>
         <div class="calib">A4 = <b id="a4Val">440</b> Hz <button id="calibBtn">Tune from open A</button></div>
       </div>
     </aside>
@@ -511,7 +512,7 @@ function applyRange() {
 // ---------- Storage ----------
 const STORE_KEY = "fingerboard-coach.v1";
 const defaults = () => ({ xp: 0, notes: {}, ex: {}, days: {}, sessions: [], selected: "p3-A", cfg: { ...DEFAULT_CFG }, custom: [], runs: {},
-  settings: { mode: "lock", tier: 1, drone: false, hear: false, hide: false, ears: false, chime: true, a4: 440, bpm: 60, per: 1, ladder: true, latencyMs: null } });
+  settings: { mode: "lock", tier: 1, drone: false, hear: false, hide: false, ears: false, chime: true, a4: 440, bpm: 60, per: 1, ladder: true, latencyMs: null, voiceMic: false } });
 function loadDB() {
   const d = defaults();
   try {
@@ -552,6 +553,7 @@ function noteStats(key) {
 
 // ---------- Audio ----------
 let ctx, analyser, buf, hp, droneNodes = null, simOsc, simGain, inputNode, micStream;
+let audioGen = 0; // bumped when the mic restarts, so the old frame loop stops
 let frames = [], smooth = null, suppressUntil = 0, lastT = 0, calib = null, silentSince = null, silenceWarned = false;
 const AC = window.AudioContext || window.webkitAudioContext;
 
@@ -565,7 +567,7 @@ async function startAudio() {
     c = new AC();
   } else {
     try {
-      micStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
+      micStream = await navigator.mediaDevices.getUserMedia({ audio: micConstraints() });
     } catch (e) {
       setMsg(`🎤 Can't use the microphone (${e.name}). Allow mic access for this page and try again.`, "bad");
       return false;
@@ -593,8 +595,27 @@ async function startAudio() {
   ctx.onstatechange = () => { if (ctx.state !== "running") $("#micState").textContent = "Paused, tap to resume"; };
   await resumeAudio();
   applyDrone();
-  requestAnimationFrame(loop);
+  const gen = ++audioGen;
+  requestAnimationFrame((t) => loop(t, gen));
   return true;
+}
+
+// Raw input (no voice processing) keeps pitch accurate on Mac and iPhone. The iPad's raw mic is ~40 dB too
+// quiet to use, so iPad users can opt into Safari's standard voice-processed mic instead.
+const micConstraints = () => (DB.settings.voiceMic ? true : { echoCancellation: false, noiseSuppression: false, autoGainControl: false });
+
+// Reopen the mic with the current settings, stopping anything that was listening
+async function restartAudio() {
+  if (!ctx) return;
+  if (piece) stopPiece();
+  if (run) stopRun();
+  tcal = null; calib = null; stopMetronome();
+  if (micStream) micStream.getTracks().forEach((tr) => tr.stop());
+  const old = ctx;
+  ctx = null; micStream = null; droneNodes = null; noiseBuf = null; frames = []; smooth = null;
+  audioGen++;
+  try { await old.close(); } catch (e) {}
+  if (await startAudio()) setMsg(DB.settings.voiceMic ? "🎤 iPad mic mode on. Play a note to check the meter moves." : "🎤 Back to the standard raw mic.", "good");
 }
 
 // iOS pauses audio when the app goes to the background, a call comes in, or Siri speaks ("interrupted"),
@@ -734,8 +755,9 @@ function tcalStep(t) {
 }
 
 // ---------- Main loop ----------
-function loop(t) {
-  requestAnimationFrame(loop);
+function loop(t, gen) {
+  if (gen !== audioGen) return;
+  requestAnimationFrame((t2) => loop(t2, gen));
   const dt = Math.min(100, t - (lastT || t)); lastT = t;
   analyser.getFloatTimeDomainData(buf);
   const r = PitchDetector.detectPitch(buf, ctx.sampleRate, { minFreq: calib ? Math.min(380, RANGE.min) : RANGE.min, maxFreq: calib ? Math.max(1000, RANGE.max) : RANGE.max, minRms: 0.006 });
@@ -1631,7 +1653,7 @@ function syncSettingsUI() {
   const s = DB.settings;
   document.querySelectorAll("#modeSeg button").forEach((b) => b.classList.toggle("on", b.dataset.v === s.mode));
   document.querySelectorAll("#tierSeg button").forEach((b) => b.classList.toggle("on", +b.dataset.v === s.tier));
-  $("#optHear").checked = s.hear; $("#optDrone").checked = s.drone; $("#optHide").checked = s.hide; $("#optEars").checked = s.ears; $("#optChime").checked = s.chime;
+  $("#optHear").checked = s.hear; $("#optDrone").checked = s.drone; $("#optHide").checked = s.hide; $("#optEars").checked = s.ears; $("#optChime").checked = s.chime; $("#optVoiceMic").checked = !!s.voiceMic;
   $("#optHear").disabled = s.mode !== "lock";
   $("#tempoPanel").hidden = s.mode !== "tempo";
   $("#bpmVal").textContent = s.bpm; $("#bpmRange").value = s.bpm;
@@ -1762,6 +1784,7 @@ document.querySelectorAll("#tierSeg button").forEach((b) => (b.onclick = () => {
 const bindOpt = (id, key, after) => ($(id).onchange = (e) => { DB.settings[key] = e.target.checked; save(); if (after) after(); if (run) renderTarget(); });
 bindOpt("#optHear", "hear"); bindOpt("#optHide", "hide"); bindOpt("#optEars", "ears"); bindOpt("#optChime", "chime");
 bindOpt("#optDrone", "drone", async () => { if (await startAudio()) applyDrone(); });
+bindOpt("#optVoiceMic", "voiceMic", restartAudio);
 const setBpm = (v) => { DB.settings.bpm = Math.max(30, Math.min(200, Math.round(v))); save(); syncSettingsUI(); if (run && run.tempo) startRun(); };
 $("#bpmDown").onclick = () => setBpm(DB.settings.bpm - 2);
 $("#bpmUp").onclick = () => setBpm(DB.settings.bpm + 2);
