@@ -234,6 +234,9 @@ A drill is a JSON object. Paste it into the **My drills** tab (Import), or save 
   - coachNotes: the app's own feedback for that run.
 - noteTrends: for each note in the drill, collected across all practice: avgCents over the last 20 landings, inTuneRate (share within ±15¢), landings and wrongNotes.
 
+## Piece reports
+The Piece tab records a whole performance, without the score, and exports JSON with format "fingerboard-coach/piece-report@1". Each report includes its own "howToRead" field. It lists every note with its time, intonation and (with a metronome) timing against the click, plus tendencies, out-of-key notes, sections that sped up or slowed down, moments worth listening back to, and summaries of earlier performances of the same piece. Use it to suggest which passages to practise, then write drills (above) for the notes and shifts involved.
+
 How to read landings:
 - After a shift down, sharp = stopped short and flat = overshot.
 - After a shift up, sharp = overshot and flat = fell short.

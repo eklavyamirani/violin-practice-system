@@ -133,6 +133,30 @@ main { max-width: 1280px; margin: 0 auto; padding: 1rem; }
 #board.hideguide .guide { display: none; }
 #mm { font-size: .82rem; color: var(--muted); min-height: 2.4em; margin-top: .3rem; }
 
+/* Piece */
+.pcgrid { display: grid; grid-template-columns: 320px minmax(0, 1fr); gap: 1rem; align-items: start; }
+.textin { width: 100%; font: inherit; color: var(--ink); background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: .45rem .6rem; margin-bottom: .7rem; }
+.bpmrange { width: 100%; accent-color: var(--accent); margin-bottom: .6rem; }
+.pclive-top { display: flex; align-items: center; gap: 1rem; margin-bottom: .6rem; }
+.pcnote { font-size: 2.6rem; font-weight: 800; min-width: 3.5em; }
+.pcnote sub { font-size: .4em; color: var(--muted); }
+.pccents { font-size: 1.4rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+.pcclock { margin-left: auto; font-size: 1.4rem; font-variant-numeric: tabular-nums; color: var(--muted); }
+.pcclock.rec { color: var(--bad); }
+.small-gauge { height: 30px; margin-bottom: .7rem; }
+#pcRoll { width: 100%; height: 240px; display: block; background: var(--panel-2); border-radius: 10px; }
+.pcrep { margin-top: 1rem; }
+.pcrep .tiles { margin-bottom: .8rem; }
+.pcscroll { overflow-x: auto; border-radius: 10px; background: var(--panel-2); margin-bottom: .8rem; }
+.pcscroll svg { display: block; height: 240px; }
+.pcscroll svg rect.n { cursor: pointer; }
+.pccols { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.moment { display: flex; gap: .6rem; align-items: center; padding: .35rem 0; border-bottom: 1px solid var(--line); font-size: .9rem; }
+.moment:last-child { border-bottom: 0; }
+.moment button { border: 1px solid var(--line); background: var(--panel-2); border-radius: 50%; width: 30px; height: 30px; flex-shrink: 0; }
+.moment .at { font-variant-numeric: tabular-nums; color: var(--muted); width: 3em; }
+.pcrep audio { width: 100%; margin: .4rem 0 .8rem; }
+
 /* My drills */
 .dgrid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 1rem; align-items: start; }
 .small { font-size: .84rem; margin: .1rem 0 .6rem; }
@@ -213,7 +237,7 @@ main { max-width: 1280px; margin: 0 auto; padding: 1rem; }
 @media (max-width: 980px) {
   #tab-practice.active { grid-template-columns: 1fr; }
   .side { order: 2; }
-  .pgrid, .dgrid { grid-template-columns: 1fr; }
+  .pgrid, .dgrid, .pcgrid, .pccols { grid-template-columns: 1fr; }
 }
 @media (max-width: 640px) {
   main { padding: .75rem 1rem; }
@@ -231,6 +255,7 @@ main { max-width: 1280px; margin: 0 auto; padding: 1rem; }
   <div class="brand">𝄞 Fingerboard Coach <small id="cfgLabel"></small></div>
   <nav class="tabs">
     <button data-tab="practice" class="active">Practice</button>
+    <button data-tab="piece">Piece</button>
     <button data-tab="drills">My drills</button>
     <button data-tab="progress">Progress</button>
     <button data-tab="how">Why it works</button>
@@ -314,6 +339,44 @@ main { max-width: 1280px; margin: 0 auto; padding: 1rem; }
     </div>
   </section>
 
+  <!-- PIECE -->
+  <section id="tab-piece" class="tab">
+    <div class="pcgrid">
+      <div class="card">
+        <h3>Play a piece</h3>
+        <p class="muted small">Record yourself playing anything. You get feedback on intonation and timing, and you can listen back to each flagged moment. You don't need to enter the music.</p>
+        <input id="pcTitle" class="textin" placeholder="Piece name (optional, to track progress)" maxlength="80">
+        <div class="cfgrow"><span class="muted">Key</span><select id="pcKey" aria-label="Key"></select></div>
+        <h3>In tune within</h3>
+        <div class="seg" id="pcTolSeg"><button data-v="10">±10¢</button><button data-v="15">±15¢</button><button data-v="25">±25¢</button></div>
+        <label class="toggle"><input type="checkbox" id="pcMetro"><span><b>Metronome</b><small>On: timing is judged against the click. Off: the app follows your own pulse and spots where it sped up or slowed down.</small></span></label>
+        <div id="pcMetroPanel" hidden>
+          <div class="tempo-row"><button class="tbtn" id="pcBpmDown" aria-label="Slower">−</button><div class="bpm"><b id="pcBpmVal">80</b> BPM</div><button class="tbtn" id="pcBpmUp" aria-label="Faster">+</button></div>
+          <input type="range" id="pcBpmRange" min="30" max="200" step="1" aria-label="Tempo" class="bpmrange">
+          <h3>Beats per bar</h3>
+          <div class="seg" id="pcBarSeg"><button data-v="2">2</button><button data-v="3">3</button><button data-v="4">4</button><button data-v="6">6</button></div>
+          <h3>Shortest note to time against</h3>
+          <div class="seg" id="pcSubSeg"><button data-v="1">♩ beat</button><button data-v="2">♪ half</button><button data-v="3">triplet</button><button data-v="4">♬ quarter</button></div>
+          <p class="muted small">One bar of clicks counts you in.</p>
+          <div class="calib">Timing offset <b id="pcLatVal">auto</b> <button id="pcCalBtn">Calibrate timing</button></div>
+        </div>
+        <div class="row"><button class="btn" id="pcStart">● Start recording</button><button class="btn ghost" id="pcStop" hidden>■ Stop &amp; analyse</button></div>
+      </div>
+      <div class="card pclive">
+        <div class="pclive-top">
+          <div class="pcnote" id="pcNote">—</div>
+          <div><div class="pccents" id="pcCents"></div><div class="muted small" id="pcStatus">Not recording</div></div>
+          <div class="pcclock" id="pcClock">0:00</div>
+        </div>
+        <div class="gtrack small-gauge"><div class="gzone" id="pcZone"></div><div class="gcenter"></div><div class="gneedle" id="pcNeedle"></div></div>
+        <canvas id="pcRoll" width="900" height="240" aria-label="Live pitch trace"></canvas>
+        <div class="runstats" id="pcLiveStats"></div>
+      </div>
+    </div>
+    <div id="pcReport"></div>
+    <div class="card" style="margin-top:1rem"><h3>Past performances</h3><div id="pcHistory"></div></div>
+  </section>
+
   <!-- MY DRILLS -->
   <section id="tab-drills" class="tab">
     <div class="dgrid">
@@ -361,6 +424,7 @@ main { max-width: 1280px; margin: 0 auto; padding: 1rem; }
       <div class="card"><h2>Scoring the first landing</h2><p>Real playing gives you no time to fix a note. What counts is where your finger lands before you adjust it.</p><p class="in">Each note is scored from the first steady ¼ second you play. In Lock-in mode you then correct the note and hold it in tune, so the last thing you practise is the right spot.</p></div>
       <div class="card"><h2>Tightening the target step by step</h2><p>Mastery learning: pass one level (85% or more) before you tighten the target.</p><p class="in">🥉 ±25¢ → 🥈 ±15¢ → 🥇 ±10¢ for each drill. The app suggests the next level for you.</p></div>
       <div class="card"><h2>Removing the help over time</h2><p>Studies of the "guidance hypothesis" show that constant feedback can make you depend on it. Removing it gradually makes the skill stick.</p><p class="in">Once you have a medal, turn on <b>Hide fingering</b> (practise remembering where the note is) and <b>Ears first</b> (you only see the needle after you land).</p></div>
+      <div class="card"><h2>Record yourself and listen back</h2><p>While you play, your attention is on playing. Listening to a recording afterwards lets you hear what you missed at the time.</p><p class="in">The <b>Piece</b> tab records a whole performance and marks the moments worth hearing again. It also finds notes that are consistently sharp or flat, and places where your tempo drifted. Turn those into drills, then record the piece again to see the difference.</p></div>
       <div class="card"><h2>Accuracy first, then speed</h2><p>Speed comes from making small, steady increases once the notes are already clean. Pushing the tempo while notes are still out of tune just practises the mistakes.</p><p class="in"><b>Tempo</b> mode plays a metronome. A note only counts if it's in tune <i>and</i> on the beat. The <b>tempo ladder</b> adds 4 BPM after each passed run and backs off when you struggle. The coach points out when shifts are making you late.</p></div>
       <div class="card"><h2>Practise the hard part on its own</h2><p>Break a hard skill into parts, drill the hardest one separately, then put it back in context.</p><p class="in"><b>Shift pairs</b> repeat each down-shift on its own, and the guide notes show the classic route (slide the old finger, then drop the new one). <b>From the top</b> then puts the shift back into a scale, starting high so you shift down while you're fresh.</p></div>
       <div class="card"><h2>Mixing and spacing your practice</h2><p>Switching between drills and spreading sessions over several days feels harder at the time, but you remember more.</p><p class="in"><b>Note Hunt</b> gives you random notes from both positions, picking your weakest notes more often. The "Next up" card switches you between drills. Short daily sessions build your streak.</p></div>
@@ -391,6 +455,7 @@ main { max-width: 1280px; margin: 0 auto; padding: 1rem; }
 <script src="pitch.js"></script>
 <script src="scales.js"></script>
 <script src="drills.js"></script>
+<script src="piece.js"></script>
 <script>
 "use strict";
 const $ = (s) => document.querySelector(s);
@@ -486,7 +551,7 @@ function noteStats(key) {
 }
 
 // ---------- Audio ----------
-let ctx, analyser, buf, hp, droneNodes = null, simOsc, simGain;
+let ctx, analyser, buf, hp, droneNodes = null, simOsc, simGain, inputNode;
 let frames = [], smooth = null, suppressUntil = 0, lastT = 0, calib = null;
 
 async function startAudio() {
@@ -499,10 +564,12 @@ async function startAudio() {
     simOsc = c.createOscillator(); simOsc.type = "sawtooth";
     simGain = c.createGain(); simGain.gain.value = 0;
     simOsc.connect(simGain).connect(hp); simOsc.start();
+    inputNode = simGain;
   } else {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
-      c.createMediaStreamSource(stream).connect(hp);
+      inputNode = c.createMediaStreamSource(stream);
+      inputNode.connect(hp);
     } catch (e) {
       c.close();
       setMsg(`🎤 Can't use the microphone (${e.name}). Allow mic access for this page and try again.`, "bad");
@@ -558,16 +625,16 @@ function droneMidis() {
 // Clicks are scheduled on the audio clock a little ahead of time. The click is a short burst of filtered
 // noise: it has no pitch, so the detector can't mistake it for a note.
 let metro = null, noiseBuf = null;
-function startMetronome(bpm, beats) {
+function startMetronome(bpm, beats, bar = 4) {
   stopMetronome();
   const beatS = 60 / bpm, startCtx = ctx.currentTime + 0.3;
-  metro = { beatS, startCtx, next: 0, beats, timer: setInterval(metroTick, 25) };
+  metro = { beatS, startCtx, next: 0, beats, bar, timer: setInterval(metroTick, 25) };
   metroTick();
   return performance.now() + (startCtx - ctx.currentTime) * 1000; // performance-clock time of the first click
 }
 function metroTick() {
   while (metro && metro.next < metro.beats && metro.startCtx + metro.next * metro.beatS < ctx.currentTime + 0.15) {
-    click(metro.startCtx + metro.next * metro.beatS, metro.next % 4 === 0);
+    click(metro.startCtx + metro.next * metro.beatS, metro.next % metro.bar === 0);
     metro.next++;
   }
 }
@@ -592,14 +659,20 @@ const timingTol = (slot, tier) => Math.round(Math.max(30, Math.min(120, [0, 0.25
 
 // Timing calibration: play 8 notes on the click, alternating strings, and measure the delay
 let tcal = null;
-async function calibrateTiming() {
+// Drills and the Piece tab listen over different ranges and find note starts differently, which shifts
+// detection by a few tens of ms, so each has its own calibration.
+async function calibrateTiming(forPiece = false) {
+  if (piece) stopPiece();
   if (!(await startAudio())) return;
   if (run) stopRun();
+  if (forPiece) { RANGE = PIECE_RANGE; hp.frequency.value = RANGE.hp; }
   const beatMs = 750, count = 4, n = 8;
   const start = startMetronome(80, count + n);
-  tcal = { frames: [], start, beatMs, clicks: Array.from({ length: n }, (_, k) => start + (count + k) * beatMs), end: start + (count + n) * beatMs + 600 };
-  setMsg("⏱ After 4 clicks, play 8 short notes on the click, alternating two open strings (A, E, A, E…).");
+  tcal = { forPiece, frames: [], start, beatMs, clicks: Array.from({ length: n }, (_, k) => start + (count + k) * beatMs), end: start + (count + n) * beatMs + 600 };
+  tcalSay("⏱ After 4 clicks, play 8 short notes on the click, alternating two open strings (A, E, A, E…).");
 }
+const tcalSay = (text, kind = "") => (tcal && tcal.forPiece ? ($("#pcStatus").textContent = text) : setMsg(text, kind));
+const pieceLatencyMs = () => (DB.settings.pieceLatencyMs != null ? DB.settings.pieceLatencyMs : Math.round(outLatencyMs() + 15));
 // A note starts where the rounded pitch changes and holds for most of the next few frames
 function noteOnsets(fr) {
   const on = [];
@@ -613,15 +686,17 @@ function noteOnsets(fr) {
 }
 function tcalStep(t) {
   const k = Math.floor((t - tcal.start) / tcal.beatMs);
-  $("#bigNote").textContent = k < 4 ? String(4 - Math.max(0, k)) : "♪";
+  $(tcal.forPiece ? "#pcNote" : "#bigNote").textContent = k < 4 ? String(4 - Math.max(0, k)) : "♪";
   if (t < tcal.end) return;
-  const on = noteOnsets(tcal.frames), offs = [];
+  const on = tcal.forPiece ? PieceIO.segment(tcal.frames, { minNoteMs: 60 }).map((n) => n.t) : noteOnsets(tcal.frames), offs = [];
   for (const c of tcal.clicks) { const o = on.find((x) => x > c - 250 && x < c + 450); if (o !== undefined) offs.push(o - c); }
-  tcal = null; stopMetronome(); renderIdle();
-  if (offs.length < 5) return setMsg(`I caught ${offs.length} of the 8 notes. Try again, and alternate strings so each note is a new pitch.`, "bad");
-  DB.settings.latencyMs = Math.max(0, Math.round(median(offs)));
-  save(); syncSettingsUI();
-  setMsg(`✓ Timing calibrated: your speakers and mic add about ${DB.settings.latencyMs} ms. Early and late are now measured against the click you hear.`, "good");
+  const forPiece = tcal.forPiece;
+  if (offs.length < 5) { tcalSay(`I caught ${offs.length} of the 8 notes. Try again, and alternate strings so each note is a new pitch.`, "bad"); tcal = null; stopMetronome(); applyRange(); return renderIdle(); }
+  const ms = Math.max(0, Math.round(median(offs)));
+  tcalSay(`✓ Timing calibrated: about ${ms} ms from click to detected note. Early and late are now measured against the click you hear.`, "good");
+  tcal = null; stopMetronome(); applyRange(); renderIdle();
+  if (forPiece) DB.settings.pieceLatencyMs = ms; else DB.settings.latencyMs = ms;
+  save(); syncSettingsUI(); syncPieceUI();
 }
 
 // ---------- Main loop ----------
@@ -637,7 +712,8 @@ function loop(t) {
   frames.push({ t, m, f: r.freq });
   while (frames.length && frames[0].t < t - 5000) frames.shift(); // Tempo mode scores notes from recent history
   if (metro) metroTick();
-  if (tcal) { tcal.frames.push({ t, m }); return tcalStep(t); }
+  if (piece) { piece.frames.push({ t, m, rms: r.rms }); return pieceLive(t, m); }
+  if (tcal) { tcal.frames.push({ t, m, rms: r.rms }); return tcalStep(t); }
 
   if (calib) return calibStep(t);
 
@@ -699,6 +775,7 @@ function startRun() {
   const ex = exById(DB.selected);
   const s = DB.settings;
   if (s.mode === "tempo" && !ctx) { startAudio().then((ok) => ok && startRun()); return; }
+  if (piece) stopPiece();
   run = { ex, seq: ex.hunt ? buildHunt() : ex.notes, idx: 0, mode: s.mode, tier: s.tier, tol: TIERS[s.tier].tol,
     results: [], combo: 0, maxCombo: 0, xp: 0, t0: performance.now() };
   if (s.mode === "tempo") {
@@ -983,6 +1060,224 @@ function tempoTips(r, res) {
   const missed = res.filter((x) => x.missed && x.wrong === null).length;
   if (missed / res.length > 0.15) tips.push(`${missed} note${missed > 1 ? "s" : ""} weren't heard on their beat. Drop 4–8 BPM: speed only helps once each note speaks clearly.`);
   return tips;
+}
+
+// ---------- Piece mode ----------
+let piece = null, pieceAudioURL = null;
+const pcS = () => (DB.settings.piece ||= { title: "", key: "", tol: 15, metro: false, bpm: 80, bar: 4, sub: 2 });
+const PIECE_RANGE = { lowHz: 196, min: 175, max: 2700, hp: 150, key: "piece" }; // all four strings
+function pieceKey() {
+  const k = pcS().key;
+  if (!k) return null;
+  const [tonic, type] = k.split("|");
+  const types = type === "major" ? ["major"] : ["natural", "harmonic", "melodic"]; // minor keys allow the raised 6th and 7th
+  const pcs = new Set();
+  for (const t of types) { const sp = Scales.spell(tonic, Scales.SCALE_TYPES[t]); [0, 2, 4, 5, 7, 9, 11].forEach((npc, l) => pcs.add((npc + sp.acc[l] + 12) % 12)); }
+  const cfg = { tonic, type: type === "major" ? "major" : "harmonic" };
+  return { pcs, name: `${Scales.prettyTonic(tonic)} ${type === "major" ? "major" : "minor"}`, noteName: (m) => Scales.nameIn(m, cfg) + (Math.floor(m / 12) - 1) };
+}
+const pieceNoteName = () => { const k = pieceKey(); return k ? k.noteName : (m) => ["C", "C♯", "D", "E♭", "E", "F", "F♯", "G", "A♭", "A", "B♭", "B"][((m % 12) + 12) % 12] + (Math.floor(m / 12) - 1); };
+
+async function startPiece() {
+  if (!(await startAudio())) return;
+  if (run) stopRun();
+  if (tcal) { tcal = null; stopMetronome(); }
+  const P = pcS();
+  RANGE = PIECE_RANGE; hp.frequency.value = RANGE.hp;
+  piece = { frames: [], start: performance.now(), title: $("#pcTitle").value.trim(), tol: P.tol, key: pieceKey(), metro: null, lastStats: 0 };
+  if (P.metro) {
+    const beatMs = 60000 / P.bpm, first = startMetronome(P.bpm, Infinity, P.bar);
+    piece.metro = { t0: first + P.bar * beatMs, beatMs, sub: P.sub, lat: pieceLatencyMs(), bpm: P.bpm, beatsPerBar: P.bar };
+    piece.start = first + P.bar * beatMs;
+  }
+  // Record the raw input so flagged moments can be played back
+  try {
+    const dest = ctx.createMediaStreamDestination();
+    inputNode.connect(dest);
+    piece.rec = new MediaRecorder(dest.stream);
+    const chunks = (piece.chunks = []);
+    piece.rec.ondataavailable = (e) => e.data.size && chunks.push(e.data); // the last chunk arrives after stopPiece clears `piece`
+    piece.rec.start(1000);
+    piece.recDest = dest;
+    piece.recStart = performance.now();
+  } catch (e) { piece.rec = null; }
+  $("#pcStart").hidden = true; $("#pcStop").hidden = false;
+  $("#pcClock").classList.add("rec");
+  $("#pcStatus").textContent = P.metro ? "Count-in… then play" : "Recording. Play when you're ready.";
+  $("#pcReport").innerHTML = "";
+}
+
+function stopPiece() {
+  const p = piece;
+  if (!p) return;
+  piece = null;
+  stopMetronome(); applyRange();
+  $("#pcStart").hidden = false; $("#pcStop").hidden = true;
+  $("#pcClock").classList.remove("rec");
+  $("#pcStatus").textContent = "Analysing…";
+  const finish = (audioURL) => {
+    if (pieceAudioURL) URL.revokeObjectURL(pieceAudioURL);
+    pieceAudioURL = audioURL;
+    // leading and trailing silence isn't part of the performance
+    const voiced = p.frames.filter((f) => f.m !== null);
+    if (voiced.length < 10) { $("#pcStatus").textContent = "No notes heard. Check the mic and try again."; return; }
+    const t0 = p.metro ? p.metro.t0 : voiced[0].t;
+    const a = PieceIO.analyze(p.frames.filter((f) => f.t >= t0 - 1000 && f.t <= voiced[voiced.length - 1].t + 200), {
+      tol: p.tol, name: pieceNoteName(), keyPcs: p.key && p.key.pcs, keyName: p.key && p.key.name, metronome: p.metro, t0 });
+    const previous = (DB.pieces || []).filter((x) => p.title && x.report.title === p.title).slice(0, 3).map((x) => ({ date: x.report.date, ...x.report.summary, timing: summaryTiming(x.report.timing) }));
+    const report = PieceIO.buildReport(a, { t0, date: Date.now(), title: p.title, keyName: p.key && p.key.name, a4: DB.settings.a4, tol: p.tol, metronome: p.metro, previous, name: pieceNoteName() });
+    // the recording starts a little before t0; remember the offset for playback
+    const entry = { id: Date.now(), audioOffset: (t0 - (p.recStart || t0)) / 1000, report };
+    DB.pieces = [entry, ...(DB.pieces || [])].slice(0, 10);
+    save();
+    $("#pcStatus").textContent = "Done. See the report below.";
+    renderPieceReport(entry, audioURL);
+    renderPieceHistory();
+  };
+  if (p.rec && p.rec.state !== "inactive") {
+    p.rec.onstop = () => { try { p.recDest && inputNode.disconnect(p.recDest); } catch (e) {} finish(p.chunks.length ? URL.createObjectURL(new Blob(p.chunks, { type: p.rec.mimeType })) : null); };
+    p.rec.stop();
+  } else finish(null);
+}
+const summaryTiming = (t) => (t.kind === "metronome" ? (t.onTimePct !== undefined ? `${t.onTimePct}% on time` : "") : t.steadinessPct !== undefined ? `pulse ${t.steadinessPct}% steady` : "");
+
+// Live view: tuner for the current note, a scrolling pitch trace, running stats
+function pieceLive(t, m) {
+  const p = piece, tol = p.tol;
+  const since = t - p.start;
+  $("#pcClock").textContent = since < 0 ? `-${Math.ceil(-since / 1000)}` : PieceIO.clock(since);
+  const recent = p.frames.slice(-6).filter((f) => f.m !== null).map((f) => f.m);
+  const needle = $("#pcNeedle");
+  if (recent.length >= 3) {
+    const sm = median(recent), n = Math.round(sm), dev = (sm - n) * 100, name = pieceNoteName()(n);
+    $("#pcNote").innerHTML = `${name.replace(/-?\d+$/, "")}<sub>${oct(n)}</sub>`;
+    $("#pcCents").textContent = `${dev > 0 ? "+" : dev < 0 ? "−" : ""}${Math.abs(dev).toFixed(0)}¢`;
+    $("#pcCents").style.color = colorFor(Math.abs(dev), tol);
+    needle.style.opacity = 1; needle.style.left = 50 + Math.max(-50, Math.min(50, dev)) + "%"; needle.style.background = colorFor(Math.abs(dev), tol);
+  } else { needle.style.opacity = 0; $("#pcCents").textContent = ""; }
+  if (p.metro && since >= 0 && $("#pcStatus").textContent.startsWith("Count")) $("#pcStatus").textContent = `Recording with the click at ${p.metro.bpm} BPM`;
+  if (t - (p.lastDraw || 0) > 33) { p.lastDraw = t; drawRoll(p, t); }
+  if (t - p.lastStats > 1000) {
+    p.lastStats = t;
+    const notes = PieceIO.segment(p.frames.slice(-60 * 60 * 3)).filter((n) => n.cents !== null); // last ~3 minutes
+    const ok = notes.filter((n) => Math.abs(n.cents) <= tol).length;
+    $("#pcLiveStats").innerHTML = notes.length ? `<span>Notes <b>${notes.length}</b></span><span>In tune <b>${Math.round((100 * ok) / notes.length)}%</b></span>` : "";
+  }
+}
+
+// Scrolling trace of the last 8 seconds, coloured by how far each moment is from the nearest note
+function drawRoll(p, now) {
+  const cv = $("#pcRoll"), dpr = window.devicePixelRatio || 1, w = cv.clientWidth, h = cv.clientHeight;
+  if (cv.width !== w * dpr) { cv.width = w * dpr; cv.height = h * dpr; }
+  const g = cv.getContext("2d");
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.clearRect(0, 0, w, h);
+  const span = 8000, fr = [];
+  for (let i = p.frames.length - 1; i >= 0 && p.frames[i].t > now - span; i--) fr.push(p.frames[i]);
+  const ms = fr.filter((f) => f.m !== null).map((f) => f.m);
+  const css = getComputedStyle(document.documentElement), col = (v) => css.getPropertyValue(v).trim();
+  let lo = ms.length ? Math.floor(Math.min(...ms)) - 2 : 70, hi = ms.length ? Math.ceil(Math.max(...ms)) + 2 : 82;
+  if (hi - lo < 12) { const c = (hi + lo) / 2; lo = Math.floor(c - 6); hi = Math.ceil(c + 6); }
+  const y = (m) => h - ((m - lo) / (hi - lo)) * h, x = (t) => w - ((now - t) / span) * w;
+  g.font = "10px system-ui"; g.fillStyle = col("--muted");
+  for (let m = Math.ceil(lo); m <= hi; m++) {
+    g.strokeStyle = col("--line"); g.lineWidth = 1; g.beginPath(); g.moveTo(0, y(m)); g.lineTo(w, y(m)); g.stroke();
+    if (m % 12 === 0 || m % 12 === 7) g.fillText(pieceNoteName()(m), 4, y(m) - 2);
+  }
+  if (p.metro) {
+    const { t0, beatMs, beatsPerBar } = p.metro;
+    for (let k = Math.ceil((now - span - t0) / beatMs); t0 + k * beatMs <= now; k++) {
+      const bx = x(t0 + k * beatMs + p.metro.lat);
+      g.strokeStyle = k % beatsPerBar === 0 ? col("--muted") : col("--line"); g.beginPath(); g.moveTo(bx, 0); g.lineTo(bx, h); g.stroke();
+    }
+  }
+  for (const f of fr) if (f.m !== null) {
+    g.fillStyle = col(colorFor(Math.abs((f.m - Math.round(f.m)) * 100), p.tol).slice(4, -1)); // "var(--good)" → --good
+    g.fillRect(x(f.t) - 1.5, y(f.m) - 1.5, 3, 3);
+  }
+}
+
+function renderPieceReport(entry, audioURL) {
+  const r = entry.report, S = r.summary, T = r.timing;
+  const notes = r.notes.map((n) => ({ ...n, midi: DrillIO.parseNote(n.note) ? DrillIO.parseNote(n.note).midi : null })).filter((n) => n.midi !== null);
+  const tol = r.toleranceCents, dur = Math.max(S.durationSec, notes.length ? notes[notes.length - 1].t + notes[notes.length - 1].durMs / 1000 : 0);
+  const tiles = [
+    [S.notes, "notes"], [S.inTunePct !== undefined ? S.inTunePct + "%" : "—", `in tune (±${tol}¢)`], [S.avgMissCents !== undefined ? S.avgMissCents + "¢" : "—", "average miss"],
+    T.kind === "metronome" ? [T.onTimePct !== undefined ? T.onTimePct + "%" : "—", `on time (±${T.tolMs} ms, ${r.metronome.bpm} BPM)`] : [T.steadinessPct !== undefined ? T.steadinessPct + "%" : "—", T.pulsePerMin ? `steady pulse (~${T.pulsePerMin}/min)` : "pulse"],
+    [PieceIO.clock(dur * 1000), "length"],
+  ];
+  // Piano roll of the whole performance: click a note to hear it
+  const pxs = 70, W = Math.max(700, Math.ceil(dur * pxs) + 40), H = 240;
+  const mids = notes.map((n) => n.midi), lo = Math.min(...mids) - 2, hi = Math.max(...mids) + 2;
+  const ny = (m) => 10 + ((hi - m) / Math.max(1, hi - lo)) * (H - 30);
+  let roll = "";
+  if (r.metronome) for (let b = 0; b * 60 / r.metronome.bpm <= dur; b++) roll += `<line x1="${20 + b * 60 / r.metronome.bpm * pxs}" x2="${20 + b * 60 / r.metronome.bpm * pxs}" y1="0" y2="${H}" stroke="var(--${b % r.metronome.beatsPerBar ? "line" : "muted"})"/>`;
+  for (let s = 0; s <= dur; s += 5) roll += `<text x="${20 + s * pxs}" y="${H - 4}" font-size="10" fill="var(--muted)">${PieceIO.clock(s * 1000)}</text>`;
+  for (let m = Math.ceil(lo); m <= hi; m++) if (m % 12 === 0) roll += `<text x="2" y="${ny(m) + 3}" font-size="9" fill="var(--muted)">C${oct(m)}</text>`;
+  const outs = new Set((r.outOfKey || []).map((o) => o.note));
+  for (const n of notes) {
+    const c = n.cents === null ? "var(--muted)" : colorFor(Math.abs(n.cents), tol);
+    roll += `<rect class="n" data-t="${n.t}" x="${20 + n.t * pxs}" y="${ny(n.midi) - 4}" width="${Math.max(3, (n.durMs / 1000) * pxs - 1)}" height="8" rx="2" fill="${c}" ${outs.has(n.note) ? 'stroke="var(--bad)" stroke-width="2"' : ""}><title>${n.t.toFixed(1)}s · ${n.note}${n.cents === null ? "" : ` ${n.cents > 0 ? "+" : ""}${n.cents}¢`}${n.timingMs !== undefined ? ` · ${n.timingMs > 0 ? "+" : ""}${n.timingMs} ms` : ""}</title></rect>`;
+  }
+  // Timing: offsets against the click, or the tempo curve of the player's own pulse
+  let timingSvg = "";
+  const TH = 130, tmid = TH / 2;
+  if (T.kind === "metronome" && T.onTimePct !== undefined) {
+    const max = Math.max(T.tolMs * 3, 120);
+    timingSvg = `<rect x="0" y="${tmid - (T.tolMs / max) * (tmid - 10)}" width="${W}" height="${(2 * T.tolMs / max) * (tmid - 10)}" fill="var(--good)" opacity=".12"/><line x1="0" x2="${W}" y1="${tmid}" y2="${tmid}" stroke="var(--muted)" stroke-width=".7"/><text x="4" y="12" font-size="10" fill="var(--muted)">late</text><text x="4" y="${TH - 4}" font-size="10" fill="var(--muted)">early</text>`;
+    for (const n of notes) if (n.timingMs !== undefined) timingSvg += `<circle cx="${20 + n.t * pxs}" cy="${tmid - (Math.max(-max, Math.min(max, n.timingMs)) / max) * (tmid - 10)}" r="3.5" fill="${colorFor(Math.abs(n.timingMs), T.tolMs)}"><title>${n.note} ${n.timingMs > 0 ? "+" : ""}${n.timingMs} ms</title></circle>`;
+  } else if (T.tempoCurve && T.tempoCurve.length) {
+    const max = 20;
+    timingSvg = `<rect x="0" y="${tmid - (6 / max) * (tmid - 10)}" width="${W}" height="${(12 / max) * (tmid - 10)}" fill="var(--good)" opacity=".12"/><line x1="0" x2="${W}" y1="${tmid}" y2="${tmid}" stroke="var(--muted)" stroke-width=".7"/><text x="4" y="12" font-size="10" fill="var(--muted)">faster</text><text x="4" y="${TH - 4}" font-size="10" fill="var(--muted)">slower</text>`;
+    timingSvg += `<polyline fill="none" stroke="var(--accent)" stroke-width="2" points="${T.tempoCurve.map((c) => `${20 + c.t * pxs},${tmid - (Math.max(-max, Math.min(max, c.pct)) / max) * (tmid - 10)}`).join(" ")}"/>`;
+  }
+  const esc = escapeHTML;
+  $("#pcReport").innerHTML = `<div class="card pcrep">
+    <div class="row" style="justify-content:space-between;margin:0 0 .6rem"><h2 style="margin:0">${esc(r.title || "Your performance")} <span class="muted" style="font-size:.9rem;font-weight:400">${new Date(r.date).toLocaleString()}${r.key ? " · " + esc(r.key) : ""}</span></h2>
+      <div class="row" style="margin:0"><button class="btn ghost" id="pcCopy">📋 Copy report for Claude</button><button class="btn ghost" id="pcSave">⬇ Report</button></div></div>
+    <div class="tiles">${tiles.map(([v, l]) => `<div class="card tile"><div class="v">${v}</div><div class="l">${l}</div></div>`).join("")}</div>
+    ${audioURL ? `<audio id="pcAudio" controls src="${audioURL}"></audio>` : `<p class="muted small">The recording itself isn't kept after you leave the page; the analysis is.</p>`}
+    <h3>Every note${audioURL ? " (click one to hear it)" : ""}</h3>
+    <div class="pcscroll" id="pcScroll"><svg viewBox="0 0 ${W} ${H}" width="${W}">${roll}</svg>${timingSvg ? `<svg viewBox="0 0 ${W} ${TH}" width="${W}" style="height:${TH}px">${timingSvg}</svg>` : ""}</div>
+    <div class="pccols">
+      <div><h3>Coach's notes</h3><ul class="tips">${r.coachNotes.map((t) => `<li>${esc(t)}</li>`).join("")}</ul></div>
+      <div><h3>Moments to check</h3>${r.moments.length ? r.moments.map((m) => `<div class="moment">${audioURL ? `<button data-t="${m.t}" aria-label="Play">▶</button>` : ""}<span class="at">${m.at}</span><span>${esc(m.what)}</span></div>`).join("") : `<p class="muted small">Nothing stood out.</p>`}
+        ${r.tendencies.length ? `<h3 style="margin-top:1rem">Consistently off</h3>${r.tendencies.map((x) => `<div class="moment"><span class="at">${x.count}×</span><span><b>${esc(x.note)}</b> ${x.avgCents > 0 ? "+" : ""}${x.avgCents}¢</span></div>`).join("")}` : ""}</div>
+    </div></div>`;
+  const text = () => JSON.stringify(r, null, 2);
+  $("#pcCopy").onclick = (e) => copyText(text(), e.target);
+  $("#pcSave").onclick = () => download(`${DrillIO.slug(r.title || "performance")}-${r.date.slice(0, 10)}.json`, text());
+  const audio = $("#pcAudio");
+  if (audio) {
+    let stopAt = null;
+    const playFrom = (sec) => { audio.currentTime = Math.max(0, sec + entry.audioOffset - 1); audio.play(); clearTimeout(stopAt); stopAt = setTimeout(() => audio.pause(), 3500); };
+    $("#pcReport").querySelectorAll("[data-t]").forEach((el) => (el.onclick = () => playFrom(+el.dataset.t)));
+  }
+}
+
+function renderPieceHistory() {
+  const list = DB.pieces || [];
+  $("#pcHistory").innerHTML = list.length ? list.map((x) => {
+    const r = x.report;
+    return `<div class="drow" data-id="${x.id}"><div><div class="nm">${escapeHTML(r.title || "Untitled")}</div><div class="sub">${new Date(r.date).toLocaleString()} · ${r.summary.notes} note${r.summary.notes === 1 ? "" : "s"} · ${r.summary.inTunePct ?? "—"}% in tune${summaryTiming(r.timing) ? " · " + summaryTiming(r.timing) : ""}</div></div>
+      <div class="acts"><button data-act="view">View</button><button data-act="copy">📋 Copy report</button><button class="del" data-act="del">Delete</button></div></div>`;
+  }).join("") : `<p class="muted small">Your recorded performances will appear here.</p>`;
+}
+
+function syncPieceUI() {
+  const P = pcS();
+  const opts = [`<option value="">No key (just intonation)</option>`];
+  for (const [type, label] of [["major", "major"], ["minor", "minor"]])
+    for (const k of Scales.SCALE_TYPES[type === "major" ? "major" : "natural"].keys) opts.push(`<option value="${k}|${type}" ${P.key === `${k}|${type}` ? "selected" : ""}>${Scales.prettyTonic(k)} ${label}</option>`);
+  $("#pcKey").innerHTML = opts.join("");
+  $("#pcTitle").value = P.title;
+  document.querySelectorAll("#pcTolSeg button").forEach((b) => b.classList.toggle("on", +b.dataset.v === P.tol));
+  $("#pcMetro").checked = P.metro; $("#pcMetroPanel").hidden = !P.metro;
+  $("#pcBpmVal").textContent = P.bpm; $("#pcBpmRange").value = P.bpm;
+  document.querySelectorAll("#pcBarSeg button").forEach((b) => b.classList.toggle("on", +b.dataset.v === P.bar));
+  document.querySelectorAll("#pcSubSeg button").forEach((b) => b.classList.toggle("on", +b.dataset.v === P.sub));
+  $("#pcZone").style.width = P.tol + "%";
+  $("#pcLatVal").textContent = DB.settings.pieceLatencyMs != null ? DB.settings.pieceLatencyMs + " ms" : "auto";
 }
 
 // ---------- Rendering ----------
@@ -1416,7 +1711,7 @@ function renderAll() {
   const ex = exById(DB.selected);
   $("#exTitle").textContent = `${ex.group} · ${ex.name}`;
   if (!run) { renderIdle(); buildPath(); buildBoard(); }
-  renderProgress(); renderDrillsTab();
+  renderProgress(); renderDrillsTab(); renderPieceHistory(); syncPieceUI();
 }
 
 // ---------- Wiring ----------
@@ -1439,7 +1734,8 @@ $("#bpmRange").onchange = (e) => setBpm(+e.target.value);
 $("#bpmRange").oninput = (e) => ($("#bpmVal").textContent = e.target.value);
 document.querySelectorAll("#perSeg button").forEach((b) => (b.onclick = () => { DB.settings.per = +b.dataset.v; save(); syncSettingsUI(); if (run && run.tempo) startRun(); }));
 $("#optLadder").onchange = (e) => { DB.settings.ladder = e.target.checked; save(); };
-$("#tcalBtn").onclick = calibrateTiming;
+$("#tcalBtn").onclick = () => calibrateTiming(false);
+$("#pcCalBtn").onclick = () => calibrateTiming(true);
 $("#calibBtn").onclick = async () => {
   if (!(await startAudio())) return;
   if (run) stopRun();
@@ -1452,7 +1748,11 @@ $("#resetBtn").onclick = () => {
 };
 document.addEventListener("keydown", async (e) => {
   if (["INPUT", "SELECT", "TEXTAREA"].includes(e.target.tagName)) return;
-  if (e.code === "Space") { e.preventDefault(); if (await startAudio()) startRun(); }
+  if (e.code === "Space") {
+    e.preventDefault();
+    if ($("#tab-piece").classList.contains("active")) return piece ? stopPiece() : startPiece();
+    if (await startAudio()) startRun();
+  }
   if (e.code === "Escape") { if (!$("#results").hidden) $("#results").hidden = true; else if (run) stopRun(); }
 });
 
@@ -1468,6 +1768,30 @@ if (SIM) {
   $("#simStop").onclick = () => simGain && simGain.gain.setValueAtTime(0, ctx.currentTime);
   window.__sim = { play, stop: () => simGain.gain.setValueAtTime(0, ctx.currentTime), target };
 }
+
+const pcSet = (k, v) => { pcS()[k] = v; save(); syncPieceUI(); };
+$("#pcTitle").onchange = (e) => pcSet("title", e.target.value.trim());
+$("#pcKey").onchange = (e) => pcSet("key", e.target.value);
+document.querySelectorAll("#pcTolSeg button").forEach((b) => (b.onclick = () => pcSet("tol", +b.dataset.v)));
+$("#pcMetro").onchange = (e) => pcSet("metro", e.target.checked);
+const pcBpm = (v) => pcSet("bpm", Math.max(30, Math.min(200, Math.round(v))));
+$("#pcBpmDown").onclick = () => pcBpm(pcS().bpm - 2);
+$("#pcBpmUp").onclick = () => pcBpm(pcS().bpm + 2);
+$("#pcBpmRange").onchange = (e) => pcBpm(+e.target.value);
+$("#pcBpmRange").oninput = (e) => ($("#pcBpmVal").textContent = e.target.value);
+document.querySelectorAll("#pcBarSeg button").forEach((b) => (b.onclick = () => pcSet("bar", +b.dataset.v)));
+document.querySelectorAll("#pcSubSeg button").forEach((b) => (b.onclick = () => pcSet("sub", +b.dataset.v)));
+$("#pcStart").onclick = startPiece;
+$("#pcStop").onclick = stopPiece;
+$("#pcHistory").onclick = (e) => {
+  const b = e.target.closest("button"), row = e.target.closest(".drow");
+  if (!b || !row) return;
+  const entry = (DB.pieces || []).find((x) => String(x.id) === row.dataset.id);
+  if (!entry) return;
+  if (b.dataset.act === "view") { renderPieceReport(entry, entry === DB.pieces[0] ? pieceAudioURL : null); $("#pcReport").scrollIntoView({ behavior: "smooth" }); }
+  if (b.dataset.act === "copy") copyText(JSON.stringify(entry.report, null, 2), b);
+  if (b.dataset.act === "del" && confirm("Delete this performance?")) { DB.pieces = DB.pieces.filter((x) => x !== entry); save(); renderPieceHistory(); }
+};
 
 $("#formatDoc").textContent = DrillIO.FORMAT_DOC;
 $("#copyFormat").onclick = (e) => copyText(DrillIO.FORMAT_DOC, e.target);

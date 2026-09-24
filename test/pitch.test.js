@@ -28,6 +28,16 @@ for (let midi = 57; midi <= 95; midi++) {
     if (!(err < 3)) { fails++; console.log(`FAIL midi ${midi} ${cents}c -> ${got.toFixed(1)}c`); }
   }
 }
+// Piece mode listens across all four strings at once (G3 to D7) with one wide range
+for (const amps of [[0.6, 1.0, 0.5, 0.35, 0.25, 0.15], [0.25, 1.0, 0.7, 0.4, 0.3, 0.2]]) {
+  for (let midi = 55; midi <= 98; midi++) for (const cents of [-30, 0, 20]) {
+    const f = midiToFreq(midi) * Math.pow(2, cents / 1200), buf = new Float32Array(N);
+    for (let i = 0; i < N; i++) { let s = 0; amps.forEach((a, h) => (s += a * Math.sin(2 * Math.PI * f * (h + 1) * i / sr + h))); buf[i] = 0.2 * s + 0.02 * (Math.random() * 2 - 1); }
+    const { freq } = detectPitch(buf, sr, { minFreq: 180, maxFreq: 2700 });
+    const got = freq ? (freqToMidi(freq) - midi) * 100 : NaN;
+    if (!(Math.abs(got - cents) < 3)) { fails++; console.log(`FAIL wide range midi ${midi} ${cents}c -> ${got.toFixed(1)}c`); }
+  }
+}
 const silent = detectPitch(new Float32Array(N).map(() => 0.002 * (Math.random() - 0.5)), sr);
 if (silent.freq !== 0) { fails++; console.log("FAIL silence detected as pitch"); }
 console.log(fails ? `${fails} failures` : `all pass, worst error ${worst.toFixed(2)} cents`);
