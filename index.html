@@ -551,36 +551,70 @@ function noteStats(key) {
 }
 
 // ---------- Audio ----------
-let ctx, analyser, buf, hp, droneNodes = null, simOsc, simGain, inputNode;
-let frames = [], smooth = null, suppressUntil = 0, lastT = 0, calib = null;
+let ctx, analyser, buf, hp, droneNodes = null, simOsc, simGain, inputNode, micStream;
+let frames = [], smooth = null, suppressUntil = 0, lastT = 0, calib = null, silentSince = null, silenceWarned = false;
+const AC = window.AudioContext || window.webkitAudioContext;
 
+// iPad/iPhone Safari: the mic must be opened BEFORE the AudioContext exists. Turning the mic on switches iOS
+// into record mode (usually 48 kHz); a context created earlier for playback can be left suspended or at a
+// mismatched sample rate, and then the mic feeds it pure silence.
 async function startAudio() {
-  if (ctx) { if (ctx.state === "suspended") await ctx.resume(); return true; }
-  const c = new (window.AudioContext || window.webkitAudioContext)();
+  if (ctx) { await resumeAudio(); return true; }
+  let c;
+  if (SIM) {
+    c = new AC();
+  } else {
+    try {
+      micStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
+    } catch (e) {
+      setMsg(`🎤 Can't use the microphone (${e.name}). Allow mic access for this page and try again.`, "bad");
+      return false;
+    }
+    const rate = (micStream.getAudioTracks()[0].getSettings() || {}).sampleRate;
+    try { c = rate ? new AC({ sampleRate: rate }) : new AC(); } catch (e) { c = new AC(); }
+  }
   hp = c.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = RANGE.hp; // strip the drone & low rumble
   analyser = c.createAnalyser(); analyser.fftSize = 2048; buf = new Float32Array(analyser.fftSize);
   hp.connect(analyser);
+  // Safari only processes nodes that lead to the speakers, so feed the analyser into a muted output
+  const mute = c.createGain(); mute.gain.value = 0;
+  analyser.connect(mute).connect(c.destination);
   if (SIM) {
     simOsc = c.createOscillator(); simOsc.type = "sawtooth";
     simGain = c.createGain(); simGain.gain.value = 0;
     simOsc.connect(simGain).connect(hp); simOsc.start();
     inputNode = simGain;
   } else {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
-      inputNode = c.createMediaStreamSource(stream);
-      inputNode.connect(hp);
-    } catch (e) {
-      c.close();
-      setMsg(`🎤 Can't use the microphone (${e.name}). Allow mic access for this page and try again.`, "bad");
-      return false;
-    }
+    inputNode = c.createMediaStreamSource(micStream);
+    inputNode.connect(hp);
+    micStream.getAudioTracks()[0].onended = () => setMsg("🎤 The microphone was switched off. Press Start to turn it back on.", "bad");
   }
   ctx = c;
-  $("#micState").textContent = SIM ? "Simulator" : "Listening";
+  ctx.onstatechange = () => { if (ctx.state !== "running") $("#micState").textContent = "Paused, tap to resume"; };
+  await resumeAudio();
   applyDrone();
   requestAnimationFrame(loop);
   return true;
+}
+
+// iOS pauses audio when the app goes to the background, a call comes in, or Siri speaks ("interrupted"),
+// and only lets it restart on a tap. Resume on the next touch anywhere.
+async function resumeAudio() {
+  if (ctx.state !== "running") { try { await ctx.resume(); } catch (e) {} }
+  $("#micState").textContent = ctx.state === "running" ? (SIM ? "Simulator" : "Listening") : "Paused, tap to resume";
+}
+document.addEventListener("pointerdown", () => { if (ctx && ctx.state !== "running") resumeAudio(); }, true);
+document.addEventListener("visibilitychange", () => { if (ctx && document.visibilityState === "visible") resumeAudio(); });
+
+// The mic icon can be on while the app receives nothing; say so rather than failing quietly
+function watchSilence(t, rms) {
+  if (SIM || rms > 0.00002) { silentSince = null; silenceWarned = false; return; }
+  if (silentSince === null) silentSince = t;
+  if (t - silentSince > 4000 && !silenceWarned) {
+    const tr = micStream && micStream.getAudioTracks()[0];
+    setMsg(`🎤 The mic is on but the app hears nothing (audio ${ctx.state}, ${ctx.sampleRate} Hz, mic ${tr ? tr.readyState : "none"}). Tap anywhere to resume. If that doesn't help, reload the page. On iPad, check Settings → Safari → Microphone.`, "bad");
+    silenceWarned = true;
+  }
 }
 
 function tone(freq, dur, vol = 0.18, type = "sine") {
@@ -706,6 +740,7 @@ function loop(t) {
   analyser.getFloatTimeDomainData(buf);
   const r = PitchDetector.detectPitch(buf, ctx.sampleRate, { minFreq: calib ? Math.min(380, RANGE.min) : RANGE.min, maxFreq: calib ? Math.max(1000, RANGE.max) : RANGE.max, minRms: 0.006 });
   $("#meter").style.width = Math.min(100, r.rms * 900) + "%";
+  watchSilence(t, r.rms);
 
   let m = null;
   if (t >= suppressUntil && r.freq) m = 69 + 12 * Math.log2(r.freq / DB.settings.a4);
