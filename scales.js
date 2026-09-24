@@ -68,61 +68,110 @@
   // Up-and-back sequence; melodic minor comes down with its natural-minor form
   const upDown = (up, down) => up.concat(down.slice(0, -1).reverse());
 
-  // Find a one-octave tonic-to-tonic run that starts in position p1 and shifts once into p2
-  function findShiftRun(tonic, type, lo, hi, p1, p2) {
-    const spUp = spell(tonic, type), spDown = type.down ? spell(tonic, SCALE_TYPES[type.down]) : spUp;
-    const avail = (sp) => {
-      const out = [];
-      for (const p of [p1, p2]) for (const s of [lo, hi]) out.push(...fingers4(s, p, sp));
-      out.push(fingering(hi, p2, "4x", sp));
-      return out;
-    };
-    const scaleMidis = (sp, from) => {
-      const pcs = new Set([0, 1, 2, 3, 4, 5, 6].map((l) => (NATURAL_PC[l] + sp.acc[l] + 12) % 12));
-      const out = [];
-      for (let m = from; m <= from + 12; m++) if (pcs.has(m % 12)) out.push(m);
-      return out;
-    };
-    const route = (sp, midis) => {
-      const av = avail(sp);
-      let best = null;
-      for (let k = 2; k <= midis.length - 2; k++) {
-        const seq = midis.map((m, i) => {
-          const inPos = i < k ? p1 : p2;
-          const opts = av.filter((o) => o.midi === m && o.pos === inPos && (o.finger !== "4x" || i === midis.length - 1));
-          return opts.sort((a, b) => (a.finger === "4x") - (b.finger === "4x"))[0];
-        });
-        if (seq.some((x) => !x)) continue;
-        if (seq.some((x, i) => i && STRING_ORDER.indexOf(x.string) < STRING_ORDER.indexOf(seq[i - 1].string))) continue;
-        const a = seq[k - 1], b = seq[k];
-        const score = (b.finger === "1" ? 4 : 0) + (b.midi - a.midi === 1 ? 2 : 0) + (+b.finger <= +a.finger ? 1 : 0) - seq.filter((x) => x.finger === "4x").length;
-        if (!best || score > best.score) best = { seq, score };
-      }
-      return best && best.seq;
-    };
-    const starts = avail(spUp).filter((o) => o.pos === p1 && (o.midi - spUp.tonicPc) % 12 === 0).map((o) => o.midi).sort((a, b) => a - b);
-    for (const t of [...new Set(starts)]) {
-      const up = route(spUp, scaleMidis(spUp, t));
-      const down = route(spDown, scaleMidis(spDown, t));
-      if (up && down) return { up, down, octave: true };
-    }
-    // No tonic octave fits: run from the lower position's 1st finger to the upper position's 4th finger
-    const from = fingering(lo, p1, "1", spUp).midi, to = fingering(hi, p2, "4", spUp).midi;
-    const segment = (sp) => scaleMidis(sp, from).concat(scaleMidis(sp, from + 12).slice(1)).filter((m) => m <= to);
-    const up = route(spUp, segment(spUp)), down = route(spDown, segment(spDown));
-    return up && down ? { up, down, octave: false } : null;
+  // Open string, spelled the way the scale spells that pitch (G♯ harmonic minor's F𝄪 is the open G)
+  function openString(string, sp) {
+    const midi = STRINGS[string].midi, pc = midi % 12;
+    let l = STRINGS[string].letter;
+    for (let x = 0; x < 7; x++) if ((NATURAL_PC[x] + sp.acc[x] + 12) % 12 === pc) l = x;
+    const a = (pc - NATURAL_PC[l] + 18) % 12 - 6;
+    return { midi, string, finger: "0", pos: null, key: midi + string, label: LETTERS[l] + ACC[a], oct: Math.floor((midi - a) / 12) - 1 };
   }
 
-  // Tag each note reached by a shift with its direction. A down-shift onto a higher finger gets a guide
-  // note: the old finger slides to its spot in the new position, then the new finger drops.
+  // Scale notes from `from` up to `to`, inclusive
+  function scaleMidis(sp, from, to) {
+    const pcs = new Set([0, 1, 2, 3, 4, 5, 6].map((l) => (NATURAL_PC[l] + sp.acc[l] + 12) % 12));
+    const out = [];
+    for (let m = from; m <= to; m++) if (pcs.has(m % 12)) out.push(m);
+    return out;
+  }
+
+  // Find the longest tonic-to-tonic run (up to 3 octaves) that climbs through the positions in order,
+  // shifting once between each neighbouring pair. Open strings count as 1st position.
+  function findRun(tonic, type, strings, positions) {
+    const spUp = spell(tonic, type), spDown = type.down ? spell(tonic, SCALE_TYPES[type.down]) : spUp;
+    const top = strings[strings.length - 1], last = positions[positions.length - 1], open = positions[0] === 1;
+    const avail = (sp) => {
+      const out = [];
+      for (const p of positions) for (const s of strings) out.push(...fingers4(s, p, sp));
+      out.push(fingering(top, last, "4x", sp));
+      if (open) for (const s of strings) out.push(openString(s, sp));
+      return out;
+    };
+    // Rank: open strings, then fingers, then the stretched 4th
+    const rank = (o) => (o.finger === "0" ? 0 : o.finger === "4x" ? 2 : 1);
+    const shiftScore = (a, b) => (b.finger === "1" ? 4 : 0) + (b.midi - a.midi === 1 ? 2 : 0) + (+b.finger <= +a.finger ? 1 : 0);
+    const route = (sp, midis) => {
+      const av = avail(sp), n = midis.length, m = positions.length, memo = new Map();
+      const cands = (i, j) => av.filter((o) => o.midi === midis[i] && (o.finger === "0" ? j === 0 : o.pos === positions[j]) && (o.finger !== "4x" || i === n - 1))
+        .sort((a, b) => rank(a) - rank(b));
+      // Best way to play notes i.. when the previous note `a` was in positions[j], `len` notes into that position.
+      // Each position gets at least 2 notes, and a shift always leaves from a stopped (not open) note.
+      const go = (i, j, a, len) => {
+        if (i === n) return j === m - 1 && len >= 2 ? { score: 0, seq: [] } : null;
+        const key = `${i}|${j}|${a ? a.key + a.finger : ""}|${Math.min(len, 2)}`;
+        if (memo.has(key)) return memo.get(key);
+        let best = null;
+        const steps = a && j + 1 < m && len >= 2 && a.finger !== "0" ? [j + 1, j] : [j]; // shift first: on a tie the earlier shift wins
+        for (const jj of steps) for (const b of cands(i, jj)) {
+          if (a && STRING_ORDER.indexOf(b.string) < STRING_ORDER.indexOf(a.string)) continue;
+          const rest = go(i + 1, jj, b, jj === j ? len + 1 : 1);
+          if (!rest) continue;
+          const score = rest.score + (jj !== j ? shiftScore(a, b) : 0) - (b.finger === "4x" ? 1 : 0) + (b.finger === "0" ? 0.01 : 0);
+          if (!best || score > best.score) best = { score, seq: [b, ...rest.seq] };
+        }
+        memo.set(key, best);
+        return best;
+      };
+      const r = go(0, 0, null, 0);
+      return r && r.seq;
+    };
+    // Up and down share their end notes (melodic minor's two forms can differ at the edges of a span)
+    const both = (from, to) => {
+      const inDown = new Set(scaleMidis(spDown, from, to)), ends = scaleMidis(spUp, from, to).filter((m) => inDown.has(m));
+      if (ends.length < 2) return null;
+      [from, to] = [ends[0], ends[ends.length - 1]];
+      const up = route(spUp, scaleMidis(spUp, from, to)), down = up && route(spDown, scaleMidis(spDown, from, to));
+      return up && down ? { up, down } : null;
+    };
+    const midis = avail(spUp).map((o) => o.midi), lo = Math.min(...midis), hi = Math.max(...midis);
+    for (let octs = 3; octs >= 1; octs--)
+      for (let t = lo; t + 12 * octs <= hi; t++) {
+        if ((t - spUp.tonicPc) % 12) continue;
+        const r = both(t, t + 12 * octs);
+        if (r) return { ...r, octave: true };
+      }
+    // No tonic octave fits: run from the bottom of the lowest position to the top position's 4th finger
+    // (from the open string if that's in the key and the next note up is reachable, else from the 1st finger)
+    const to = fingering(top, last, "4", spUp).midi;
+    const r = (open && both(STRINGS[strings[0]].midi, to)) || both(fingering(strings[0], positions[0], "1", spUp).midi, to);
+    return r && { ...r, octave: false };
+  }
+
+  // Tag each note reached by a shift with its direction. Open strings leave the hand where it was.
+  // A down-shift onto a higher finger gets a guide note: the old finger slides to its spot in the new
+  // position, then the new finger drops.
   function annotateShifts(seq, sp) {
+    let hand = null;
     return seq.map((b, i) => {
-      const a = seq[i - 1];
-      if (!a || a.pos === b.pos) return b;
-      const out = { ...b, shift: b.pos < a.pos ? "down" : "up", from: a };
-      if (out.shift === "down" && a.string === b.string && a.finger !== "4x" && +a.finger < +b.finger) out.guide = fingering(b.string, b.pos, a.finger, sp);
+      const a = seq[i - 1], was = hand;
+      if (b.pos) hand = b.pos;
+      if (!a || !b.pos || !was || was === b.pos) return b;
+      const out = { ...b, shift: b.pos < was ? "down" : "up", from: a };
+      if (out.shift === "down" && a.string === b.string && a.pos && a.finger !== "4x" && +a.finger < +b.finger) out.guide = fingering(b.string, b.pos, a.finger, sp);
       return out;
     });
+  }
+
+  // "1st: 0 1 2 3 ⇡ 3rd: 1 2 3 4": fingers grouped by hand position, with the shifts between them
+  function segFrame(notes) {
+    let out = "", hand = null;
+    for (const n of notes) {
+      const p = n.pos || hand || 1;
+      if (p !== hand) out += `${hand === null ? "" : p > hand ? " ⇡ " : " ⇣ "}${ordinal(p)}:`;
+      hand = p;
+      out += " " + n.finger;
+    }
+    return out;
   }
 
   // Isolated down-shifts on one string, each pair played twice: same-finger slides, then the scale step
@@ -137,55 +186,87 @@
     return { pairs: order, seq: annotateShifts(order.flatMap(([a, b]) => [a, b, a, b]), sp) };
   }
 
-  // Build all drills for a configuration
+  const andList = (xs) => (xs.length < 2 ? xs.join("") : `${xs.slice(0, -1).join(", ")} & ${xs[xs.length - 1]}`);
+  const stringsText = (ss) => (ss.length === 1 ? `${ss[0]} string` : `${ss.join(ss.length === 2 ? " & " : "–").replace(/–.*–/, "–")} strings`);
+
+  // Build all drills for a configuration: strings is 1–4 neighbouring strings (low to high),
+  // positions is 1–4 positions (low to high)
   function buildDrills(cfg) {
     const type = SCALE_TYPES[cfg.type];
     const spUp = spell(cfg.tonic, type), spDown = type.down ? spell(cfg.tonic, SCALE_TYPES[type.down]) : spUp;
-    const [lo, hi] = cfg.strings, [p1, p2] = cfg.positions;
+    const { strings, positions } = cfg, multiPos = positions.length > 1;
     const drills = [];
-    for (const p of [p1, p2]) {
+    for (const p of positions) {
       const group = `${ordinal(p)} position`;
-      const u = { lo: fingers4(lo, p, spUp), hi: fingers4(hi, p, spUp) };
-      const d = { lo: fingers4(lo, p, spDown), hi: fingers4(hi, p, spDown) };
-      drills.push({ id: `p${p}-${lo}`, group, name: `${lo} string`, notes: upDown(u.lo, d.lo), frame: framePattern(u.lo), tip: frameTip(u.lo) });
-      drills.push({ id: `p${p}-${hi}`, group, name: `${hi} string`, notes: upDown(u.hi, d.hi), frame: framePattern(u.hi), tip: frameTip(u.hi) });
-      drills.push({ id: `p${p}-${lo}${hi}`, group, name: `${lo} + ${hi} strings`, notes: upDown([...u.lo, ...u.hi], [...d.lo, ...d.hi]),
-        frame: `${framePattern(u.lo)} | ${framePattern(u.hi)}`, tip: `Keep the hand still when you cross from ${lo} to ${hi}. Only the finger pattern changes.` });
+      const u = strings.map((s) => fingers4(s, p, spUp)), d = strings.map((s) => fingers4(s, p, spDown));
+      strings.forEach((s, i) => drills.push({ id: `p${p}-${s}`, group, name: `${s} string`, notes: upDown(u[i], d[i]), frame: framePattern(u[i]), tip: frameTip(u[i]) }));
+      if (strings.length > 1)
+        drills.push({ id: `p${p}-${strings.join("")}`, group, name: `${strings.join(" + ")} strings`, notes: upDown(u.flat(), d.flat()), frame: u.map(framePattern).join(" | "),
+          tip: `Keep the hand still when you cross from ${strings[0]} to ${strings[strings.length - 1]}. Only the finger pattern changes.` });
     }
-    const run = findShiftRun(cfg.tonic, type, lo, hi, p1, p2);
+    // A one-position run is only worth adding when it's a real tonic-to-tonic scale, not the string-crossing drill again
+    const found = findRun(cfg.tonic, type, strings, positions);
+    const run = found && (multiPos || found.octave) ? found : null;
     if (run) {
       const first = run.up[0], last = run.up[run.up.length - 1];
-      const k = run.up.findIndex((x) => x.pos === p2);
-      const a = run.up[k - 1], b = run.up[k];
-      const frame = `${ordinal(p1)}: ${run.up.slice(0, k).map((x) => x.finger).join(" ")} ⇡ ${ordinal(p2)}: ${run.up.slice(k).map((x) => x.finger).join(" ")}`;
-      drills.push({ id: "shift", group: "Put it together", name: `${first.label}${first.oct}→${last.label}${last.oct} with a shift`, notes: annotateShifts(upDown(run.up, run.down), spDown), frame,
-        tip: `Shift on ${a.label} → ${b.label}: slide lightly on ${a.finger}, then land ${b.finger} in ${ordinal(p2)} position.${last.finger === "4x" ? ` Stretch 4 up for the top ${last.label}.` : ""}` });
+      const shifts = run.up.map((b, i) => [run.up[i - 1], b]).filter(([a, b]) => a && b.pos && a.pos && a.pos !== b.pos);
+      const stretch = last.finger === "4x" ? ` Stretch 4 up for the top ${last.label}.` : "";
+      const tip = multiPos
+        ? shifts.map(([a, b]) => `Shift on ${a.label} → ${b.label}: slide lightly on ${a.finger}, then land ${b.finger} in ${ordinal(b.pos)} position.`).join(" ") + stretch
+        : `One position all the way: the hand stays put while the fingers cross strings.${run.up.some((x) => x.finger === "0") ? " Use the open strings." : ""}${stretch}`;
+      drills.push({ id: multiPos ? "shift" : "scale", group: "Put it together",
+        name: `${first.label}${first.oct}→${last.label}${last.oct} ${multiPos ? `with ${shifts.length === 1 ? "a shift" : `${shifts.length} shifts`}` : `in ${ordinal(positions[0])} position`}`,
+        notes: annotateShifts(upDown(run.up, run.down), spDown), frame: segFrame(run.up).trim(), tip });
     }
     const pool = new Map();
-    for (const sp of [spUp, spDown]) for (const p of [p1, p2]) for (const s of [lo, hi]) for (const it of fingers4(s, p, sp)) pool.set(it.key + it.finger + it.pos, it);
+    for (const sp of [spUp, spDown]) for (const p of positions) for (const s of strings) for (const it of fingers4(s, p, sp)) pool.set(it.key + it.finger + it.pos, it);
     drills.push({ id: "hunt", group: "Put it together", name: "Note Hunt (adaptive)", hunt: true, pool: [...pool.values()], frame: "12 random notes",
-      tip: "No pattern to lean on: remember the spot, then land it. Your weakest notes come up most." });
+      tip: `No pattern to lean on: remember the spot, then land it.${multiPos ? "" : ` It's all ${ordinal(positions[0])} position, but on any string.`} Your weakest notes come up most.` });
+    if (!multiPos) return drills;
 
-    // Shifting down: isolate the move on each string, then put it back into a scale that starts at the top
+    // Shifting down: isolate the move on each string, then put it back into a scale that starts at the top.
+    // With more than two strings, drill the strings the scale actually shifts on.
     const downTip = "Let the thumb and the whole hand travel back together, lightly. Coming down, most players stop short and land sharp. On guide-note shifts, slide the old finger to the guide note, then drop the new finger.";
-    for (const s of [lo, hi]) {
-      const { pairs, seq } = downShiftPairs(s, p1, p2, spDown);
-      drills.push({ id: `down-${s}`, group: "Shifting down", name: `${s} string: shift pairs`, notes: seq,
-        frame: `${ordinal(p2)} ⇣ ${ordinal(p1)}: ${pairs.map(([a, b]) => `${a.finger}→${b.finger}`).join(" ")}`, tip: downTip });
+    for (let i = 0; i + 1 < positions.length; i++) {
+      const [p1, p2] = [positions[i], positions[i + 1]];
+      let ss = strings;
+      if (strings.length > 2) {
+        const used = new Set();
+        if (run) run.down.forEach((b, k) => { const a = run.down[k - 1]; if (a && a.pos === p1 && b.pos === p2) { used.add(a.string); used.add(b.string); } });
+        ss = strings.filter((s) => used.has(s));
+        if (!ss.length) ss = [strings[strings.length - 1]];
+      }
+      for (const s of ss) {
+        const { pairs, seq } = downShiftPairs(s, p1, p2, spDown);
+        drills.push({ id: positions.length === 2 ? `down-${s}` : `down-${p2}-${p1}-${s}`, group: "Shifting down",
+          name: `${s} string: ${positions.length === 2 ? "shift pairs" : `${ordinal(p2)} ⇣ ${ordinal(p1)} pairs`}`, notes: seq,
+          frame: `${ordinal(p2)} ⇣ ${ordinal(p1)}: ${pairs.map(([a, b]) => `${a.finger}→${b.finger}`).join(" ")}`, tip: downTip });
+      }
     }
     if (run) {
       const top = run.down[run.down.length - 1], bottom = run.down[0];
       const notes = annotateShifts([...run.down].reverse().concat(run.up.slice(1)), spDown);
       const k = notes.findIndex((x) => x.shift === "down");
       drills.push({ id: "down-run", group: "Shifting down", name: `From the top: ${top.label}${top.oct}→${bottom.label}${bottom.oct}`, notes,
-        frame: `${ordinal(p2)}: ${notes.slice(0, k).map((x) => x.finger).join(" ")} ⇣ ${ordinal(p1)}: ${notes.slice(k, run.down.length).map((x) => x.finger).join(" ")}`,
+        frame: segFrame(notes.slice(0, run.down.length)).trim(),
         tip: `Start high and shift down while you're fresh, then climb back up. ${notes[k].guide ? `On ${notes[k - 1].label} → ${notes[k].label}, slide ${notes[k - 1].finger} to ${notes[k].guide.label}, then drop ${notes[k].finger}.` : `Shift down on ${notes[k - 1].label} → ${notes[k].label}.`}` });
     }
     return drills;
   }
 
   const cfgKey = (c) => `${c.tonic}-${c.type}-${c.strings.join("")}-${c.positions.join("-")}`;
-  const cfgLabel = (c) => `${prettyTonic(c.tonic)} ${SCALE_TYPES[c.type].name} · ${ordinal(c.positions[0])} & ${ordinal(c.positions[1])} position · ${c.strings.join(" & ")} strings`;
+  const cfgLabel = (c) => `${prettyTonic(c.tonic)} ${SCALE_TYPES[c.type].name} · ${andList(c.positions.map(ordinal))} position · ${stringsText(c.strings)}`;
+
+  // Tidy a configuration: neighbouring strings spanning the ones chosen, 1–4 distinct positions (1st–7th), low to high
+  function normalizeCfg(c) {
+    const type = SCALE_TYPES[c.type] ? c.type : "major";
+    const tonic = SCALE_TYPES[type].keys.includes(c.tonic) ? c.tonic : SCALE_TYPES[type].keys[0];
+    const idx = (c.strings || []).map((s) => STRING_ORDER.indexOf(s)).filter((i) => i >= 0);
+    const strings = idx.length ? STRING_ORDER.slice(Math.min(...idx), Math.max(...idx) + 1) : ["A", "E"];
+    let positions = [...new Set((c.positions || []).map(Number).filter((p) => Number.isInteger(p) && p >= 1 && p <= 7))].sort((a, b) => a - b).slice(0, 4);
+    if (!positions.length) positions = [1];
+    return { tonic, type, strings, positions };
+  }
 
   // Name any MIDI note, preferring the scale's own spelling, else sharps/flats to match the key
   function nameIn(midi, cfg) {
@@ -196,7 +277,7 @@
     return flats ? ["C", "D♭", "D", "E♭", "E", "F", "G♭", "G", "A♭", "A", "B♭", "B"][pc] : ["C", "C♯", "D", "D♯", "E", "F", "F♯", "G", "G♯", "A", "A♯", "B"][pc];
   }
 
-  const api = { SCALE_TYPES, STRINGS, STRING_ORDER, ordinal, prettyTonic, spell, fingering, buildDrills, findShiftRun, cfgKey, cfgLabel, nameIn };
+  const api = { SCALE_TYPES, STRINGS, STRING_ORDER, ordinal, prettyTonic, spell, fingering, buildDrills, findRun, normalizeCfg, cfgKey, cfgLabel, nameIn };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else root.Scales = api;
 })(this);

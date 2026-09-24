@@ -1,8 +1,13 @@
 # Fingerboard Coach
 
-A practice app that listens through your microphone while you play scales in any two positions on a pair of strings, or while you play a whole piece. It tells you, note by note, whether you played it right.
+A practice app that listens through your microphone while you play scales in the positions and strings you're learning, or while you play a whole piece. It tells you, note by note, whether you played it right.
 
-Use the **Scale** card to pick a key (12 per scale type), a scale type (major, natural minor, harmonic minor, melodic minor), a string pair (G·D, D·A, A·E) and two positions (1st–7th). It generates the drills for that setup: each string on its own in each position, both strings together, a run with one shift between the two positions, an adaptive Note Hunt, and *Shifting down* drills (repeated down-shift pairs on each string with guide notes, plus a run that starts at the top so you shift down first). Medals and history are kept separately for each setup. Where each note tends to land is tracked per physical spot on the string, so it's shared across scales.
+Use the **Scale** card to pick a key (12 per scale type), a scale type (major, natural minor, harmonic minor, melodic minor), a range of strings (from one string up to all four, e.g. G to E) and one to four positions (1st–7th, e.g. just 1st, 1st & 3rd, just 3rd, or 1st, 3rd & 5th). It generates the drills for that setup:
+
+- each string on its own in each position, and all the chosen strings together;
+- a scale run, as many octaves (up to 3) from tonic to tonic as fit. With one position it stays there. With several it climbs through them in order, shifting once between each pair. When 1st position is chosen, the run uses open strings, so G major in 1st position on G to E is the usual two-octave G3–G5;
+- an adaptive Note Hunt;
+- with two or more positions, *Shifting down* drills: repeated down-shift pairs with guide notes for each neighbouring pair of positions (on each string, or on the strings the run shifts on when there are more than two), plus a run that starts at the top so you shift down first. Medals and history are kept separately for each setup. Where each note tends to land is tracked per physical spot on the string, so it's shared across scales.
 
 ## Tempo mode
 
@@ -48,12 +53,12 @@ Then open http://localhost:8765 and allow microphone access. Chrome and Safari b
 - `node test/pitch.test.js` checks the pitch detector against synthesized violin-like tones (A3–B6).
 - `node test/piece.test.js` checks note splitting, intonation (including vibrato) and timing analysis on synthetic performances.
 - `node test/drills.test.js` checks drill import/export, including that every built-in drill exports and re-imports unchanged.
-- `node test/scales.test.js` checks scale spelling and generated fingerings for every key, scale type, string pair and position pair.
+- `node test/scales.test.js` checks scale spelling and generated fingerings for every key and scale type across a range of string and position choices.
 
 ## Files
 
 - `index.html`: the app (UI, drills, scoring, progress)
 - `piece.js`: Piece tab analysis (note splitting, intonation, metronome and free timing, reports)
 - `drills.js`: custom drill format (documentation, validation, import/export)
-- `scales.js`: scale spelling, position fingerings, finger patterns and shift routing
+- `scales.js`: scale spelling, position fingerings (including open strings), finger patterns and scale-run routing through the chosen positions
 - `pitch.js`: McLeod pitch detector; the app narrows its frequency range to the current drill's notes so it doesn't jump octaves

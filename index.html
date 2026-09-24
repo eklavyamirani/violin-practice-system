@@ -75,6 +75,7 @@ main { max-width: 1280px; margin: 0 auto; padding: 1rem; }
 .toggle b { font-weight: 600; font-size: .9rem; display: block; }
 .toggle small { color: var(--muted); font-size: .78rem; }
 .cfgrow { display: flex; gap: .5rem; align-items: center; margin-bottom: .7rem; }
+.cfgsub { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: .3rem; }
 .cfgrow select { flex: 1; min-width: 0; font: inherit; font-size: .9rem; color: var(--ink); background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: .35rem .4rem; }
 .calib { display: flex; gap: .5rem; align-items: center; margin-top: .6rem; font-size: .85rem; }
 .calib button { border: 1px solid var(--line); background: var(--panel-2); border-radius: 8px; padding: .3rem .6rem; font-size: .8rem; }
@@ -274,8 +275,9 @@ main { max-width: 1280px; margin: 0 auto; padding: 1rem; }
       <div class="card">
         <h3>Scale</h3>
         <div class="cfgrow"><select id="cfgTonic" aria-label="Key"></select><select id="cfgType" aria-label="Scale type"></select></div>
-        <div class="seg" id="cfgStrings"><button data-v="GD">G · D</button><button data-v="DA">D · A</button><button data-v="AE">A · E</button></div>
-        <div class="cfgrow"><span class="muted">Positions</span><select id="cfgP1" aria-label="Lower position"></select><span class="muted">&amp;</span><select id="cfgP2" aria-label="Higher position"></select></div>
+        <div class="cfgrow"><span class="muted">Strings</span><select id="cfgStrLo" aria-label="Lowest string"></select><span class="muted">to</span><select id="cfgStrHi" aria-label="Highest string"></select></div>
+        <div class="cfgsub"><span class="muted">Positions</span><small class="muted">pick 1–4</small></div>
+        <div class="seg" id="cfgPos" role="group" aria-label="Positions"></div>
       </div>
       <div class="card next" id="nextUp"></div>
       <div class="card"><h3>Drills</h3><div id="exList"></div></div>
@@ -428,7 +430,7 @@ main { max-width: 1280px; margin: 0 auto; padding: 1rem; }
       <div class="card"><h2>Record yourself and listen back</h2><p>While you play, your attention is on playing. Listening to a recording afterwards lets you hear what you missed at the time.</p><p class="in">The <b>Piece</b> tab records a whole performance and marks the moments worth hearing again. It also finds notes that are consistently sharp or flat, and places where your tempo drifted. Turn those into drills, then record the piece again to see the difference.</p></div>
       <div class="card"><h2>Accuracy first, then speed</h2><p>Speed comes from making small, steady increases once the notes are already clean. Pushing the tempo while notes are still out of tune just practises the mistakes.</p><p class="in"><b>Tempo</b> mode plays a metronome. A note only counts if it's in tune <i>and</i> on the beat. The <b>tempo ladder</b> adds 4 BPM after each passed run and backs off when you struggle. The coach points out when shifts are making you late.</p></div>
       <div class="card"><h2>Practise the hard part on its own</h2><p>Break a hard skill into parts, drill the hardest one separately, then put it back in context.</p><p class="in"><b>Shift pairs</b> repeat each down-shift on its own, and the guide notes show the classic route (slide the old finger, then drop the new one). <b>From the top</b> then puts the shift back into a scale, starting high so you shift down while you're fresh.</p></div>
-      <div class="card"><h2>Mixing and spacing your practice</h2><p>Switching between drills and spreading sessions over several days feels harder at the time, but you remember more.</p><p class="in"><b>Note Hunt</b> gives you random notes from both positions, picking your weakest notes more often. The "Next up" card switches you between drills. Short daily sessions build your streak.</p></div>
+      <div class="card"><h2>Mixing and spacing your practice</h2><p>Switching between drills and spreading sessions over several days feels harder at the time, but you remember more.</p><p class="in"><b>Note Hunt</b> gives you random notes from your positions, picking your weakest notes more often. The "Next up" card switches you between drills. Short daily sessions build your streak.</p></div>
       <div class="card"><h2>Hear the note before you play it</h2><p>You can only play in tune if you can hear the right note in your head first.</p><p class="in"><b>Hear it first</b> plays each note before you play it. The <b>tonic drone</b> helps you hear how each note sounds against the key. Listen for the ring when the tonic, 4th and 5th are in tune.</p></div>
     </div>
     <div class="card routine">
@@ -528,6 +530,7 @@ function migrate(d) {
   for (const [o, n] of Object.entries(OLD)) if (d.ex[o]) { d.ex[k + "|" + n] = d.ex[o]; delete d.ex[o]; }
   for (const s of d.sessions) if (!s.cfg) { s.cfg = k; s.ex = OLD[s.ex] || s.ex; }
   if (OLD[d.selected] && !d.selected.includes("-")) d.selected = OLD[d.selected];
+  d.cfg = Scales.normalizeCfg(d.cfg);
   return d;
 }
 let DB = loadDB();
@@ -1707,9 +1710,10 @@ function renderConfig() {
   const c = DB.cfg, T = Scales.SCALE_TYPES;
   $("#cfgType").innerHTML = Object.entries(T).map(([k, t]) => `<option value="${k}" ${k === c.type ? "selected" : ""}>${t.name[0].toUpperCase() + t.name.slice(1)}</option>`).join("");
   $("#cfgTonic").innerHTML = T[c.type].keys.map((k) => `<option value="${k}" ${k === c.tonic ? "selected" : ""}>${Scales.prettyTonic(k)}</option>`).join("");
-  document.querySelectorAll("#cfgStrings button").forEach((b) => b.classList.toggle("on", b.dataset.v === c.strings.join("")));
-  const opts = (sel) => [1, 2, 3, 4, 5, 6, 7].map((p) => `<option value="${p}" ${p === sel ? "selected" : ""}>${ord(p)}</option>`).join("");
-  $("#cfgP1").innerHTML = opts(c.positions[0]); $("#cfgP2").innerHTML = opts(c.positions[1]);
+  const sopts = (sel) => Scales.STRING_ORDER.map((s) => `<option value="${s}" ${s === sel ? "selected" : ""}>${s}</option>`).join("");
+  $("#cfgStrLo").innerHTML = sopts(c.strings[0]); $("#cfgStrHi").innerHTML = sopts(c.strings[c.strings.length - 1]);
+  $("#cfgPos").innerHTML = [1, 2, 3, 4, 5, 6, 7].map((p) => `<button data-p="${p}" class="${c.positions.includes(p) ? "on" : ""}" aria-pressed="${c.positions.includes(p)}" title="${ord(p)} position">${ord(p)}</button>`).join("");
+  document.querySelectorAll("#cfgPos button").forEach((b) => (b.onclick = () => togglePosition(+b.dataset.p)));
   $("#cfgLabel").textContent = Scales.cfgLabel(c);
   const ex = exById(DB.selected);
   $("#droneName").textContent = `${ex.custom && ex.drone ? DrillIO.parseNote(ex.drone + "4").label : Scales.prettyTonic(c.tonic)} drone`;
@@ -1717,15 +1721,17 @@ function renderConfig() {
 
 function changeConfig(patch) {
   if (run) stopRun();
-  const c = { ...DB.cfg, ...patch };
-  if (!Scales.SCALE_TYPES[c.type].keys.includes(c.tonic)) c.tonic = Scales.SCALE_TYPES[c.type].keys[0];
-  let [p1, p2] = c.positions.map(Number);
-  if (p1 === p2) p2 = p1 < 7 ? p1 + 1 : p1 - 1;
-  c.positions = [Math.min(p1, p2), Math.max(p1, p2)];
-  DB.cfg = c;
+  DB.cfg = Scales.normalizeCfg({ ...DB.cfg, ...patch });
   const keep = DB.selected;
   applyConfig();
   selectEx(exById(keep) ? keep : EXERCISES[0].id);
+}
+
+// Positions toggle on and off; keep at least one and at most four
+function togglePosition(p) {
+  const ps = DB.cfg.positions;
+  if (ps.includes(p) ? ps.length === 1 : ps.length === 4) return;
+  changeConfig({ positions: ps.includes(p) ? ps.filter((x) => x !== p) : [...ps, p] });
 }
 
 function renderDrillsTab() {
@@ -1880,9 +1886,8 @@ $("#reportList").onclick = (e) => {
 
 $("#cfgType").onchange = (e) => changeConfig({ type: e.target.value });
 $("#cfgTonic").onchange = (e) => changeConfig({ tonic: e.target.value });
-document.querySelectorAll("#cfgStrings button").forEach((b) => (b.onclick = () => changeConfig({ strings: [b.dataset.v[0], b.dataset.v[1]] })));
-$("#cfgP1").onchange = (e) => changeConfig({ positions: [+e.target.value, DB.cfg.positions[1]] });
-$("#cfgP2").onchange = (e) => changeConfig({ positions: [DB.cfg.positions[0], +e.target.value] });
+$("#cfgStrLo").onchange = (e) => changeConfig({ strings: [e.target.value, $("#cfgStrHi").value] });
+$("#cfgStrHi").onchange = (e) => changeConfig({ strings: [$("#cfgStrLo").value, e.target.value] });
 
 applyConfig();
 renderAll();
