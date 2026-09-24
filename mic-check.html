@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mic Check</title>
+<style>
+:root { --bg: #f6f1ea; --panel: #fffdf9; --panel-2: #f1e9de; --ink: #2a211b; --muted: #7a6b5f; --line: #e2d6c7; --accent: #b8621b; --good: #1f9d63; --bad: #d4452f; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --bg: #17120f; --panel: #211a16; --panel-2: #2b231e; --ink: #f1e7dc; --muted: #a8988a; --line: #3a3029; --accent: #e08a3c; --good: #3cc585; --bad: #f06a52; }
+}
+:root[data-theme="dark"] { --bg: #17120f; --panel: #211a16; --panel-2: #2b231e; --ink: #f1e7dc; --muted: #a8988a; --line: #3a3029; --accent: #e08a3c; --good: #3cc585; --bad: #f06a52; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.45 ui-sans-serif, -apple-system, "Segoe UI", Roboto, sans-serif; }
+main { max-width: 720px; margin: 0 auto; padding: 1rem; }
+h1 { font-size: 1.4rem; margin: .5rem 0; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 1rem; margin: 1rem 0; }
+button { font: inherit; border: 0; border-radius: 10px; padding: .7rem 1rem; font-weight: 700; background: var(--accent); color: #fff; cursor: pointer; margin: .25rem .25rem .25rem 0; }
+button.ghost { background: var(--panel-2); color: var(--ink); }
+button:disabled { opacity: .5; }
+.meter { height: 14px; background: var(--panel-2); border-radius: 7px; overflow: hidden; margin: .6rem 0; }
+.meter i { display: block; height: 100%; width: 0; background: var(--good); }
+#live { font-variant-numeric: tabular-nums; font-size: .95rem; }
+.muted { color: var(--muted); font-size: .9rem; }
+table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+td, th { text-align: left; padding: .35rem .3rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+.ok { color: var(--good); font-weight: 700; } .no { color: var(--bad); font-weight: 700; }
+pre { white-space: pre-wrap; word-break: break-word; background: var(--panel-2); padding: .7rem; border-radius: 10px; font-size: .78rem; max-height: 300px; overflow: auto; }
+</style>
+</head>
+<body>
+<main>
+  <h1>🎤 Mic Check</h1>
+  <p class="muted">This page tests your microphone in a few different ways, to find why the Fingerboard Coach can't hear it. Each test listens for 6 seconds. <b>Press a test, then play a long, loud note on the violin</b> (an open A is fine) until the test finishes.</p>
+
+  <div class="card">
+    <button id="t1">1 · Standard mic</button>
+    <button id="t2">2 · Raw mic (the app's way)</button>
+    <button id="t3">3 · Raw mic, engine first (old way)</button>
+    <button id="t4">4 · Raw mic, no sample-rate match</button>
+    <div class="meter"><i id="meter"></i></div>
+    <div id="live" class="muted">Not listening.</div>
+  </div>
+
+  <div class="card">
+    <table><thead><tr><th>Test</th><th>Heard sound?</th><th>Heard notes?</th><th>Details</th></tr></thead><tbody id="rows"></tbody></table>
+    <p><button class="ghost" id="copy">📋 Copy report</button> <span id="copied" class="muted"></span></p>
+    <pre id="report"></pre>
+  </div>
+</main>
+<script src="pitch.js"></script>
+<script>
+"use strict";
+const $ = (s) => document.querySelector(s);
+const AC = window.AudioContext || window.webkitAudioContext;
+const NAMES = ["C", "C♯", "D", "E♭", "E", "F", "F♯", "G", "G♯", "A", "B♭", "B"];
+const TESTS = {
+  t1: { name: "Standard mic", constraints: { audio: true }, engineFirst: false, matchRate: true },
+  t2: { name: "Raw mic (the app's way)", constraints: { audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } }, engineFirst: false, matchRate: true },
+  t3: { name: "Raw mic, engine first (old way)", constraints: { audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } }, engineFirst: true, matchRate: false },
+  t4: { name: "Raw mic, no sample-rate match", constraints: { audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } }, engineFirst: false, matchRate: false },
+};
+const results = [];
+let busy = false;
+
+function env() {
+  return {
+    ua: navigator.userAgent,
+    platform: navigator.platform,
+    touchPoints: navigator.maxTouchPoints,
+    screen: `${screen.width}x${screen.height}@${devicePixelRatio}`,
+    secure: window.isSecureContext,
+    hasGetUserMedia: !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia),
+    audioContext: window.AudioContext ? "AudioContext" : window.webkitAudioContext ? "webkitAudioContext" : "none",
+    floatTimeDomain: !!(window.AnalyserNode && AnalyserNode.prototype.getFloatTimeDomainData),
+    audioSession: navigator.audioSession ? navigator.audioSession.type : "n/a",
+  };
+}
+
+async function runTest(id) {
+  if (busy) return;
+  busy = true;
+  document.querySelectorAll("button[id^=t]").forEach((b) => (b.disabled = true));
+  const T = TESTS[id];
+  const r = { test: T.name, error: null };
+  let ctx, stream, stopped = false;
+  try {
+    if (T.engineFirst) { ctx = new AC(); r.ctxStateBeforeMic = ctx.state; r.ctxRateBeforeMic = ctx.sampleRate; }
+    stream = await navigator.mediaDevices.getUserMedia(T.constraints);
+    const track = stream.getAudioTracks()[0];
+    r.track = { label: track.label, readyState: track.readyState, muted: track.muted, enabled: track.enabled, settings: track.getSettings ? track.getSettings() : null };
+    if (!ctx) {
+      const rate = r.track.settings && r.track.settings.sampleRate;
+      try { ctx = T.matchRate && rate ? new AC({ sampleRate: rate }) : new AC(); } catch (e) { r.rateError = String(e); ctx = new AC(); }
+    }
+    const src = ctx.createMediaStreamSource(stream);
+    const an = ctx.createAnalyser(); an.fftSize = 2048;
+    const mute = ctx.createGain(); mute.gain.value = 0;
+    src.connect(an); an.connect(mute).connect(ctx.destination);
+    r.ctxStateAfterSetup = ctx.state;
+    try { await ctx.resume(); } catch (e) { r.resumeError = String(e); }
+    r.ctx = { state: ctx.state, sampleRate: ctx.sampleRate, baseLatency: ctx.baseLatency, outputLatency: ctx.outputLatency };
+    ctx.onstatechange = () => (r.stateChanges = (r.stateChanges || []).concat(ctx.state));
+    track.onmute = () => (r.trackMutedDuring = true);
+    track.onended = () => (r.trackEndedDuring = true);
+
+    const buf = new Float32Array(an.fftSize);
+    let frames = 0, zeroFrames = 0, maxRms = 0, maxPeak = 0, pitched = 0;
+    const notes = {};
+    const t0 = performance.now();
+    await new Promise((done) => {
+      function tick() {
+        const el = performance.now() - t0;
+        if (el > 6000) return done();
+        an.getFloatTimeDomainData(buf);
+        let sum = 0, peak = 0, allZero = true;
+        for (let i = 0; i < buf.length; i++) { const v = buf[i]; sum += v * v; if (Math.abs(v) > peak) peak = Math.abs(v); if (v !== 0) allZero = false; }
+        const rms = Math.sqrt(sum / buf.length);
+        frames++; if (allZero) zeroFrames++;
+        maxRms = Math.max(maxRms, rms); maxPeak = Math.max(maxPeak, peak);
+        const p = PitchDetector.detectPitch(buf, ctx.sampleRate, { minFreq: 180, maxFreq: 2000, minRms: 0.002 });
+        let note = "";
+        if (p.freq) { pitched++; const m = Math.round(69 + 12 * Math.log2(p.freq / 440)); note = NAMES[m % 12] + (Math.floor(m / 12) - 1); notes[note] = (notes[note] || 0) + 1; }
+        $("#meter").style.width = Math.min(100, rms * 900) + "%";
+        $("#live").textContent = `${T.name} · ${((6000 - el) / 1000).toFixed(1)}s left · level ${rms.toFixed(4)} · peak ${peak.toFixed(3)} · ${note ? "hearing " + note + " (" + p.freq.toFixed(1) + " Hz)" : "no note"} · audio ${ctx.state}`;
+        requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick);
+    });
+    r.frames = frames; r.allZeroFrames = zeroFrames; r.maxRms = +maxRms.toFixed(5); r.maxPeak = +maxPeak.toFixed(4);
+    r.pitchedFrames = pitched;
+    r.topNotes = Object.entries(notes).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([n, c]) => `${n}×${c}`).join(" ");
+    r.finalCtxState = ctx.state;
+    r.trackAtEnd = { readyState: track.readyState, muted: track.muted };
+  } catch (e) {
+    r.error = `${e.name}: ${e.message}`;
+  } finally {
+    if (stream) stream.getTracks().forEach((t) => t.stop());
+    if (ctx) try { await ctx.close(); } catch (e) {}
+    $("#meter").style.width = "0";
+    $("#live").textContent = "Done. Run another test, or copy the report.";
+    busy = false;
+    document.querySelectorAll("button[id^=t]").forEach((b) => (b.disabled = false));
+  }
+  results.push(r);
+  render();
+}
+
+function render() {
+  $("#rows").innerHTML = results.map((r) => {
+    if (r.error) return `<tr><td>${r.test}</td><td colspan="3" class="no">Failed: ${r.error}</td></tr>`;
+    const sound = r.maxRms > 0.002, notes = r.pitchedFrames > 10;
+    return `<tr><td>${r.test}</td><td class="${sound ? "ok" : "no"}">${sound ? "Yes" : r.allZeroFrames === r.frames ? "No (pure silence)" : "Barely"} <span class="muted">${r.maxRms}</span></td>
+      <td class="${notes ? "ok" : "no"}">${notes ? "Yes" : "No"} <span class="muted">${r.topNotes || ""}</span></td>
+      <td class="muted">${r.ctx.sampleRate} Hz, audio ${r.finalCtxState}, mic ${r.track.settings && r.track.settings.sampleRate ? r.track.settings.sampleRate + " Hz" : "rate unknown"}</td></tr>`;
+  }).join("");
+  $("#report").textContent = JSON.stringify({ env: env(), results }, null, 1);
+}
+
+Object.keys(TESTS).forEach((id) => ($("#" + id).onclick = () => runTest(id)));
+$("#copy").onclick = async () => {
+  const text = "Mic check report\n" + JSON.stringify({ env: env(), results }, null, 1);
+  try { await navigator.clipboard.writeText(text); $("#copied").textContent = "Copied. Paste it to Claude."; }
+  catch (e) { $("#copied").textContent = "Couldn't copy. Select the text below and copy it."; }
+};
+render();
+</script>
+</body>
+</html>

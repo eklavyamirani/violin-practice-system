@@ -612,7 +612,7 @@ function watchSilence(t, rms) {
   if (silentSince === null) silentSince = t;
   if (t - silentSince > 4000 && !silenceWarned) {
     const tr = micStream && micStream.getAudioTracks()[0];
-    setMsg(`🎤 The mic is on but the app hears nothing (audio ${ctx.state}, ${ctx.sampleRate} Hz, mic ${tr ? tr.readyState : "none"}). Tap anywhere to resume. If that doesn't help, reload the page. On iPad, check Settings → Safari → Microphone.`, "bad");
+    setMsg(`🎤 The mic is on but the app hears nothing (audio ${ctx.state}, ${ctx.sampleRate} Hz, mic ${tr ? tr.readyState : "none"}). Tap anywhere to resume. If that doesn't help, reload the page. On iPad, check Settings → Safari → Microphone, or run the <a href="mic-check.html">mic check</a>.`, "bad");
     silenceWarned = true;
   }
 }

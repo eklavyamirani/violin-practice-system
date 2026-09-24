@@ -42,6 +42,7 @@ python3 -m http.server 8765
 
 Then open http://localhost:8765 and allow microphone access. Chrome and Safari both work. It needs no installs and no internet, and your progress stays in the browser.
 
+- `mic-check.html` runs a few microphone setups side by side and produces a report. Use it when the app can't hear the mic on a particular device.
 - `?sim` in the URL replaces the mic with a synthetic tone generator (useful for trying it without a violin).
 - `node test/pitch.test.js` checks the pitch detector against synthesized violin-like tones (A3–B6).
 - `node test/piece.test.js` checks note splitting, intonation (including vibrato) and timing analysis on synthetic performances.
