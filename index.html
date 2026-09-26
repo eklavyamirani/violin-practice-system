@@ -67,6 +67,30 @@ main { max-width: 1280px; margin: 0 auto; padding: 1rem; }
 .medals span.on { filter: none; opacity: 1; }
 .ex-group { font-size: .72rem; color: var(--muted); margin: .6rem .6rem .2rem; text-transform: uppercase; letter-spacing: .06em; }
 
+/* Path */
+.pstage { border-top: 1px solid var(--line); padding: .35rem 0; }
+.pstage:first-child { border-top: 0; }
+.pstage summary { cursor: pointer; font-size: .86rem; padding: .25rem .2rem; display: flex; gap: .4rem; align-items: baseline; }
+.pstage summary .muted { margin-left: auto; font-size: .78rem; white-space: nowrap; }
+.pnode { display: flex; gap: .45rem; align-items: center; padding: .35rem .3rem; border-radius: 9px; border: 1px solid transparent; }
+.pnode.sel { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, transparent); }
+.pnode.locked { opacity: .45; }
+.pnode .pico { width: 1.2em; text-align: center; flex-shrink: 0; }
+.pnode .pnm { flex: 1; min-width: 0; font-size: .86rem; font-weight: 600; }
+.pnode .pnm .fr { font-weight: 400; font-size: .74rem; color: var(--muted); font-family: inherit; }
+.pnode .pdirs { display: flex; gap: 3px; flex-shrink: 0; }
+.pnode .pdirs button { border: 1px solid var(--line); background: var(--panel-2); border-radius: 7px; padding: .15rem .35rem; font-size: .76rem; }
+.pnode .pdirs button.on { border-color: var(--accent); color: var(--accent); font-weight: 700; }
+.pnode .pdirs button:disabled { cursor: default; opacity: .5; }
+.pinfo { font-size: .84rem; }
+.pinfo .bar { height: 6px; background: var(--panel-2); border-radius: 3px; overflow: hidden; margin: .35rem 0 .5rem; }
+.pinfo .bar i { display: block; height: 100%; background: var(--good); }
+.checks { width: 100%; border-collapse: collapse; font-size: .86rem; margin-bottom: 1rem; }
+.checks td { padding: .3rem .4rem; border-bottom: 1px solid var(--line); }
+.checks td.v { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.checks tr.bad td.v { color: var(--bad); font-weight: 700; }
+.checks tr.ok td.v { color: var(--good); }
+
 .seg { display: flex; background: var(--panel-2); border-radius: 10px; padding: 3px; margin-bottom: .7rem; }
 .seg button { flex: 1; border: 0; background: none; padding: .35rem .3rem; border-radius: 8px; font-size: .84rem; color: var(--muted); }
 .seg button.on { background: var(--panel); color: var(--ink); font-weight: 600; box-shadow: var(--shadow); }
@@ -273,14 +297,18 @@ main { max-width: 1280px; margin: 0 auto; padding: 1rem; }
   <section id="tab-practice" class="tab active">
     <aside class="side">
       <div class="card">
-        <h3>Scale</h3>
-        <div class="cfgrow"><select id="cfgTonic" aria-label="Key"></select><select id="cfgType" aria-label="Scale type"></select></div>
-        <div class="cfgrow"><span class="muted">Strings</span><select id="cfgStrLo" aria-label="Lowest string"></select><span class="muted">to</span><select id="cfgStrHi" aria-label="Highest string"></select></div>
-        <div class="cfgsub"><span class="muted">Positions</span><small class="muted">pick 1–4</small></div>
-        <div class="seg" id="cfgPos" role="group" aria-label="Positions"></div>
+        <div class="seg" id="viewSeg" role="group" aria-label="Practice view"><button data-v="path">Path</button><button data-v="free">Free practice</button></div>
+        <div id="freeCfg">
+          <h3>Scale</h3>
+          <div class="cfgrow"><select id="cfgTonic" aria-label="Key"></select><select id="cfgType" aria-label="Scale type"></select></div>
+          <div class="cfgrow"><span class="muted">Strings</span><select id="cfgStrLo" aria-label="Lowest string"></select><span class="muted">to</span><select id="cfgStrHi" aria-label="Highest string"></select></div>
+          <div class="cfgsub"><span class="muted">Positions</span><small class="muted">pick 1–4</small></div>
+          <div class="seg" id="cfgPos" role="group" aria-label="Positions"></div>
+        </div>
+        <div id="pathInfo" class="pinfo" hidden></div>
       </div>
       <div class="card next" id="nextUp"></div>
-      <div class="card"><h3>Drills</h3><div id="exList"></div></div>
+      <div class="card"><h3 id="exListTitle">Drills</h3><div id="exList"></div></div>
       <div class="card">
         <h3>Mode</h3>
         <div class="seg" id="modeSeg">
@@ -290,13 +318,15 @@ main { max-width: 1280px; margin: 0 auto; padding: 1rem; }
           <div class="tempo-row"><button class="tbtn" id="bpmDown" aria-label="Slower">−</button><div class="bpm"><b id="bpmVal">60</b> BPM</div><button class="tbtn" id="bpmUp" aria-label="Faster">+</button></div>
           <input type="range" id="bpmRange" min="30" max="200" step="1" aria-label="Tempo">
           <div class="seg" id="perSeg"><button data-v="1">1 note/beat</button><button data-v="2">2</button><button data-v="3">3</button><button data-v="4">4</button></div>
-          <label class="toggle"><input type="checkbox" id="optLadder"><span><b>Tempo ladder</b><small>Pass a run and the next one is 4 BPM faster; struggle and it's 4 slower. Speed only goes up once the notes are clean.</small></span></label>
+          <label class="toggle" id="ladderBox"><input type="checkbox" id="optLadder"><span><b>Tempo ladder</b><small>Pass 3 runs in a row and the next one is 6% faster; miss 2 in a row and it's 8% slower. Speed only goes up once the notes are clean, and not on one lucky run.</small></span></label>
+          <p class="muted small" id="pathTempoNote" hidden>The path sets the tempo for each skill: 6% faster after 3 clean runs in a row (both directions, one of them your first try of the session), 8% slower after 2 misses.</p>
           <div class="calib">Timing offset <b id="latVal">auto</b> <button id="tcalBtn">Calibrate timing</button></div>
         </div>
         <h3>Target accuracy</h3>
         <div class="seg" id="tierSeg">
           <button data-v="1">🥉 ±25¢</button><button data-v="2">🥈 ±15¢</button><button data-v="3">🥇 ±10¢</button>
         </div>
+        <p class="muted small" id="pathTarget" hidden></p>
         <label class="toggle"><input type="checkbox" id="optHear"><span><b>Hear it first</b><small>Plays each note before you play it (Lock-in only). Trains your inner ear.</small></span></label>
         <label class="toggle"><input type="checkbox" id="optDrone"><span><b id="droneName">Tonic drone</b><small>Hear intervals against the tonic. Headphones help.</small></span></label>
         <label class="toggle"><input type="checkbox" id="optHide"><span><b>Hide fingering</b><small>Memory test: find the note without the map.</small></span></label>
@@ -428,9 +458,11 @@ main { max-width: 1280px; margin: 0 auto; padding: 1rem; }
       <div class="card"><h2>Tightening the target step by step</h2><p>Mastery learning: pass one level (85% or more) before you tighten the target.</p><p class="in">🥉 ±25¢ → 🥈 ±15¢ → 🥇 ±10¢ for each drill. The app suggests the next level for you.</p></div>
       <div class="card"><h2>Removing the help over time</h2><p>Studies of the "guidance hypothesis" show that constant feedback can make you depend on it. Removing it gradually makes the skill stick.</p><p class="in">Once you have a medal, turn on <b>Hide fingering</b> (practise remembering where the note is) and <b>Ears first</b> (you only see the needle after you land).</p></div>
       <div class="card"><h2>Record yourself and listen back</h2><p>While you play, your attention is on playing. Listening to a recording afterwards lets you hear what you missed at the time.</p><p class="in">The <b>Piece</b> tab records a whole performance and marks the moments worth hearing again. It also finds notes that are consistently sharp or flat, and places where your tempo drifted. Turn those into drills, then record the piece again to see the difference.</p></div>
-      <div class="card"><h2>Accuracy first, then speed</h2><p>Speed comes from making small, steady increases once the notes are already clean. Pushing the tempo while notes are still out of tune just practises the mistakes.</p><p class="in"><b>Tempo</b> mode plays a metronome. A note only counts if it's in tune <i>and</i> on the beat. The <b>tempo ladder</b> adds 4 BPM after each passed run and backs off when you struggle. The coach points out when shifts are making you late.</p></div>
+      <div class="card"><h2>Accuracy first, then speed</h2><p>Speed comes from making small, steady increases once the notes are already clean. Pushing the tempo while notes are still out of tune just practises the mistakes.</p><p class="in"><b>Tempo</b> mode plays a metronome. A note only counts if it's in tune <i>and</i> on the beat. The <b>tempo ladder</b> goes up 6% after 3 passed runs in a row, not after one lucky run, and backs off 8% after 2 misses. The coach points out when shifts are making you late.</p></div>
+      <div class="card"><h2>A path, not a menu</h2><p>Each skill builds on the ones before it: finger pattern, then position frame, then shift pair, then the full scale. Keys come in the order their positions need: G, A and B♭ fit two octaves in 1st position, C and D need 3rd, E and F need 5th.</p><p class="in"><b>Path</b> unlocks a skill once its groundwork is mastered. Mastery means clean runs up <i>and</i> from the top, at the target tempo, with a clean first try on 2 different days. A good session only shows what you can do today; the first try on another day shows what you've kept. Mastered skills come back for review at growing intervals.</p></div>
+      <div class="card"><h2>Coming down is its own skill</h2><p>String players play descending passages measurably sharper than ascending ones (Kantorski 1986; Sogin 1989). Going down, each lower finger has to find its spot while the ones above lift.</p><p class="in">Every Path skill is scored in both directions, and the ⇣⇡ version starts at the top. The results split your average up and down, and when coming down is weaker, Next up starts you at the top.</p></div>
       <div class="card"><h2>Practise the hard part on its own</h2><p>Break a hard skill into parts, drill the hardest one separately, then put it back in context.</p><p class="in"><b>Shift pairs</b> repeat each down-shift on its own, and the guide notes show the classic route (slide the old finger, then drop the new one). <b>From the top</b> then puts the shift back into a scale, starting high so you shift down while you're fresh.</p></div>
-      <div class="card"><h2>Mixing and spacing your practice</h2><p>Switching between drills and spreading sessions over several days feels harder at the time, but you remember more.</p><p class="in"><b>Note Hunt</b> gives you random notes from your positions, picking your weakest notes more often. The "Next up" card switches you between drills. Short daily sessions build your streak.</p></div>
+      <div class="card"><h2>Mixing and spacing your practice</h2><p>Switching between drills and spreading sessions over several days feels harder at the time, but you remember more.</p><p class="in">In Path, "Next up" starts with reviews that are due, in mixed order, then your focus skill in short blocks, then its weakest groundwork. In Free practice, <b>Note Hunt</b> gives you random notes from your positions, picking your weakest notes more often. Short daily sessions build your streak.</p></div>
       <div class="card"><h2>Hear the note before you play it</h2><p>You can only play in tune if you can hear the right note in your head first.</p><p class="in"><b>Hear it first</b> plays each note before you play it. The <b>tonic drone</b> helps you hear how each note sounds against the key. Listen for the ring when the tonic, 4th and 5th are in tune.</p></div>
     </div>
     <div class="card routine">
@@ -457,6 +489,7 @@ main { max-width: 1280px; margin: 0 auto; padding: 1rem; }
 
 <script src="pitch.js"></script>
 <script src="scales.js"></script>
+<script src="curriculum.js"></script>
 <script src="drills.js"></script>
 <script src="piece.js"></script>
 <script>
@@ -466,7 +499,7 @@ const SIM = new URLSearchParams(location.search).has("sim");
 
 // ---------- Music data (generated from the chosen scale, strings & positions) ----------
 const ord = Scales.ordinal;
-const pc = (m) => Scales.nameIn(m, CFG);
+const pc = (m) => Scales.nameIn(m, curKey());
 const oct = (m) => Math.floor(m / 12) - 1;
 const noteName = (m) => pc(m) + oct(m);
 const noteHTML = (m) => `${pc(m)}<sub>${oct(m)}</sub>`;
@@ -479,9 +512,13 @@ const PASS = 0.85, CAPTURE = 60, STABLE_MS = 220, HOLD_MS = 600, DAILY_GOAL = 3;
 const DEFAULT_CFG = { tonic: "G", type: "major", strings: ["A", "E"], positions: [3, 5] };
 
 let CFG, CFG_KEY, EXERCISES, ALL_FINGERINGS, RANGE;
-const keyName = () => `${Scales.prettyTonic(CFG.tonic)} ${Scales.SCALE_TYPES[CFG.type].name}`;
+const C = Curriculum;
+const isPath = () => DB.settings.view === "path";
+// The key in play: the selected Path skill's, or the Scale card's
+const curKey = () => { const ex = EXERCISES && exById(DB.selected); return ex && ex.path ? ex.keyCfg : CFG; };
+const keyName = () => `${Scales.prettyTonic(curKey().tonic)} ${Scales.SCALE_TYPES[curKey().type].name}`;
 const exById = (id) => EXERCISES.find((e) => e.id === id);
-const recKey = (id) => (id.startsWith("c-") ? "custom|" : CFG_KEY + "|") + id;
+const recKey = (id) => (id.startsWith("c-") ? "custom|" : id.startsWith("n:") ? "path|" : CFG_KEY + "|") + id;
 const exRec = (id) => DB.ex[recKey(id)];
 // Moving between positions is a shift; open strings (no position) are not
 const shiftDir = (prev, cur) => (prev && prev.pos && cur.pos && prev.pos !== cur.pos ? (cur.pos < prev.pos ? "down" : "up") : null);
@@ -491,16 +528,25 @@ const keyPhrase = (ex) => (ex.custom ? (ex.key ? `In ${ex.key}` : "In this drill
 function applyConfig() {
   CFG = DB.cfg;
   CFG_KEY = Scales.cfgKey(CFG);
-  EXERCISES = Scales.buildDrills(CFG).concat(DB.custom.map(DrillIO.toExercise));
-  ALL_FINGERINGS = exById("hunt").pool;
-  if (!exById(DB.selected)) DB.selected = EXERCISES[0].id;
+  if (isPath()) {
+    EXERCISES = C.NODES.flatMap((n) => C.DIRS.map((d) => C.drill(n, d))).concat(DB.custom.map(DrillIO.toExercise));
+    // The stopped notes of every skill you can practise now, for the note map
+    const spots = new Map();
+    for (const n of C.NODES.filter((x) => C.unlocked(x, DB.path.states))) for (const it of C.drill(n, C.DIRS[0]).notes) if (it.pos) spots.set(it.key + it.finger + it.pos, it);
+    ALL_FINGERINGS = [...spots.values()].sort((a, b) => a.midi - b.midi);
+    if (!exById(DB.selected)) DB.selected = pathNextId();
+  } else {
+    EXERCISES = Scales.buildDrills(CFG).concat(DB.custom.map(DrillIO.toExercise));
+    ALL_FINGERINGS = exById("hunt").pool;
+    if (!exById(DB.selected)) DB.selected = EXERCISES[0].id;
+  }
   applyRange();
 }
 
-// Detection range, drone and fingerboard follow the notes in play: the whole scale setup, or one imported drill
+// Detection range, drone and fingerboard follow the notes in play: the whole scale setup, or one path skill or imported drill
 function activeNotes() {
   const ex = exById(DB.selected);
-  return ex.custom ? ex.notes : EXERCISES.filter((e) => !e.custom).flatMap((e) => (e.hunt ? e.pool : e.notes));
+  return ex.custom || ex.path ? ex.notes : EXERCISES.filter((e) => !e.custom).flatMap((e) => (e.hunt ? e.pool : e.notes));
 }
 function applyRange() {
   const midis = activeNotes().map((n) => n.midi);
@@ -513,8 +559,8 @@ function applyRange() {
 
 // ---------- Storage ----------
 const STORE_KEY = "fingerboard-coach.v1";
-const defaults = () => ({ xp: 0, notes: {}, ex: {}, days: {}, sessions: [], selected: "p3-A", cfg: { ...DEFAULT_CFG }, custom: [], runs: {},
-  settings: { mode: "lock", tier: 1, drone: false, hear: false, hide: false, ears: false, chime: true, a4: 440, bpm: 60, per: 1, ladder: true, latencyMs: null, voiceMic: false } });
+const defaults = () => ({ xp: 0, notes: {}, ex: {}, days: {}, sessions: [], selected: "p3-A", cfg: { ...DEFAULT_CFG }, custom: [], runs: {}, path: { states: {}, session: null },
+  settings: { view: "path", mode: "lock", tier: 1, drone: false, hear: false, hide: false, ears: false, chime: true, a4: 440, bpm: 60, per: 1, ladder: true, latencyMs: null, voiceMic: false } });
 function loadDB() {
   const d = defaults();
   try {
@@ -669,7 +715,7 @@ function applyDrone() {
 function droneTonicPc() {
   const ex = exById(DB.selected);
   if (ex && ex.custom && ex.drone) return ((DrillIO.parseNote(ex.drone + "4").midi % 12) + 12) % 12;
-  return Scales.spell(CFG.tonic, Scales.SCALE_TYPES[CFG.type]).tonicPc;
+  return Scales.spell(curKey().tonic, Scales.SCALE_TYPES[curKey().type]).tonicPc;
 }
 function droneMidis() {
   const tpc = droneTonicPc();
@@ -836,19 +882,20 @@ function startRun() {
   const s = DB.settings;
   if (s.mode === "tempo" && !ctx) { startAudio().then((ok) => ok && startRun()); return; }
   if (piece) stopPiece();
-  run = { ex, seq: ex.hunt ? buildHunt() : ex.notes, idx: 0, mode: s.mode, tier: s.tier, tol: TIERS[s.tier].tol,
+  const P = ex.path ? pathLevel(ex) : null; // path skills are judged against their level's windows, not the medal tiers
+  run = { ex, seq: ex.hunt ? buildHunt() : ex.notes, idx: 0, mode: s.mode, tier: P ? (P.level === "learning" ? 1 : 2) : s.tier, tol: P ? P.L.window : TIERS[s.tier].tol,
     results: [], combo: 0, maxCombo: 0, xp: 0, t0: performance.now() };
   if (s.mode === "tempo") {
     const beatMs = 60000 / s.bpm, slot = beatMs / s.per, countIn = 4;
     const first = startMetronome(s.bpm, countIn + Math.ceil(run.seq.length / s.per) + 1);
-    run.tempo = { bpm: s.bpm, per: s.per, beatMs, slot, t0: first + countIn * beatMs, lat: latencyMs(), outLat: outLatencyMs(), tolMs: timingTol(slot, s.tier), evalIdx: 0, counting: true, onTime: 0 };
+    run.tempo = { bpm: s.bpm, per: s.per, beatMs, slot, t0: first + countIn * beatMs, lat: latencyMs(), outLat: outLatencyMs(), tolMs: P ? P.L.onsetMs : timingTol(slot, s.tier), evalIdx: 0, counting: true, onTime: 0 };
     $("#beatDot").hidden = false;
   } else { stopMetronome(); $("#beatDot").hidden = true; }
   $("#results").hidden = true;
   $("#startBtn").textContent = "↻ Restart"; $("#stopBtn").hidden = false;
   buildPath(); buildBoard();
   newTarget(performance.now());
-  setMsg(s.mode === "lock" ? "Play the note and hold it in tune until the ring fills." : s.mode === "flow" ? "Flow: play through at your own pace. Each note is scored where it first lands."
+  setMsg(ex.path && s.mode === "lock" ? "Lock-in: learn the notes. Only Flow and Tempo runs count toward the path." : s.mode === "lock" ? "Play the note and hold it in tune until the ring fills." : s.mode === "flow" ? "Flow: play through at your own pace. Each note is scored where it first lands."
     : `⏱ ${s.bpm} BPM, ${s.per} note${s.per > 1 ? "s" : ""} per beat. Four clicks count you in, then play each note on its beat.`);
 }
 
@@ -980,18 +1027,26 @@ function advance(t) {
 function finishRun() {
   stopMetronome(); $("#beatDot").hidden = true;
   const r = run, res = r.results, ex = r.ex;
-  const okN = res.filter((x) => x.ok).length, score = okN / res.length, passed = score >= PASS;
+  const okN = res.filter((x) => x.ok).length, score = okN / res.length;
+  const path = ex.path ? recordPath(r, res) : null, passed = path ? !!path.passed : score >= PASS;
   const rec = (DB.ex[recKey(ex.id)] ||= { best: 0, runs: 0, last: 0, bestScore: {} });
   rec.runs++; rec.last = Date.now();
   const prevBestScore = rec.bestScore[r.tier] || 0;
   rec.bestScore[r.tier] = Math.max(prevBestScore, score);
   let medal = false;
-  if (passed && r.tier > rec.best) { rec.best = r.tier; medal = true; r.xp += 100 * r.tier; }
-  if (r.tempo) {
-    // Tempo ladder: up after a pass, down after a rough run, otherwise stay until it passes
+  if (!path && passed && r.tier > rec.best) { rec.best = r.tier; medal = true; r.xp += 100 * r.tier; }
+  if (r.tempo && !path) {
+    // Tempo ladder: 6% up after 3 passes in a row at this tempo, 8% down after 2 misses in a row; one run alone never moves it
     const lad = ((rec.tempo ||= {})[r.tempo.per] ||= { best: 0, next: r.tempo.bpm });
-    if (passed) { lad.best = Math.max(lad.best, r.tempo.bpm); lad.next = r.tempo.bpm + (r.tempo.bpm < 100 ? 4 : 6); r.xp += Math.round(r.tempo.bpm / 4); }
-    else lad.next = score < 0.6 ? Math.max(30, r.tempo.bpm - 4) : r.tempo.bpm;
+    const bpm = r.tempo.bpm, streakOn = bpm >= (lad.at || 0);
+    lad.at = bpm; lad.next = bpm;
+    if (passed) {
+      lad.best = Math.max(lad.best, bpm); lad.fails = 0; lad.passes = (streakOn ? lad.passes || 0 : 0) + 1; r.xp += Math.round(bpm / 4);
+      if (lad.passes >= 3) { lad.next = Math.min(200, Math.max(bpm + 1, Math.round(bpm * 1.06))); lad.passes = 0; }
+    } else {
+      lad.passes = 0; lad.fails = (lad.fails || 0) + 1;
+      if (lad.fails >= 2) { lad.next = Math.max(30, Math.round(bpm * 0.92)); lad.fails = 0; }
+    }
     r.ladder = { ...lad };
     if (DB.settings.ladder) DB.settings.bpm = lad.next;
   }
@@ -1001,29 +1056,65 @@ function finishRun() {
   DB.days[today] = (DB.days[today] || 0) + 1;
   const landed = res.filter((x) => x.cents !== null);
   const avgAbs = landed.length ? mean(landed.map((x) => Math.abs(x.cents))) : 0;
-  DB.sessions.unshift({ t: Date.now(), cfg: ex.custom ? "custom" : CFG_KEY, ex: ex.id, label: drillLabel(ex), tier: r.tier, mode: r.mode, bpm: r.tempo ? r.tempo.bpm : undefined, score, avgAbs });
+  DB.sessions.unshift({ t: Date.now(), cfg: ex.custom ? "custom" : path ? "path" : CFG_KEY, ex: ex.id, label: drillLabel(ex), tier: r.tier, mode: r.mode, bpm: r.tempo ? r.tempo.bpm : undefined,
+    score: path && path.counted ? path.judged.pct : score, avgAbs, ...(path ? { passed } : {}) });
   DB.sessions = DB.sessions.slice(0, 60);
   if (medal && DB.settings.tier < 3 && !r.tempo) DB.settings.tier = r.tier + 1; // in Tempo mode the ladder raises speed instead
+  if (path && path.events.some((e) => e.type === "mastered")) applyConfig(); // newly unlocked skills join the note map
   save();
   run = null;
   $("#startBtn").textContent = "▶ Start"; $("#stopBtn").hidden = true;
   $("#holdArc").style.strokeDashoffset = 414.7;
-  showResults({ r, res, score, passed, medal, okN, avgAbs, levelUp: levelOf(DB.xp) > lvlBefore, newBest: score > prevBestScore && prevBestScore > 0 });
+  showResults({ r, res, score, passed, medal, okN, avgAbs, path, levelUp: levelOf(DB.xp) > lvlBefore, newBest: score > prevBestScore && prevBestScore > 0 });
   renderAll();
 }
 
-const drillLabel = (ex) => (ex.custom ? `My drill · ${ex.name}` : `${keyName()} · ${ex.group === "Put it together" ? "" : ex.group.replace(" position", "") + " "}${ex.name}`);
+const drillLabel = (ex) => (ex.custom ? `My drill · ${ex.name}` : ex.path ? `Path · ${ex.name}` : `${keyName()} · ${ex.group === "Put it together" ? "" : ex.group.replace(" position", "") + " "}${ex.name}`);
+
+// ---------- Path ----------
+const pathState = (nodeId) => DB.path.states[nodeId];
+function pathLevel(ex) {
+  const st = pathState(ex.nodeId), level = !st || st.status === "learning" ? "learning" : "mastery";
+  return { level, L: C.LEVELS[level] };
+}
+// Runs more than 45 minutes apart, or on another day, start a new session; its first run of a skill is the retention probe
+const pathSid = () => C.sessionId(DB.path.session, Date.now(), dayKey());
+// How badly a skill's notes have been landing lately (the per-spot history is shared across all drills)
+function pathWeakness(node) {
+  const ks = [...new Set(C.drill(node, C.DIRS[0]).notes.map((n) => n.key))], ss = ks.map(noteStats).filter(Boolean);
+  return ss.length ? mean(ss.map((x) => x.avgAbs + (1 - x.hit) * 20)) : 0;
+}
+const pathNext = () => C.nextUp(DB.path.states, { sid: pathSid(), day: dayKey(), weakness: pathWeakness });
+const pathNextId = () => { const n = pathNext() || { nodeId: C.NODES[0].id, dir: C.DIRS[0] }; return `n:${n.nodeId}@${n.dir}`; };
+
+function recordPath(r, res) {
+  const ex = r.ex, node = C.BY_ID[ex.nodeId], now = Date.now(), day = dayKey();
+  const sid = C.sessionId(DB.path.session, now, day);
+  DB.path.session = { id: sid, day, last: now };
+  const metrics = C.measure(res, r.seq, { tonicPc: Scales.spell(ex.keyCfg.tonic, Scales.SCALE_TYPES[ex.keyCfg.type]).tonicPc, slotMs: r.tempo ? r.tempo.slot : null });
+  const cold = !(pathState(node.id) || { log: [] }).log.some((a) => a.sid === sid);
+  const out = C.recordAttempt(DB.path.states, node, { t: now, day, sid, dir: ex.dir, mode: r.mode, bpm: r.tempo ? r.tempo.bpm : null, metrics });
+  if (out.state) DB.path.states[node.id] = out.state;
+  const reg = out.events.find((e) => e.type === "regressed");
+  if (reg) C.reopen(DB.path.states, reg.reopen, day);
+  // Next run's tempo: the skill's own, or a slower retry right away after a rough run
+  const retry = out.events.find((e) => e.type === "retry");
+  if (out.state) DB.settings.bpm = retry && retry.bpm ? retry.bpm : out.state.tempo;
+  return { ...out, metrics, node, cold };
+}
 
 // Keep the last 5 runs of every drill, note by note, for reports
-function recordRun(r, res, tips) {
+function recordRun(r, res, tips, path) {
   const key = recKey(r.ex.id);
   const entry = (DB.runs[key] ||= { label: drillLabel(r.ex), key: r.ex.custom ? r.ex.key || null : keyName(), runs: [] });
   entry.label = drillLabel(r.ex);
-  entry.drill = r.ex.hunt ? null : r.ex.custom ? r.ex.def : DrillIO.fromSequence(drillLabel(r.ex), r.ex.notes, { key: keyName(), tips: r.ex.tip, drone: CFG.tonic });
+  entry.drill = r.ex.hunt ? null : r.ex.custom ? r.ex.def : DrillIO.fromSequence(drillLabel(r.ex), r.ex.notes, { key: keyName(), tips: r.ex.tip, drone: curKey().tonic });
   const score = res.filter((x) => x.ok).length / res.length;
   entry.runs.unshift({
     date: new Date().toISOString(), mode: r.mode, tolerance: r.tol, score: Math.round(score * 1000) / 1000, passed: score >= PASS,
     ...(r.tempo ? { bpm: r.tempo.bpm, notesPerBeat: r.tempo.per, timingToleranceMs: r.tempo.tolMs } : {}),
+    ...(path ? { path: { nodeId: r.ex.nodeId, direction: r.ex.dir, counted: path.counted, level: path.level, passed: path.passed, firstTryOfSession: path.cold,
+      metrics: path.counted ? Object.fromEntries(Object.entries(path.metrics).filter(([k]) => k !== "notes")) : null } } : {}),
     landings: res.map((x, i) => ({ note: DrillIO.noteText(x.item), string: x.item.string, finger: x.item.finger === "4x" ? "4x" : +x.item.finger, position: x.item.pos,
       cents: x.cents === null ? null : Math.round(x.cents * 10) / 10, inTune: x.inTune, wrongNoteFirst: x.wrong === null ? null : DrillIO.midiText(x.wrong), shift: shiftDir(r.seq[i - 1], x.item),
       ...(r.tempo ? { timingMs: x.timing === null ? null : Math.round(x.timing), onTime: x.onTime, missed: x.missed } : {}) })),
@@ -1047,10 +1138,18 @@ function buildReport(key) {
     format: DrillIO.REPORT_FORMAT, exported: new Date().toISOString(),
     howToRead: "cents = first steady landing before any correction (+ sharp, − flat). After a shift down, sharp = stopped short; after a shift up, sharp = overshot. In tempo runs, timingMs = + late / − early against the click as heard. Full format: the app's My drills tab.",
     drill: entry.drill,
-    context: { drill: entry.label, key: entry.key, a4: DB.settings.a4, medal: rec.best ? TIERS[rec.best].name : "none", totalRuns: rec.runs || entry.runs.length },
+    context: { drill: entry.label, key: entry.key, a4: DB.settings.a4, medal: rec.best ? TIERS[rec.best].name : "none", totalRuns: rec.runs || entry.runs.length, ...pathContext(key) },
     runs: entry.runs,
     noteTrends: [...seen.values()],
   };
+}
+
+// For path skills: where the skill stands, for the report
+function pathContext(key) {
+  const m = key.match(/^path\|n:(.+)@/), node = m && C.BY_ID[m[1]], st = node && pathState(node.id);
+  if (!node) return {};
+  return { path: { nodeId: node.id, stage: node.stage, stageName: C.STAGES[node.stage].name, status: C.status(node, DB.path.states), tempoBpm: st ? st.tempo : C.drill(node, C.DIRS[0]).startBpm,
+    targetBpm: C.drill(node, C.DIRS[0]).targetBpm, notesPerBeat: node.nps, asymmetry: C.asymmetry(st), daysWithCleanFirstTry: st ? st.coldDays.length : 0 } };
 }
 
 async function copyText(text, btn) {
@@ -1095,7 +1194,7 @@ function buildTips(res, tol, seq, ex) {
   const all = res.filter((x) => x.cents !== null).map((x) => x.cents), m = all.length ? mean(all) : 0;
   if (Math.abs(m) > 8 && tips.length < 4) tips.push(`Overall you ran ${m > 0 ? "sharp" : "flat"} (${m > 0 ? "+" : ""}${m.toFixed(0)}¢ on average). ${m > 0 ? `${Math.max(...res.map((x) => x.item.pos)) >= 3 ? "In higher positions the hand often creeps toward the bridge." : "Your hand may be creeping toward the bridge."} Keep your thumb under the 1st–2nd finger.` : "Often the hand doesn't fully reach the position. Check where your thumb is and where your palm meets the violin's shoulder."}`);
   const half = Math.ceil(res.length / 2);
-  if (!ex.hunt && !ex.custom && !ex.id.startsWith("down") && res.length > 6) {
+  if (!ex.hunt && !ex.custom && !ex.path && !ex.id.startsWith("down") && res.length > 6) {
     const up = mean(all.slice(0, half)), down = mean(all.slice(half));
     if (Math.abs(up - down) > 12 && tips.length < 4) tips.push(`Going up you averaged ${up > 0 ? "+" : ""}${up.toFixed(0)}¢; coming down ${down > 0 ? "+" : ""}${down.toFixed(0)}¢. Your fingers are drifting ${up > down ? "sharp going up" : "flat going up"}. Keep lower fingers down as you climb so they anchor the hand.`);
   }
@@ -1104,7 +1203,8 @@ function buildTips(res, tol, seq, ex) {
 
 function tempoTips(r, res) {
   const T = r.tempo, tips = [], L = r.ladder;
-  tips.push(L.next > T.bpm ? `⏱ <b>${T.bpm} BPM passed.</b> The ladder moves you to ${L.next} BPM next.` : L.next < T.bpm ? `⏱ <b>${T.bpm} BPM is too fast for now.</b> Next run: ${L.next} BPM. Clean notes first, then speed.` : `⏱ Stay at <b>${T.bpm} BPM</b> until 85% of notes are in tune and on time.`);
+  if (L) tips.push(L.next > T.bpm ? `⏱ <b>3 passes in a row at ${T.bpm} BPM.</b> The ladder moves you to ${L.next} BPM next.` : L.next < T.bpm ? `⏱ <b>${T.bpm} BPM is too fast for now.</b> Next run: ${L.next} BPM. Clean notes first, then speed.`
+    : L.passes ? `⏱ <b>${T.bpm} BPM passed</b> (${L.passes} of 3 in a row). Speed goes up after 3, so one lucky run doesn't count.` : `⏱ Stay at <b>${T.bpm} BPM</b> until 85% of notes are in tune and on time${L.fails ? "; one more miss and it drops 8%" : ""}.`);
   const timed = res.map((x, i) => ({ x, sh: shiftDir(r.seq[i - 1], x.item) })).filter((o) => o.x.timing !== null);
   if (timed.length >= 3) {
     const m = mean(timed.map((o) => o.x.timing));
@@ -1375,7 +1475,7 @@ function render() {
     if (cur && Math.abs(smooth - cur.midi) < 1) { ref = cur.midi; dev = (smooth - cur.midi) * 100; }
     else if (!cur) { ref = Math.round(smooth); dev = (smooth - ref) * 100; }
   }
-  const tol = run ? run.tol : TIERS[DB.settings.tier].tol;
+  const selEx = exById(DB.selected), tol = run ? run.tol : selEx && selEx.path ? pathLevel(selEx).L.window : TIERS[DB.settings.tier].tol;
   const hideNeedle = run && DB.settings.ears && (run.mode === "tempo" || !run.st.landed);
   if (dev !== null && !hideNeedle) {
     const c = Math.max(-50, Math.min(50, dev));
@@ -1429,7 +1529,7 @@ function renderStats(pop) {
   if (!run) { $("#runstats").innerHTML = ""; return; }
   const ok = run.results.filter((x) => x && x.ok).length;
   const tempo = run.tempo ? `<span>♩ = <b>${run.tempo.bpm}</b></span><span>On time <b>${run.tempo.onTime}</b>${run.lastTiming ? ` <span class="muted">(${run.lastTiming})</span>` : ""}</span>` : "";
-  $("#runstats").innerHTML = `${tempo}<span>Note <b>${Math.min(run.idx + 1, run.seq.length)}</b>/${run.seq.length}</span><span>${run.tempo ? "In tune & on time" : "In tune"} <b>${ok}</b></span><span>Combo <b class="${pop && run.combo > 1 ? "combo-pop" : ""}">×${run.combo}</b></span><span>XP <b>+${run.xp}</b></span><span>Goal <b>${TIERS[run.tier].icon} ±${run.tol}¢</b></span>`;
+  $("#runstats").innerHTML = `${tempo}<span>Note <b>${Math.min(run.idx + 1, run.seq.length)}</b>/${run.seq.length}</span><span>${run.tempo ? "In tune & on time" : "In tune"} <b>${ok}</b></span><span>Combo <b class="${pop && run.combo > 1 ? "combo-pop" : ""}">×${run.combo}</b></span><span>XP <b>+${run.xp}</b></span><span>Goal <b>${run.ex.path ? "" : TIERS[run.tier].icon + " "}±${run.tol}¢</b></span>`;
 }
 
 // Path chips
@@ -1463,7 +1563,7 @@ const yOf = (s, m) => NUT + distMM(s, m) * PXMM;
 let BOARD = { strings: ["A", "E"], lowPos: 3 };
 function boardLayout() {
   const ex = exById(DB.selected);
-  if (!ex.custom) {
+  if (!ex.custom && !ex.path) {
     const lo = CFG.strings[0];
     return { strings: CFG.strings, lowPos: CFG.positions[0],
       lines: CFG.positions.map((p) => ({ p, y: yOf(lo, ALL_FINGERINGS.find((it) => it.string === lo && it.pos === p && it.finger === "1").midi) })) };
@@ -1520,9 +1620,10 @@ function updateBoardTarget() {
 
 // Results modal
 function showResults(o) {
-  const { r, res, score, passed, medal, okN, avgAbs } = o;
+  const { r, res, score, passed, medal, okN, avgAbs, path } = o;
   const T = TIERS[r.tier];
   const tips = buildTips(res, r.tol, r.seq, r.ex);
+  if (path && path.counted) tips.unshift(...C.tips(path.metrics));
   if (r.tempo) tips.unshift(...tempoTips(r, res));
   const downs = res.filter((x, i) => shiftDir(r.seq[i - 1], x.item) === "down" && x.cents !== null);
   if (downs.length >= 2) {
@@ -1530,11 +1631,12 @@ function showResults(o) {
     const trend = Math.abs(avg) < r.tol / 2 ? "no consistent lean" : avg > 0 ? "you tend to stop short (sharp)" : "you tend to overshoot (flat)";
     tips.unshift(`<b>Down-shift landings: ${ok}/${downs.length} in tune</b>, averaging ${avg > 0 ? "+" : ""}${avg.toFixed(0)}¢: ${trend}.`);
   }
+  if (path) tips.unshift(...pathEventTips(path));
   const need = Math.ceil(PASS * res.length) - okN;
-  recordRun(r, res, tips);
-  if (!tips.length) tips.push(passed ? "A clean run. Next, try it with <b>Hide fingering</b> or <b>Ears first</b> on, or go for the next medal." : "Close! Play it slower. Listen for each note before you place the finger.");
+  recordRun(r, res, tips, path);
+  if (!tips.length) tips.push(passed ? `A clean run. Next, try it with <b>Hide fingering</b> or <b>Ears first</b> on, or ${path ? "play it the other way round" : "go for the next medal"}.` : "Close! Play it slower. Listen for each note before you place the finger.");
   const secs = ((performance.now() - r.t0) / 1000).toFixed(0);
-  const head = medal ? `<div class="medal-big">${T.icon}</div><div><h2 style="margin:0">${T.name} earned!</h2><div class="muted">${r.ex.group} · ${r.ex.name}</div></div>`
+  const head = path ? pathHead(path, r) : medal ? `<div class="medal-big">${T.icon}</div><div><h2 style="margin:0">${T.name} earned!</h2><div class="muted">${r.ex.group} · ${r.ex.name}</div></div>`
     : passed ? `<div class="medal-big">✓</div><div><h2 style="margin:0">Passed ${T.name}</h2><div class="muted">${r.ex.group} · ${r.ex.name}</div></div>`
     : `<div class="medal-big">🎯</div><div><h2 style="margin:0">${need} more ${r.tempo ? "clean" : "in-tune"} note${need > 1 ? "s" : ""} for ${T.name}</h2><div class="muted">Need ${Math.round(PASS * 100)}% within ±${r.tol}¢${r.tempo ? ` and ±${r.tempo.tolMs} ms` : ""} · ${r.ex.name}</div></div>`;
   const labels = res.map((x) => x.item.label + (x.wrong !== null ? "✗" : ""));
@@ -1543,15 +1645,17 @@ function showResults(o) {
   const timingChart = r.tempo ? barChart(res.map((x) => x.timing), labels, r.tempo.tolMs, Math.round(r.tempo.slot / 2), "late", "early",
     res.map((x) => colorFor(Math.abs(x.timing || 0), r.tempo.tolMs)), res.map((x) => `${noteName(x.item.midi)} ${x.timing === null ? "missed" : (x.timing > 0 ? "+" : "") + x.timing.toFixed(0) + " ms"}`)) : "";
   const onTimeN = res.filter((x) => x.onTime).length;
-  const next = recommend();
+  const next = path ? pathNext() : recommend();
+  const shown = path && path.counted ? path.judged.pct : score;
   $("#resultsBox").innerHTML = `
-    <div class="mhead">${head}<div class="score" style="color:${passed ? "var(--good)" : "var(--near)"}">${Math.round(score * 100)}%</div></div>
+    <div class="mhead">${head}<div class="score" style="color:${passed ? "var(--good)" : "var(--near)"}">${Math.round(shown * 100)}%</div></div>
     <div class="mstats">
       <div><b>${okN}/${res.length}</b><span>${r.tempo ? `in tune & on time at ${r.tempo.bpm} BPM` : `landed within ±${r.tol}¢`}</span></div>
       <div><b>${avgAbs.toFixed(1)}¢</b><span>average miss</span></div>
       ${r.tempo ? `<div><b>${onTimeN}/${res.length}</b><span>on time (±${r.tempo.tolMs} ms)</span></div>` : `<div><b>×${r.maxCombo}</b><span>best combo</span></div>`}
       <div><b>+${r.xp}</b><span>XP${o.levelUp ? " · LEVEL UP!" : ""} · ${secs}s</span></div>
     </div>
+    ${path ? pathResultsBody(path) : ""}
     <h3>First landing of each note</h3>
     ${pitchChart}
     ${r.tempo ? `<h3>Timing of each note (vs the click)</h3>${timingChart}` : ""}
@@ -1561,16 +1665,55 @@ function showResults(o) {
       <button class="btn ghost" id="rReport" title="A JSON report of this drill and your recent runs, to paste to Claude">📋 Copy report for Claude</button>
       <button class="btn ghost" id="rClose">Close</button>
       <button class="btn ghost" id="rAgain">↻ Again</button>
-      ${!r.ex.custom && (next.id !== r.ex.id || next.tier !== DB.settings.tier) ? `<button class="btn" id="rNext">Next: ${exById(next.id).name} ${TIERS[next.tier].icon}</button>` : ""}
+      ${path ? (next ? `<button class="btn" id="rNext">Next: ${escapeHTML(C.nodeName(C.BY_ID[next.nodeId]))} ${next.dir === "desc_asc" ? "⇣⇡" : "⇡⇣"}</button>` : "")
+        : !r.ex.custom && (next.id !== r.ex.id || next.tier !== DB.settings.tier) ? `<button class="btn" id="rNext">Next: ${exById(next.id).name} ${TIERS[next.tier].icon}</button>` : ""}
     </div>`;
   $("#results").hidden = false;
   $("#rClose").onclick = () => { $("#results").hidden = true; renderIdle(); buildPath(); buildBoard(); };
   $("#rAgain").onclick = () => startRun();
   $("#rReport").onclick = (e) => copyText(JSON.stringify(buildReport(recKey(r.ex.id)), null, 2), e.target);
   const nb = $("#rNext");
-  if (nb) nb.onclick = () => { selectEx(next.id, next.tier); startRun(); };
+  if (nb) nb.onclick = () => { if (path) selectEx(`n:${next.nodeId}@${next.dir}`); else selectEx(next.id, next.tier); startRun(); };
   setMsg(passed ? "Nice work. Press Space to go again, or take the next drill." : "Look over the coach's notes, then try again.");
   $("#runstats").innerHTML = "";
+}
+
+// Path results: the verdict, the criteria, and where the skill now stands
+function pathHead(path, r) {
+  const sub = `<div class="muted">${escapeHTML(r.ex.name)}</div>`;
+  if (!path.counted) return `<div class="medal-big">🎯</div><div><h2 style="margin:0">Lock-in run (not counted)</h2>${sub}</div>`;
+  const lvl = path.level === "learning" ? "learning" : "mastery";
+  return `<div class="medal-big">${path.events.some((e) => e.type === "mastered") ? "🏅" : path.passed ? "✓" : "🎯"}</div><div><h2 style="margin:0">${path.passed ? `Clean run (${lvl} level)` : `Not clean yet (${lvl} level)`}</h2>${sub}${path.cold ? `<div class="muted small">First try this session: counts toward the days.</div>` : ""}</div>`;
+}
+function pathResultsBody(path) {
+  const node = path.node, st = pathState(node.id), D = C.drill(node, C.DIRS[0]);
+  let h = "";
+  if (path.counted) h += `<h3>What the ${path.level} level needs</h3><table class="checks">${path.judged.checks.map((c) => `<tr class="${c.ok ? "ok" : "bad"}"><td>${c.label}</td><td class="v">${c.value}${c.unit} ${c.ok ? "✓" : "✗"} <span class="muted">(${c.min ? "≥" : "≤"} ${c.limit}${c.unit})</span></td></tr>`).join("")}</table>`;
+  if (st) h += `<h3>This skill</h3><p class="small">${pathProgress(node, st)}${st.status === "consolidating" && st.tempo < D.targetBpm ? ` Target ♩=${D.targetBpm}.` : ""}</p>`;
+  return h;
+}
+function pathEventTips(path) {
+  const out = [], name = (id) => escapeHTML(C.nodeName(C.BY_ID[id]));
+  if (!path.counted) out.push("Lock-in runs help you learn the notes, but only <b>Flow</b> and <b>Tempo</b> runs count toward the path.");
+  for (const e of path.events) {
+    if (e.type === "tempoUp") out.push(`⏱ <b>Tempo up:</b> ♩=${e.from} → ${e.to} next time. Three clean runs in a row, both directions.`);
+    if (e.type === "tempoDown") out.push(`⏱ Two misses in a row: back to ♩=${e.to}. Clean first, then fast.`);
+    if (e.type === "consolidating") out.push(`<b>Clean both ways.</b> Now consolidate: build to ♩=${C.drill(path.node, C.DIRS[0]).targetBpm} in Tempo mode, with clean first tries on 2 different days.`);
+    if (e.type === "mastered") out.push(`🏅 <b>Mastered.</b> It comes back for review tomorrow, then at growing intervals.${e.unlocked.length ? ` Unlocked: ${e.unlocked.map(name).join(", ")}.` : ""}`);
+    if (e.type === "reviewPassed") out.push(`Review passed. Next check in ${e.nextDays} day${e.nextDays > 1 ? "s" : ""}.`);
+    if (e.type === "reviewFailed") out.push("This review's first try missed. It comes back tomorrow; miss it twice in a row and it goes back to consolidating.");
+    if (e.type === "regressed") out.push(`Two reviews missed in a row: back to consolidating at ♩=${e.tempo}.${e.reopen.length ? ` Its groundwork is due again: ${e.reopen.map(name).join(", ")}.` : ""}`);
+    if (e.type === "retry") out.push(`That one was rough (median miss over 25¢). Go again right away${e.bpm ? `, slower: ♩=${e.bpm}` : ", slower"}. Fix mistakes while they're fresh.`);
+  }
+  return out;
+}
+const STATUS = { locked: ["🔒", "Locked"], new: ["○", "New"], learning: ["◔", "Learning"], consolidating: ["◑", "Consolidating"], mastered: ["●", "Mastered"], review: ["↻", "Review"] };
+function pathProgress(node, st) {
+  const D = C.drill(node, C.DIRS[0]), key = st.status === "learning" ? "pL" : "pM";
+  const passes = (dir) => st.log.filter((a) => a.dir === dir).slice(-4).filter((a) => a[key]).length;
+  const need = st.status === "learning" ? 2 : 3, asym = C.asymmetry(st);
+  if (st.mastered && st.status !== "consolidating") return `${STATUS[st.status][1]} · ${st.due <= dayKey() ? "review due" : `review ${st.due.slice(5)}`}`;
+  return `${STATUS[st.status][1]} · ♩=${st.tempo}/${D.targetBpm} · ⇡⇣ ${passes("asc_desc")}/${need} · ⇣⇡ ${passes("desc_asc")}/${need}${st.status === "consolidating" ? ` · ${Math.min(2, st.coldDays.length)}/2 days` : ""}${asym < -0.1 ? " · coming down is weaker" : ""}`;
 }
 
 // Diverging bar per note around a centre line; null = missed (×)
@@ -1613,12 +1756,47 @@ function recommend() {
 }
 
 function renderNext() {
+  if (isPath()) return renderPathNext();
   const n = recommend(), ex = exById(n.id);
   $("#nextUp").innerHTML = `<h3>Next up</h3><div class="nx-title">${ex.group} · ${ex.name} ${TIERS[n.tier].icon}</div><div class="nx-why">${n.why}</div><button id="nxGo">Start this drill</button>`;
   $("#nxGo").onclick = async () => { selectEx(n.id, n.tier); if (await startAudio()) startRun(); };
 }
 
+const ROLE = { review: "Review", focus: "Focus", support: "Groundwork", bonus: "Bonus", extra: "Extra" };
+function renderPathNext() {
+  const n = pathNext();
+  if (!n) { $("#nextUp").innerHTML = `<h3>Next up</h3><div class="nx-title">Nothing left for today</div>`; return; }
+  $("#nextUp").innerHTML = `<h3>Next up · ${ROLE[n.role]}</h3><div class="nx-title">${escapeHTML(C.nodeName(C.BY_ID[n.nodeId]))} ${n.dir === "desc_asc" ? "⇣⇡" : "⇡⇣"}</div><div class="nx-why">${n.why}</div><button id="nxGo">Start this drill</button>`;
+  $("#nxGo").onclick = async () => { selectEx(`n:${n.nodeId}@${n.dir}`); if (await startAudio()) startRun(); };
+}
+
+// The skill map: stages, each skill's status, and a button per direction
+function renderPathList() {
+  const P = DB.path.states, sel = exById(DB.selected), selStage = sel && sel.path ? C.BY_ID[sel.nodeId].stage : 0;
+  let h = "";
+  for (let sg = 1; sg < C.STAGES.length; sg++) {
+    const nodes = C.NODES.filter((n) => n.stage === sg), done = nodes.filter((n) => P[n.id] && P[n.id].mastered).length;
+    const open = sg === selStage || nodes.some((n) => C.unlocked(n, P) && !(P[n.id] && P[n.id].mastered));
+    h += `<details class="pstage" ${open ? "open" : ""}><summary><b>${sg}</b> ${C.STAGES[sg].name}<span class="muted">${done}/${nodes.length}</span></summary>`;
+    for (const n of nodes) {
+      const status = C.status(n, P), st = P[n.id], locked = status === "locked";
+      const detail = locked ? `Needs ${n.prereq.filter((id) => !(P[id] && P[id].mastered)).slice(0, 2).map((id) => escapeHTML(C.nodeName(C.BY_ID[id]))).join("; ")}`
+        : st ? pathProgress(n, st) : `New · ♩=${C.drill(n, C.DIRS[0]).startBpm}→${C.drill(n, C.DIRS[0]).targetBpm}, ${n.nps} notes per beat`;
+      const isSel = sel && sel.path && sel.nodeId === n.id;
+      h += `<div class="pnode ${locked ? "locked" : ""} ${isSel ? "sel" : ""}" title="${STATUS[status][1]}"><span class="pico">${STATUS[status][0]}</span><span class="pnm">${escapeHTML(C.nodeName(n))}${n.boss ? " 👑" : ""}<div class="fr">${detail}</div></span>
+        <span class="pdirs">${C.DIRS.map((d) => `<button data-id="n:${n.id}@${d}" class="${isSel && sel.dir === d ? "on" : ""}" ${locked ? "disabled" : ""} title="${C.DIR_TEXT[d]}">${d === "asc_desc" ? "⇡⇣" : "⇣⇡"}</button>`).join("")}</span></div>`;
+    }
+    h += `</details>`;
+  }
+  const custom = EXERCISES.filter((e) => e.custom);
+  if (custom.length) h += `<div class="ex-group">My drills</div>` + custom.map((e) => `<button class="ex ${DB.selected === e.id ? "sel" : ""}" data-id="${e.id}"><span><div class="nm">${escapeHTML(e.name)}</div><div class="fr">${escapeHTML(e.frame)}</div></span></button>`).join("");
+  $("#exList").innerHTML = h;
+  document.querySelectorAll("#exList [data-id]").forEach((b) => (b.onclick = () => { if (run) stopRun(); selectEx(b.dataset.id); }));
+}
+
 function renderExList() {
+  $("#exListTitle").textContent = isPath() ? "Skill map" : "Drills";
+  if (isPath()) return renderPathList();
   let h = "", grp = "";
   for (const e of EXERCISES) {
     if (e.group !== grp) { grp = e.group; h += `<div class="ex-group">${grp}</div>`; }
@@ -1632,8 +1810,15 @@ function renderExList() {
 function selectEx(id, tier) {
   if (!exById(id)) id = EXERCISES[0].id;
   DB.selected = id;
-  DB.settings.tier = tier || Math.min(3, ((exRec(id) || {}).best || 0) + 1);
   const ex = exById(id);
+  if (ex.path) {
+    // The skill sets its own tempo and notes per beat
+    const st = pathState(ex.nodeId);
+    DB.settings.per = ex.per; DB.settings.bpm = st ? st.tempo : ex.startBpm;
+    applyRange(); save(); $("#results").hidden = true; renderAll();
+    return;
+  }
+  DB.settings.tier = tier || Math.min(3, ((exRec(id) || {}).best || 0) + 1);
   if (ex.custom && ex.def.notesPerBeat) DB.settings.per = ex.def.notesPerBeat;
   const lad = ((exRec(id) || {}).tempo || {})[DB.settings.per];
   if (DB.settings.ladder) DB.settings.bpm = (lad && lad.next) || (ex.custom && ex.def.bpm) || DB.settings.bpm;
@@ -1662,9 +1847,13 @@ function syncSettingsUI() {
   $("#bpmVal").textContent = s.bpm; $("#bpmRange").value = s.bpm;
   document.querySelectorAll("#perSeg button").forEach((b) => b.classList.toggle("on", +b.dataset.v === s.per));
   $("#optLadder").checked = s.ladder;
+  const sel = exById(DB.selected), P = sel && sel.path ? pathLevel(sel) : null;
+  $("#ladderBox").hidden = !!P; $("#pathTempoNote").hidden = !P; $("#perSeg").hidden = !!P;
+  $("#tierSeg").hidden = !!P; $("#pathTarget").hidden = !P;
+  if (P) $("#pathTarget").innerHTML = `${P.level === "learning" ? "Learning" : "Mastery"} level: ±${P.L.window}¢${P.L.ring !== P.L.window ? ` (±${P.L.ring}¢ on G, D, A and E)` : ""}, ${Math.round(P.L.pct * 100)}% of notes clean${s.mode === "tempo" ? `, ±${P.L.onsetMs} ms on the beat` : ""}. Set by the path.`;
   $("#latVal").textContent = s.latencyMs === null ? "auto" : s.latencyMs + " ms";
   $("#a4Val").textContent = s.a4;
-  const tol = TIERS[s.tier].tol;
+  const tol = P ? P.L.window : TIERS[s.tier].tol;
   $("#gzone").style.width = tol + "%"; // track spans ±50¢ = 100%
 }
 
@@ -1676,7 +1865,7 @@ function renderProgress() {
   $("#tiles").innerHTML = [
     [`🔥 ${streak()}`, "day streak"], [`Lv ${levelOf(DB.xp)}`, `${DB.xp} XP`], [played, "notes landed"],
     [recentAll.length ? Math.round((recentAll.filter((c) => Math.abs(c) <= 15).length / recentAll.length) * 100) + "%" : "—", "recent landings within ±15¢"],
-    [`${medals}/${builtIn.length * 3}`, `medals in ${keyName()}`],
+    isPath() ? [`${C.NODES.filter((n) => DB.path.states[n.id] && DB.path.states[n.id].mastered).length}/${C.NODES.length}`, "path skills mastered"] : [`${medals}/${builtIn.length * 3}`, `medals in ${keyName()}`],
   ].map(([v, l]) => `<div class="card tile"><div class="v">${v}</div><div class="l">${l}</div></div>`).join("");
 
   const keys = [...new Map(ALL_FINGERINGS.map((it) => [it.key, it])).values()];
@@ -1701,12 +1890,15 @@ function renderProgress() {
   }
   $("#cal").innerHTML = cal;
   $("#sessList").innerHTML = DB.sessions.slice(0, 10).map((s) => {
-    const label = s.label || `G major · ${s.ex}`;
-    return `<div class="sess"><span>${new Date(s.t).toLocaleDateString(undefined, { month: "short", day: "numeric" })} · ${label} ${TIERS[s.tier].icon}${s.mode === "flow" ? " · flow" : ""}</span><b style="color:${s.score >= PASS ? "var(--good)" : "var(--muted)"}">${Math.round(s.score * 100)}%</b></div>`;
+    const label = s.label || `G major · ${s.ex}`, ok = s.passed !== undefined ? s.passed : s.score >= PASS;
+    return `<div class="sess"><span>${new Date(s.t).toLocaleDateString(undefined, { month: "short", day: "numeric" })} · ${escapeHTML(label)} ${s.cfg === "path" ? "" : TIERS[s.tier].icon}${s.mode === "flow" ? " · flow" : ""}</span><b style="color:${ok ? "var(--good)" : "var(--muted)"}">${Math.round(s.score * 100)}%</b></div>`;
   }).join("") || `<p class="muted">No runs yet. Your history shows up here.</p>`;
 }
 
 function renderConfig() {
+  document.querySelectorAll("#viewSeg button").forEach((b) => b.classList.toggle("on", b.dataset.v === DB.settings.view));
+  $("#freeCfg").hidden = isPath(); $("#pathInfo").hidden = !isPath();
+  if (isPath()) renderPathInfo();
   const c = DB.cfg, T = Scales.SCALE_TYPES;
   $("#cfgType").innerHTML = Object.entries(T).map(([k, t]) => `<option value="${k}" ${k === c.type ? "selected" : ""}>${t.name[0].toUpperCase() + t.name.slice(1)}</option>`).join("");
   $("#cfgTonic").innerHTML = T[c.type].keys.map((k) => `<option value="${k}" ${k === c.tonic ? "selected" : ""}>${Scales.prettyTonic(k)}</option>`).join("");
@@ -1714,9 +1906,24 @@ function renderConfig() {
   $("#cfgStrLo").innerHTML = sopts(c.strings[0]); $("#cfgStrHi").innerHTML = sopts(c.strings[c.strings.length - 1]);
   $("#cfgPos").innerHTML = [1, 2, 3, 4, 5, 6, 7].map((p) => `<button data-p="${p}" class="${c.positions.includes(p) ? "on" : ""}" aria-pressed="${c.positions.includes(p)}" title="${ord(p)} position">${ord(p)}</button>`).join("");
   document.querySelectorAll("#cfgPos button").forEach((b) => (b.onclick = () => togglePosition(+b.dataset.p)));
-  $("#cfgLabel").textContent = Scales.cfgLabel(c);
   const ex = exById(DB.selected);
-  $("#droneName").textContent = `${ex.custom && ex.drone ? DrillIO.parseNote(ex.drone + "4").label : Scales.prettyTonic(c.tonic)} drone`;
+  $("#cfgLabel").textContent = isPath() ? `Path · ${ex.path ? `Stage ${C.BY_ID[ex.nodeId].stage}: ${C.STAGES[C.BY_ID[ex.nodeId].stage].name}` : "my drill"}` : Scales.cfgLabel(c);
+  $("#droneName").textContent = `${ex.custom && ex.drone ? DrillIO.parseNote(ex.drone + "4").label : Scales.prettyTonic(curKey().tonic)} drone`;
+}
+
+function renderPathInfo() {
+  const P = DB.path.states, done = C.NODES.filter((n) => P[n.id] && P[n.id].mastered).length;
+  const stage = (C.NODES.find((n) => C.unlocked(n, P) && !(P[n.id] && P[n.id].mastered)) || C.NODES[C.NODES.length - 1]).stage;
+  $("#pathInfo").innerHTML = `<b>Stage ${stage}: ${C.STAGES[stage].name}</b><div class="muted">${C.STAGES[stage].blurb}</div>
+    <div class="bar"><i style="width:${(done / C.NODES.length) * 100}%"></i></div>
+    <div class="muted">${done} of ${C.NODES.length} skills mastered. A skill needs clean runs up (⇡⇣) <i>and</i> from the top (⇣⇡), at its target tempo, on 2 different days. Lock-in runs are for learning and don't count.</div>`;
+}
+
+function changeView(v) {
+  if (run) stopRun();
+  DB.settings.view = v;
+  applyConfig();
+  selectEx(DB.selected);
 }
 
 function changeConfig(patch) {
@@ -1884,13 +2091,15 @@ $("#reportList").onclick = (e) => {
   if (b.dataset.act === "save") download(`${DrillIO.slug(DB.runs[key].label)}-report.json`, text);
 };
 
+document.querySelectorAll("#viewSeg button").forEach((b) => (b.onclick = () => changeView(b.dataset.v)));
 $("#cfgType").onchange = (e) => changeConfig({ type: e.target.value });
 $("#cfgTonic").onchange = (e) => changeConfig({ tonic: e.target.value });
 $("#cfgStrLo").onchange = (e) => changeConfig({ strings: [e.target.value, $("#cfgStrHi").value] });
 $("#cfgStrHi").onchange = (e) => changeConfig({ strings: [$("#cfgStrLo").value, e.target.value] });
 
 applyConfig();
-renderAll();
+if (exById(DB.selected).path) selectEx(DB.selected); // a path skill brings its own tempo
+else renderAll();
 </script>
 </body>
 </html>

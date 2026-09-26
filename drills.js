@@ -196,7 +196,7 @@ A drill is a JSON object. Paste it into the **My drills** tab (Import), or save 
 - Keep it to 8–24 notes, so one run takes under a minute.
 - Add guide notes to shifts down onto a higher finger.
 - Once the isolated move is reliable, put it back into a longer scale passage.
-- For speed work, set bpm about 20% below the tempo where the player's notes stay clean. The tempo ladder then adds 4 BPM after each passed run.
+- For speed work, set bpm about 20% below the tempo where the player's notes stay clean. The tempo ladder then goes up 6% after 3 passed runs in a row, and down 8% after 2 misses in a row.
 
 ## Example
 {
@@ -232,7 +232,9 @@ A drill is a JSON object. Paste it into the **My drills** tab (Import), or save 
     - shift: "up", "down" or null.
     - timingMs, onTime and missed: only in tempo runs. timingMs is when the note started compared with the click as heard: + late, − early. missed = the note wasn't heard in its beat window, so cents and timingMs are null.
   - coachNotes: the app's own feedback for that run.
+  - path: only for Path skills. nodeId, direction ("asc_desc" = up first, "desc_asc" = from the top), counted (false for Lock-in runs), level ("learning" or "mastery"), passed, firstTryOfSession, and metrics: medianAbsCents, meanSignedCents, ascCents and descCents (average signed cents on notes reached going up / coming down), intervalEvennessCents (SD of whole-step sizes), octaveConsistencyCents (largest gap between octaves of the same note), ioiCV (rhythm evenness, Tempo runs only).
 - noteTrends: for each note in the drill, collected across all practice: avgCents over the last 20 landings, inTuneRate (share within ±15¢), landings and wrongNotes.
+- For Path skills, context.path gives the skill's stage, status (new, learning, consolidating, mastered, review), tempoBpm and targetBpm, asymmetry (score coming down minus going up; negative = coming down is weaker) and daysWithCleanFirstTry.
 
 ## Piece reports
 The Piece tab records a whole performance, without the score, and exports JSON with format "fingerboard-coach/piece-report@1". Each report includes its own "howToRead" field. It lists every note with its time, intonation and (with a metronome) timing against the click, plus tendencies, out-of-key notes, sections that sped up or slowed down, moments worth listening back to, and summaries of earlier performances of the same piece. Use it to suggest which passages to practise, then write drills (above) for the notes and shifts involved.
@@ -241,6 +243,7 @@ How to read landings:
 - After a shift down, sharp = stopped short and flat = overshot.
 - After a shift up, sharp = overshot and flat = fell short.
 - A consistent sign on the same note is a habit; scattered signs point to an unstable hand frame.
+- Notes played coming down tend to run sharp (descending whole steps too narrow). Compare ascCents and descCents.
 - 10¢ is roughly 1–2 mm of finger movement in 3rd–5th position.
 - In tempo runs, shifted notes arriving later than the others means the shift starts too late. Missed notes plus a low score mean the tempo is too fast; accuracy should come before speed.
 `;
