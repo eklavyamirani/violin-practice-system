@@ -175,6 +175,13 @@ eq("first thing to practise", plan({}), { nodeId: "pattern:1:23", dir: "asc_desc
 }
 eq("session id", [C.sessionId({ id: 5, day: "2026-01-01", last: 1000 }, 1000 + 60000, "2026-01-01"), C.sessionId({ id: 5, day: "2026-01-01", last: 1000 }, 1000 + 46 * 60000, "2026-01-01")], [5, 1000 + 46 * 60000]);
 
+// ---------- Loading ----------
+// Every local script in index.html carries the same cache-busting version, so a new page can't pair with an old cached script
+const html = require("fs").readFileSync(require("path").join(__dirname, "../index.html"), "utf8");
+const srcs = [...html.matchAll(/<script src="([^"]+)"/g)].map((m) => m[1]);
+check("scripts are versioned", srcs.length >= 5 && srcs.every((x) => /\.js\?v=[\w-]+$/.test(x)), srcs);
+check("one version for all scripts", new Set(srcs.map((x) => x.split("?v=")[1])).size === 1, srcs);
+
 console.log(`${C.NODES.length} skills in ${C.STAGES.length - 1} stages`);
 console.log(fails ? `${fails} failure(s)` : "all pass");
 process.exit(fails ? 1 : 0);
