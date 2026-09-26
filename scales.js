@@ -87,7 +87,8 @@
 
   // Find the longest tonic-to-tonic run (up to 3 octaves) that climbs through the positions in order,
   // shifting once between each neighbouring pair. Open strings count as 1st position.
-  function findRun(tonic, type, strings, positions) {
+  // opts.octaves asks for exactly that many octaves (lowest tonic first) and never falls back to a partial span.
+  function findRun(tonic, type, strings, positions, opts = {}) {
     const spUp = spell(tonic, type), spDown = type.down ? spell(tonic, SCALE_TYPES[type.down]) : spUp;
     const top = strings[strings.length - 1], last = positions[positions.length - 1], open = positions[0] === 1;
     const avail = (sp) => {
@@ -134,12 +135,13 @@
       return up && down ? { up, down } : null;
     };
     const midis = avail(spUp).map((o) => o.midi), lo = Math.min(...midis), hi = Math.max(...midis);
-    for (let octs = 3; octs >= 1; octs--)
+    for (let octs = opts.octaves || 3; octs >= (opts.octaves || 1); octs--)
       for (let t = lo; t + 12 * octs <= hi; t++) {
         if ((t - spUp.tonicPc) % 12) continue;
         const r = both(t, t + 12 * octs);
         if (r) return { ...r, octave: true };
       }
+    if (opts.octaves) return null;
     // No tonic octave fits: run from the bottom of the lowest position to the top position's 4th finger
     // (from the open string if that's in the key and the next note up is reachable, else from the 1st finger)
     const to = fingering(top, last, "4", spUp).midi;
@@ -174,16 +176,30 @@
     return out;
   }
 
-  // Isolated down-shifts on one string, each pair played twice: same-finger slides, then the scale step
-  // that crosses the shift (1st finger in the high position down to the note below, in the low position)
-  function downShiftPairs(string, p1, p2, sp) {
+  // Isolated shifts on one string, each pair played twice: same-finger slides, then the scale step
+  // that crosses the shift (1st finger in the high position and the note below it, in the low position).
+  // "down" starts each pair in the high position; "up" starts it in the low one.
+  function shiftPairs(string, p1, p2, sp, dir = "down") {
     const gap = p2 - p1, pairs = [];
     for (const f of ["1", "2", "3"]) pairs.push([fingering(string, p2, f, sp), fingering(string, p1, f, sp)]);
     if (gap >= 2 && gap <= 4) pairs.push([fingering(string, p2, "1", sp), fingering(string, p1, String(gap), sp)]);
+    if (dir === "up") pairs.forEach((pr) => pr.reverse());
     // The pitch detector needs each note to differ from the last, so no pair may start where the previous one ended
     const perms = (xs) => (xs.length <= 1 ? [xs] : xs.flatMap((x, i) => perms([...xs.slice(0, i), ...xs.slice(i + 1)]).map((r) => [x, ...r])));
     const order = perms(pairs).find((o) => o.every((pr, i) => !i || pr[0].midi !== o[i - 1][1].midi)) || pairs;
     return { pairs: order, seq: annotateShifts(order.flatMap(([a, b]) => [a, b, a, b]), sp) };
+  }
+  const downShiftPairs = (string, p1, p2, sp) => shiftPairs(string, p1, p2, sp, "down");
+
+  // Where the half step falls in a hand frame: "01" (low 1), "12", "23", "34", "whole" (no half step)
+  // or "aug" (an augmented 2nd). In 1st position the open string counts as finger 0.
+  function handPattern(string, pos, sp) {
+    const notes = fingers4(string, pos, sp);
+    if (pos === 1) notes.unshift(openString(string, sp));
+    const f0 = pos === 1 ? 0 : 1, steps = notes.slice(1).map((n, i) => n.midi - notes[i].midi);
+    if (steps.some((d) => d >= 3)) return "aug";
+    const halves = steps.map((d, i) => (d === 1 ? `${f0 + i}${f0 + i + 1}` : null)).filter(Boolean);
+    return halves.length ? halves.join("+") : "whole";
   }
 
   const andList = (xs) => (xs.length < 2 ? xs.join("") : `${xs.slice(0, -1).join(", ")} & ${xs[xs.length - 1]}`);
@@ -277,7 +293,8 @@
     return flats ? ["C", "D♭", "D", "E♭", "E", "F", "G♭", "G", "A♭", "A", "B♭", "B"][pc] : ["C", "C♯", "D", "D♯", "E", "F", "F♯", "G", "G♯", "A", "A♯", "B"][pc];
   }
 
-  const api = { SCALE_TYPES, STRINGS, STRING_ORDER, ordinal, prettyTonic, spell, fingering, buildDrills, findRun, normalizeCfg, cfgKey, cfgLabel, nameIn };
+  const api = { SCALE_TYPES, STRINGS, STRING_ORDER, ordinal, prettyTonic, spell, fingering, fingers4, openString, framePattern, frameTip, upDown, segFrame,
+    annotateShifts, shiftPairs, handPattern, buildDrills, findRun, normalizeCfg, cfgKey, cfgLabel, nameIn };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else root.Scales = api;
 })(this);
