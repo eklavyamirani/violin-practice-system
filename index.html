@@ -2193,7 +2193,7 @@ function renderDrillsTab() {
     return `<div class="drow" data-id="${ex.id}"><div><div class="nm">${escapeHTML(d.title)} ${medals(key)}</div><div class="sub">${escapeHTML(ex.frame)} · ${last(key)}${d.goal ? `<br>${escapeHTML(d.goal)}` : ""}</div></div>
       <div class="acts"><button class="go" data-act="play">▶ Practice</button>${DB.runs[key] ? `<button data-act="copy">📋 Copy report</button><button data-act="save">⬇ Report</button>` : ""}<button data-act="json">Copy drill</button><button class="del" data-act="del">Delete</button></div></div>`;
   }).join("") : `<p class="muted small">No imported drills yet. Ask Claude for one, using the format on the right.</p>`;
-  $("#packList").innerHTML = Rhythm.PACKS.map((p) => {
+  $("#packList").innerHTML = PACKS.error ? `<p class="muted small">${escapeHTML(PACKS.error)}</p>` : PACKS.map((p) => {
     const have = p.drills.filter((d) => DB.custom.some((c) => c.title === d.title)).length;
     return `<div class="drow" data-pack="${p.id}"><div><div class="nm">${escapeHTML(p.title)}</div><div class="sub">${p.drills.length} drills · ${escapeHTML(p.blurb)}</div></div>
       <div class="acts">${have === p.drills.length ? `<button class="go" data-act="play">▶ Practice</button>` : `<button class="go" data-act="add">+ Add ${have ? "the missing drills" : "pack"}</button>`}</div></div>`;
@@ -2201,6 +2201,22 @@ function renderDrillsTab() {
   const others = Object.keys(DB.runs).filter((k) => !k.startsWith("custom|"));
   $("#reportList").innerHTML = others.length ? others.map((k) => `<div class="drow" data-key="${escapeHTML(k)}"><div><div class="nm">${escapeHTML(DB.runs[k].label)} ${medals(k)}</div><div class="sub">${DB.runs[k].runs.length} run${DB.runs[k].runs.length > 1 ? "s" : ""} kept · ${last(k)}</div></div>
       <div class="acts"><button data-act="copy">📋 Copy report</button><button data-act="save">⬇ Report</button></div></div>`).join("") : `<p class="muted small">Finish a run of any drill and its report appears here.</p>`;
+}
+// Drill packs live in packs/ as drill-import JSON files, listed in packs/index.json (a static server can't list a folder)
+let PACKS = [];
+async function loadPacks() {
+  try {
+    const get = async (f) => { const r = await fetch(`packs/${f}`); if (!r.ok) throw new Error(`packs/${f}: ${r.status}`); return r.json(); };
+    const list = await Promise.all((await get("index.json")).map(get));
+    PACKS = list.filter((p) => {
+      const ok = p && p.id && p.title && Array.isArray(p.drills) && !DrillIO.parseImport(JSON.stringify(p)).errors.length;
+      if (!ok) console.warn("Skipping a drill pack that doesn't import cleanly:", p && p.id);
+      return ok;
+    });
+  } catch (e) {
+    PACKS = []; PACKS.error = location.protocol === "file:" ? "Drill packs load only when the app is served (python3 -m http.server), not opened as a file." : `Couldn't load the drill packs (${e.message}).`;
+  }
+  renderDrillsTab();
 }
 const escapeHTML = (t) => String(t).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 
@@ -2337,7 +2353,7 @@ $("#customList").onclick = (e) => {
 };
 $("#packList").onclick = (e) => {
   const b = e.target.closest("button"), row = e.target.closest(".drow");
-  const p = b && row && Rhythm.PACKS.find((x) => x.id === row.dataset.pack);
+  const p = b && row && PACKS.find((x) => x.id === row.dataset.pack);
   if (!p) return;
   if (b.dataset.act === "add") importDrills(JSON.stringify({ drills: p.drills.filter((d) => !DB.custom.some((c) => c.title === d.title)) }));
   if (b.dataset.act === "play") practiceDrill(DrillIO.toExercise(DB.custom.find((c) => c.title === p.drills[0].title)).id);
@@ -2359,6 +2375,7 @@ $("#cfgStrHi").onchange = (e) => changeConfig({ strings: [$("#cfgStrLo").value, 
 applyConfig();
 if (exById(DB.selected).path) selectEx(DB.selected); // a path skill brings its own tempo
 else renderAll();
+loadPacks();
 </script>
 </body>
 </html>

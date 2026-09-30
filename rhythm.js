@@ -200,53 +200,7 @@
     return { svg: `<svg class="rhythmChart" viewBox="0 0 ${W} ${rows * RH}" aria-label="Written rhythm${o.results ? " and what you played" : ""}">${h}</svg>`, head };
   }
 
-  // ---------- Drill packs ----------
-  // The Two Grenadiers (Schumann, Suzuki Book 3), bars 10–21, in 1st position.
-  const FINGER = { A4: ["A", 0], Bb4: ["A", 1], C5: ["A", 2], "C#5": ["A", 2], D5: ["A", 3], E5: ["E", 0], E4: ["D", 1], F4: ["D", 2], G4: ["D", 3] };
-  const note = ([n, beats]) => { const [string, finger] = FINGER[n]; return finger ? { note: n, string, finger, position: 1, beats } : { note: n, string, finger, beats }; };
-  const BARS = {
-    10: [["A4", 1], ["A4", 2], ["A4", 1]],
-    11: [["Bb4", 1.5], ["Bb4", 0.5], ["Bb4", 0.5], ["Bb4", 0.5], ["C5", 0.5], ["G4", 0.5]],
-    12: [["A4", 3], ["A4", 1]],
-    13: [["G4", 1.5], ["G4", 0.5], ["A4", 1.5], ["E4", 0.5]],
-    14: [["F4", 1], ["F4", 2], ["F4", 1]],
-    15: [["G4", 1], ["G4", 0.5], ["G4", 0.5], ["C5", 1.5], ["C5", 0.5]],
-    16: [["A4", 1], ["A4", 1], ["D5", 1.5], ["D5", 0.5]],
-    17: [["D5", 1], ["D5", 0.5], ["D5", 0.5], ["D5", 1.5], ["D5", 0.5]],
-    18: [["C#5", 1], ["E5", 2], ["A4", 1]],
-    19: [["A4", 1.5], ["A4", 0.5], ["A4", 0.5], ["A4", 0.5], ["A4", 0.5], ["D5", 0.5]],
-    20: [["C#5", 1], ["E5", 2], ["A4", 1]],
-    21: [["A4", 1], ["A4", 0.5], ["A4", 0.5], ["A4", 1], ["D5", 1]],
-  };
-  const bars = (from, to) => { const out = []; for (let b = from; b <= to; b++) out.push(...BARS[b].map(note)); return out; };
-  const HOOK = "Hooked bowing: the dotted note and the 8th share one bow, with a small stop before the 8th. The stop is also how the app hears a repeated note.";
-  const drill = (title, goal, tips, notes, extra = {}) => ({ format: "fingerboard-coach/drill@1", title: `Grenadiers ${title}`, goal, tips, key: "D minor", drone: "D", bpm: 60, notes, ...extra });
-  const PACKS = [{
-    id: "grenadiers-10-21", title: "The Two Grenadiers · bars 10–21",
-    blurb: "Dotted quarter + 8th (bars 11, 13, 15, 16, 17, 19) and holding half notes, from open-string rhythm to the full passage.",
-    drills: [
-      drill("1 · ♩. ♪ on open A", "Make the 8th after a dotted quarter short and late: 3 : 1, not a triplet.",
-        `Count out loud: “1 (2) & 3 (4) &”. The dotted quarter lasts through the click on 2; the 8th goes on the “&” and leads into the next beat. ${HOOK}`,
-        [["A4", 1.5], ["A4", 0.5], ["A4", 1.5], ["A4", 0.5]].map(note), { repeat: 3 }),
-      drill("2 · half notes on open A", "Hold half and dotted-half notes for their full length, as long as the quarters around them need.",
-        "The rhythm of bars 10 and 12. Count every beat inside the long note (“1, 2-3, 4”) and change bow on the click, not before. Use a slower bow on the long note so you don't run out.",
-        [["A4", 1], ["A4", 2], ["A4", 1], ["A4", 3], ["A4", 1]].map(note), { repeat: 2 }),
-      drill("3 · bars 10–12", "Bar 11: B♭ dotted quarter + 8th, then even 8ths. Hold the half notes around it.",
-        "Bar 10: the half-note A lasts through beats 2 and 3. Bar 11: the 8th after the dotted B♭ comes on the “&” of 2, then four even 8ths. Land on the dotted-half A in bar 12 and hold it to beat 4.", bars(10, 12)),
-      drill("4 · bars 12–14", "Bar 13: two dotted pairs, G. G and A. E.",
-        `Hold the dotted-half A for three full beats. In bar 13 keep each 8th short and late, on the “&”. Then hold the F half note in bar 14 through beat 3. ${HOOK}`, bars(12, 14)),
-      drill("5 · bars 14–16", "Bar 15: two even 8ths, then C dotted quarter + 8th.",
-        `The F half note in bar 14 lasts through beat 3. Bar 15: G quarter, two even 8ths, then the C dotted quarter hooked to the C 8th. Bar 16 has the same dotted pair on D. ${HOOK}`, bars(14, 16)),
-      drill("6 · bars 16–18", "Bar 17 is all D: keep the quarter, 8ths and dotted pair in proportion.",
-        "Give every D its own start (a new bow or a small stop) so each one speaks. Don't let the dotted quarter shrink toward the 8ths. Then hold the E half note in bar 18 through beat 3.", bars(16, 18)),
-      drill("7 · bars 18–20", "Bar 19: A dotted quarter + 8th, then four even 8ths, between two held half notes.",
-        "Più mosso in the piece, but get the rhythm right at this tempo first. Hold both E half notes for two full beats. Bar 19: the 8th after the dotted A is on the “&” of 2, then four even 8ths.", bars(18, 20)),
-      drill("8 · bars 10–21", "The whole passage at one steady tempo.",
-        "Once this passes at your tempo, try bars 19–21 a little faster (Più mosso) in the piece, keeping the same proportions.", bars(10, 21)),
-    ],
-  }];
-
-  const api = { score, summarize, tips, report, lanes, align, valueName, fmtBeats, PACKS, LONG };
+  const api = { score, summarize, tips, report, lanes, align, valueName, fmtBeats, LONG };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else root.Rhythm = api;
 })(this);

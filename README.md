@@ -47,7 +47,15 @@ A drill whose notes have lengths (`beats`) is a rhythm drill. It's for practisin
 - The results show the written rhythm against what you played, and how long each kind of note lasted (8th, quarter, half…). The coach names the problem: long notes cut short (moving on early, or the sound fading while the next note still waits), long notes shrinking next to short ones, dotted rhythms played too even (the long:short ratio, 3 : 1 exact, about 2 : 1 for a triplet feel), and repeated notes that rush.
 - **Clicks fade out**: with the ladder on, a rhythm drill starts with clicks on 8ths. After 3 passes in a row the clicks drop to beats only, so you count the 8ths yourself; after 3 more, the tempo goes up 6%. 2 misses in a row go back a step.
 
-**Drill packs** (My drills tab) add ready-made rhythm drills. *The Two Grenadiers · bars 10–21* works up from the dotted quarter + 8th and half notes on the open A string to bars 10–12, 12–14, 14–16, 16–18, 18–20 and the whole passage.
+**Drill packs** (My drills tab) add ready-made drills. *The Two Grenadiers · bars 10–21* works up from the dotted quarter + 8th and half notes on the open A string to bars 10–12, 12–14, 14–16, 16–18, 18–20 and the whole passage.
+
+Packs are JSON files in `packs/`. A pack is a drill import file (see the format on the My drills tab) with an `id`, `title` and `blurb` added:
+
+```json
+{ "format": "fingerboard-coach/drill@1", "id": "my-piece", "title": "My piece · bars 1–8", "blurb": "What it works on.", "drills": [ … ] }
+```
+
+To add one, save it as `packs/<id>.json` and add the file name to `packs/index.json`. `node test/rhythm.test.js` checks that every pack is listed and imports cleanly. The same file can also be pasted into Import.
 
 ## Hands-free start
 

@@ -8,9 +8,20 @@ let seed = 11;
 const rand = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
 
 // ---------- Format ----------
-const pack = R.PACKS[0];
-const imp = D.parseImport(JSON.stringify({ drills: pack.drills }));
-check("pack imports cleanly", imp.errors.length === 0 && imp.warnings.length === 0 && imp.drills.length === pack.drills.length, { e: imp.errors, w: imp.warnings });
+// Every pack in packs/ is listed in packs/index.json and imports cleanly, as the app's Import box would take it
+const fs = require("fs"), path = require("path");
+const PACK_DIR = path.join(__dirname, "..", "packs");
+const listed = JSON.parse(fs.readFileSync(path.join(PACK_DIR, "index.json"), "utf8"));
+const onDisk = fs.readdirSync(PACK_DIR).filter((f) => f.endsWith(".json") && f !== "index.json");
+check("every pack file is listed in packs/index.json", onDisk.sort().join() === [...listed].sort().join(), { listed, onDisk });
+const packs = listed.map((f) => JSON.parse(fs.readFileSync(path.join(PACK_DIR, f), "utf8")));
+check("pack ids unique", new Set(packs.map((p) => p.id)).size === packs.length);
+for (const p of packs) {
+  const r = D.parseImport(JSON.stringify(p));
+  check(`pack ${p.id} imports cleanly`, p.title && p.blurb && r.errors.length === 0 && r.warnings.length === 0 && r.drills.length === p.drills.length, { e: r.errors, w: r.warnings });
+}
+const pack = packs.find((p) => p.id === "grenadiers-10-21");
+const imp = D.parseImport(JSON.stringify(pack));
 const exs = imp.drills.map(D.toExercise);
 for (const ex of exs) {
   const bars = ex.rhythm.total / 4;
@@ -46,7 +57,7 @@ function perform(events, total) {
     const b = (t - T0) / BEAT, e = events.find((x) => b >= x.start && b < x.start + x.sound);
     if (!e) { frames.push({ t, m: null, rms: 0.004 }); continue; }
     const age = (b - e.start) * BEAT, left = (e.start + e.sound - b) * BEAT;
-    const rms = left < 40 ? 0.03 : age < 30 ? 0.05 + (age / 30) * 0.1 : 0.15;
+    const rms = e.abrupt ? 0.15 : left < 40 ? 0.03 : age < 30 ? 0.05 + (age / 30) * 0.1 : 0.15;
     frames.push({ t, m: rand() < 0.02 ? null : e.midi + (e.cents || 0) / 100 + (rand() - 0.5) * 0.04, rms });
   }
   return frames;
@@ -102,6 +113,11 @@ const k = b16.notes.findIndex((x, i) => i > 0 && x.midi === b16.notes[i - 1].mid
 slurEv[k - 1].sound += slurEv[k].sound; slurEv.splice(k, 1);
 const slur = run(b16, slurEv);
 check("merged repeat: exactly one note missed", slur.notes.filter((x) => x.missed).length === 1 && slur.notes.filter((x) => !x.ok).length <= 2, slur.notes.map((x) => [x.item.label, x.beats, x.missed]));
+
+// A short stop between repeated notes (hooked bowing): the sound cuts off, ~40 ms where no pitch is heard at all
+const stopEv = exact(b16, (x) => ({ sound: x.beats - 0.04, abrupt: true }));
+const stop = run(b16, stopEv);
+check("40 ms stops between repeats are heard as new notes", stop.notes.every((x) => !x.missed), stop.notes.map((x) => [x.item.label, x.beats, x.missed]));
 
 // A wrong note on time is a wrong note, not a missed one, and doesn't throw the rest off
 const wrongEv = exact(b10, (x, i) => (i === 4 ? { midi: x.midi - 1 } : {}));

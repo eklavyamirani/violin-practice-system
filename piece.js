@@ -14,15 +14,18 @@
   function segment(frames, opts = {}) {
     const minMs = opts.minNoteMs ?? 90, maxGap = opts.maxGapFrames ?? 3;
     const groups = [];
-    let cur = null, gap = 0;
-    const close = () => { if (cur) groups.push(cur); cur = null; };
+    let cur = null, gap = 0, quiet = [];
+    const close = () => { if (cur) groups.push(cur); cur = null; quiet = []; };
     for (let i = 0; i < frames.length; i++) {
       const f = frames[i];
-      if (f.m === null) { if (cur && ++gap > maxGap) close(); continue; }
+      // A few unpitched frames don't end a note. If the same pitch comes back, keep them in: a short stop in the
+      // bow between repeated notes is silent, and its quiet frames are the dip that splits them below.
+      if (f.m === null) { if (cur && ++gap > maxGap) close(); else if (cur) quiet.push(f); continue; }
       gap = 0;
       const n = Math.round(f.m);
       if (!cur) { cur = { n, fr: [f] }; continue; }
-      if (n === cur.n) { cur.fr.push(f); continue; }
+      if (n === cur.n) { cur.fr.push(...quiet, f); quiet = []; continue; }
+      quiet = [];
       // A new note once the new pitch holds for 3 of the next 4 voiced frames; shorter blips are slides or noise
       const next = frames.slice(i, i + 6).filter((x) => x.m !== null).slice(0, 4);
       if (next.length >= 3 && next.filter((x) => Math.round(x.m) === n).length >= 3) { close(); cur = { n, fr: [f] }; }
