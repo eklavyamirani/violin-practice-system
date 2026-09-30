@@ -99,6 +99,7 @@ main { max-width: 1280px; margin: 0 auto; padding: 1rem; }
 .toggle b { font-weight: 600; font-size: .9rem; display: block; }
 .toggle small { color: var(--muted); font-size: .78rem; }
 .cfgrow { display: flex; gap: .5rem; align-items: center; margin-bottom: .7rem; }
+.cfgstrs { margin: -.4rem 0 .7rem; font-size: .8rem; }
 .cfgsub { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: .3rem; }
 .cfgrow select { flex: 1; min-width: 0; font: inherit; font-size: .9rem; color: var(--ink); background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: .35rem .4rem; }
 .calib { display: flex; gap: .5rem; align-items: center; margin-top: .6rem; font-size: .85rem; }
@@ -306,6 +307,7 @@ main { max-width: 1280px; margin: 0 auto; padding: 1rem; }
           <h3>Scale</h3>
           <div class="cfgrow"><select id="cfgTonic" aria-label="Key"></select><select id="cfgType" aria-label="Scale type"></select></div>
           <div class="cfgrow"><span class="muted">Strings</span><select id="cfgStrLo" aria-label="Lowest string"></select><span class="muted">to</span><select id="cfgStrHi" aria-label="Highest string"></select></div>
+          <div class="cfgstrs muted" id="cfgStrs" aria-live="polite"></div>
           <div class="cfgsub"><span class="muted">Positions</span><small class="muted">pick 1–4</small></div>
           <div class="seg" id="cfgPos" role="group" aria-label="Positions"></div>
         </div>
@@ -1972,6 +1974,7 @@ function renderConfig() {
   $("#cfgTonic").innerHTML = T[c.type].keys.map((k) => `<option value="${k}" ${k === c.tonic ? "selected" : ""}>${Scales.prettyTonic(k)}</option>`).join("");
   const sopts = (sel) => Scales.STRING_ORDER.map((s) => `<option value="${s}" ${s === sel ? "selected" : ""}>${s}</option>`).join("");
   $("#cfgStrLo").innerHTML = sopts(c.strings[0]); $("#cfgStrHi").innerHTML = sopts(c.strings[c.strings.length - 1]);
+  $("#cfgStrs").textContent = c.strings.length > 1 ? `Uses ${c.strings.length} strings: ${c.strings.join(" · ")}` : `Uses the ${c.strings[0]} string only`;
   $("#cfgPos").innerHTML = [1, 2, 3, 4, 5, 6, 7].map((p) => `<button data-p="${p}" class="${c.positions.includes(p) ? "on" : ""}" aria-pressed="${c.positions.includes(p)}" title="${ord(p)} position">${ord(p)}</button>`).join("");
   document.querySelectorAll("#cfgPos button").forEach((b) => (b.onclick = () => togglePosition(+b.dataset.p)));
   const ex = exById(DB.selected);
