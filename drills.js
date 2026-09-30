@@ -9,6 +9,9 @@
   const NATURAL_PC = [0, 2, 4, 5, 7, 9, 11];
   const ACC_SIGN = { "-2": "𝄫", "-1": "♭", 0: "", 1: "♯", 2: "𝄪" };
   const LIMITS = { notes: 64, expanded: 160, repeat: 10, title: 80, goal: 200, tips: 600 };
+  // Note lengths in beats: from a 16th (0.25) up to 8 beats, in 16ths or triplets
+  const okBeats = (b) => typeof b === "number" && b >= 0.25 && b <= 8 && Math.abs(b * 12 - Math.round(b * 12)) < 0.02;
+  const snapBeats = (b) => Math.round(b * 12) / 12;
 
   // "C#6", "Bb4", "F##5", "E♭5", "Cx6" → { midi, label, oct, letter }
   function parseNote(text) {
@@ -54,10 +57,20 @@
     if (d.notesPerBeat !== undefined && (!Number.isInteger(d.notesPerBeat) || d.notesPerBeat < 1 || d.notesPerBeat > 4)) err(".notesPerBeat", "1, 2, 3 or 4.");
     if (!Array.isArray(d.notes) || d.notes.length < 2) { err(".notes", "required, a list of at least 2 notes."); return { errors, warnings }; }
     if (d.notes.length > LIMITS.notes) err(".notes", `at most ${LIMITS.notes} notes; use "repeat" to loop a shorter pattern.`);
+    // A drill with note lengths is a rhythm drill: played to the click, and the same pitch may repeat
+    const rhythmic = d.notes.some((n) => n && typeof n === "object" && (n.beats !== undefined || n.rest !== undefined));
+    if (d.beatsPerBar !== undefined && (!Number.isInteger(d.beatsPerBar) || d.beatsPerBar < 2 || d.beatsPerBar > 6)) err(".beatsPerBar", "a whole number from 2 to 6.");
+    if (rhythmic && d.upAndBack) err(".upAndBack", "can't be used when notes have beats: a rhythm doesn't run backwards. Write the notes out instead.");
+    if (rhythmic && d.notesPerBeat !== undefined) warn(".notesPerBeat", "ignored when notes have beats.");
 
     const items = d.notes.map((n, i) => {
       const p = `.notes[${i}]`;
       if (!n || typeof n !== "object") { err(p, "each note must be an object like {\"note\": \"C6\", \"string\": \"E\", \"finger\": 1, \"position\": 5}."); return null; }
+      if (n.rest !== undefined) {
+        if (!okBeats(n.rest)) { err(`${p}.rest`, `a length in beats from 0.25 to 8, in 16ths (0.25) or triplets (1/3); got ${JSON.stringify(n.rest)}.`); return null; }
+        return { rest: snapBeats(n.rest) };
+      }
+      if (rhythmic && !okBeats(n.beats)) { err(`${p}.beats`, n.beats === undefined ? "every note needs beats once any note has them, e.g. 1 = quarter, 0.5 = 8th, 1.5 = dotted quarter, 2 = half." : `a length in beats from 0.25 to 8, in 16ths (0.25) or triplets (1/3); got ${JSON.stringify(n.beats)}.`); return null; }
       const pn = parseNote(n.note);
       if (!pn) { err(`${p}.note`, `${JSON.stringify(n.note)} isn't a note name. Use scientific pitch with ASCII accidentals, e.g. "C#6", "Bb4".`); return null; }
       const s = typeof n.string === "string" ? n.string.toUpperCase() : n.string;
@@ -79,6 +92,7 @@
           warn(p, `${n.note} on the ${s} string is ${steps} letter-names above the open string, but finger ${finger} in position ${pos} is usually ${expected}. Check the finger or position.`);
       }
       const item = { midi: pn.midi, string: s, finger, pos, key: pn.midi + s, label: pn.label, oct: pn.oct };
+      if (rhythmic) item.beats = snapBeats(n.beats);
       if (n.guide !== undefined) {
         const g = parseNote(n.guide);
         if (!g) err(`${p}.guide`, `${JSON.stringify(n.guide)} isn't a note name.`);
@@ -89,11 +103,20 @@
       return item;
     });
     if (errors.length) return { errors, warnings };
+    if (items.filter((x) => !x.rest).length < 2) { err(".notes", "needs at least 2 notes besides the rests."); return { errors, warnings }; }
 
     let seq = items;
     if (d.upAndBack) seq = seq.concat(seq.slice(0, -1).reverse());
     const base = seq, once = base.length;
     for (let r = 1; r < repeat; r++) seq = seq.concat(base);
+    if (rhythmic) {
+      // Lay the notes out in time: each gets its start (in beats from the first downbeat); rests only move time on
+      let at = 0;
+      const timed = [];
+      for (const x of seq) { if (!x.rest) timed.push({ ...x, at }); at += x.rest || x.beats; }
+      if (timed.length > LIMITS.expanded) err("", `expands to ${timed.length} notes with repeat; keep it to ${LIMITS.expanded}.`);
+      return { errors, warnings, seq: timed, rhythm: { total: at, bar: d.beatsPerBar || 4 } };
+    }
     if (seq.length > LIMITS.expanded) err("", `expands to ${seq.length} notes with upAndBack/repeat; keep it to ${LIMITS.expanded}.`);
     for (let i = 1; i < seq.length; i++) {
       if (seq[i].midi !== seq[i - 1].midi) continue;
@@ -102,7 +125,7 @@
       err(".notes", `two notes in a row have the same pitch (${noteText(seq[i])}) ${at}. The app moves on when the pitch changes, so put a different note between them.`);
       break;
     }
-    return { errors, warnings, seq };
+    return { errors, warnings, seq, rhythm: null };
   }
 
   // Parse pasted text or a file: one drill, a list, or {"drills": [...]}
@@ -127,11 +150,14 @@
     for (const k of ["goal", "tips", "key"]) if (d[k]) out[k] = d[k].trim();
     if (d.drone) out.drone = String(d.drone);
     out.notes = d.notes.map((n) => {
+      if (n.rest !== undefined) return { rest: n.rest };
       const o = { note: n.note.trim(), string: n.string.toUpperCase(), finger: String(n.finger) === "4x" ? "4x" : +n.finger };
       if (String(n.finger) !== "0") o.position = n.position;
       if (n.guide) o.guide = n.guide.trim();
+      if (n.beats !== undefined) o.beats = n.beats;
       return o;
     });
+    if (d.beatsPerBar) out.beatsPerBar = d.beatsPerBar;
     if (d.upAndBack) out.upAndBack = true;
     if (d.repeat && d.repeat > 1) out.repeat = d.repeat;
     if (d.bpm) out.bpm = d.bpm;
@@ -141,13 +167,14 @@
 
   // A stored drill → the exercise shape the app practises
   function toExercise(d) {
-    const { seq } = validateDrill(d, "drill");
+    const { seq, rhythm } = validateDrill(d, "drill");
     const withFrom = seq.map((it, i) => (it.guide && i > 0 ? { ...it, from: seq[i - 1] } : it));
     const strings = ["G", "D", "A", "E"].filter((s) => seq.some((n) => n.string === s));
     const positions = [...new Set(seq.map((n) => n.pos).filter(Boolean))].sort((a, b) => a - b);
     const ordinal = (n) => n + (n === 1 ? "st" : n === 2 ? "nd" : n === 3 ? "rd" : "th");
-    return { id: "c-" + slug(d.title), custom: true, def: d, group: "My drills", name: d.title, notes: withFrom, key: d.key, drone: d.drone, goal: d.goal,
-      frame: `${seq.length} notes · ${strings.join(" & ")} string${strings.length > 1 ? "s" : ""}${positions.length ? ` · ${positions.map(ordinal).join(" & ")} position` : ""}`,
+    const bars = rhythm && Math.ceil(rhythm.total / rhythm.bar - 1e-6);
+    return { id: "c-" + slug(d.title), custom: true, def: d, group: "My drills", name: d.title, notes: withFrom, key: d.key, drone: d.drone, goal: d.goal, rhythm,
+      frame: `${seq.length} notes${rhythm ? ` · ${bars} bar${bars > 1 ? "s" : ""}` : ""} · ${strings.join(" & ")} string${strings.length > 1 ? "s" : ""}${positions.length ? ` · ${positions.map(ordinal).join(" & ")} position` : ""}`,
       tip: [d.goal ? `Goal: ${d.goal}` : "", d.tips || ""].filter(Boolean).join(" ") || "Imported drill." };
   }
 
@@ -182,6 +209,17 @@ A drill is a JSON object. Paste it into the **My drills** tab (Import), or save 
 - repeat (optional, 1–${LIMITS.repeat}, default 1): play the whole sequence this many times.
 - bpm (optional, 30–200): starting tempo for Tempo mode (metronome). After that the tempo ladder takes over.
 - notesPerBeat (optional, 1–4, default 1): how many notes fit in each click in Tempo mode.
+- beatsPerBar (optional, 2–6, default 4): for rhythm drills (below), where the bar lines and the accented click go.
+
+## Rhythm drills
+Give every note a length and the drill becomes a rhythm drill, for practising the rhythm of a passage from a piece:
+- beats (on every note): its written length in beats. 0.25 = 16th, 0.5 = 8th, 0.75 = dotted 8th, 1 = quarter, 1.5 = dotted quarter, 2 = half, 3 = dotted half, 4 = whole; triplet 8ths are 1/3 (0.333 is fine).
+- Rests are entries of their own in "notes": {"rest": 0.5}. Write tied notes as one note with the combined length.
+- The drill starts on the first downbeat after a one-bar count-in. For a pickup, start with a rest.
+- The same pitch may repeat (repeated notes, hooked bowings). The app hears a repeat as a dip in loudness, so each repeated note needs its own bow or a small stop in the bow.
+- It is always played with the metronome, clicking on 8ths at first and then only on beats. The player can listen to it first.
+- Each note is scored on pitch, on when it starts (against the click) and, for notes of 1½ beats or more, on how long it sounds.
+- upAndBack isn't allowed; repeat is.
 
 ## Rules
 - Two notes in a row must not have the same pitch, because the app moves on when the pitch changes. This also applies where a repeat loops back to the start and where upAndBack turns around.
@@ -197,6 +235,19 @@ A drill is a JSON object. Paste it into the **My drills** tab (Import), or save 
 - Add guide notes to shifts down onto a higher finger.
 - Once the isolated move is reliable, put it back into a longer scale passage.
 - For speed work, set bpm about 20% below the tempo where the player's notes stay clean. The tempo ladder then goes up 6% after 3 passed runs in a row, and down 8% after 2 misses in a row.
+
+Rhythm example (a dotted quarter and an 8th, then a half note):
+{
+  "format": "${FORMAT}",
+  "title": "Open A: dotted quarter, 8th, half",
+  "bpm": 60,
+  "notes": [
+    { "note": "A4", "string": "A", "finger": 0, "beats": 1.5 },
+    { "note": "A4", "string": "A", "finger": 0, "beats": 0.5 },
+    { "note": "D5", "string": "A", "finger": 3, "position": 1, "beats": 2 }
+  ],
+  "repeat": 2
+}
 
 ## Example
 {
@@ -231,6 +282,8 @@ A drill is a JSON object. Paste it into the **My drills** tab (Import), or save 
     - wrongNoteFirst: a different pitch the player played before finding the note, or null.
     - shift: "up", "down" or null.
     - timingMs, onTime and missed: only in tempo runs. timingMs is when the note started compared with the click as heard: + late, − early. missed = the note wasn't heard in its beat window, so cents and timingMs are null.
+    - beats, heldBeats, lastedBeats and held: only in rhythm runs. beats = written length; heldBeats = how long the note sounded; lastedBeats = from its start to the next note's start (null before a rest or at the end); held = false when a note of 1½ beats or more stopped sounding too soon.
+  - rhythm: only in rhythm runs. clicksPerBeat (2 = 8ths, 1 = beats), meanOnsetMs (+ dragging, − rushing), dotted (ratio: median long:short of dotted pairs, 3 = exact; under ~2.5 sounds like a triplet), longNotes (for each length of 1½ beats or more: heldBeats and lastedBeats on average), values (for each written length: the median it actually lasted), evenRuns (runs of equal short notes: how long they lasted and how uneven, in % of their length).
   - coachNotes: the app's own feedback for that run.
   - path: only for Path skills. nodeId, direction ("asc_desc" = up first, "desc_asc" = from the top), counted (false for Lock-in runs), level ("learning" or "mastery"), passed, firstTryOfSession, and metrics: medianAbsCents, meanSignedCents, ascCents and descCents (average signed cents on notes reached going up / coming down), intervalEvennessCents (SD of whole-step sizes), octaveConsistencyCents (largest gap between octaves of the same note), ioiCV (rhythm evenness, Tempo runs only).
 - noteTrends: for each note in the drill, collected across all practice: avgCents over the last 20 landings, inTuneRate (share within ±15¢), landings and wrongNotes.

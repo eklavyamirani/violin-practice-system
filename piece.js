@@ -14,15 +14,18 @@
   function segment(frames, opts = {}) {
     const minMs = opts.minNoteMs ?? 90, maxGap = opts.maxGapFrames ?? 3;
     const groups = [];
-    let cur = null, gap = 0;
-    const close = () => { if (cur) groups.push(cur); cur = null; };
+    let cur = null, gap = 0, quiet = [];
+    const close = () => { if (cur) groups.push(cur); cur = null; quiet = []; };
     for (let i = 0; i < frames.length; i++) {
       const f = frames[i];
-      if (f.m === null) { if (cur && ++gap > maxGap) close(); continue; }
+      // A few unpitched frames don't end a note. If the same pitch comes back, keep them in: a short stop in the
+      // bow between repeated notes is silent, and its quiet frames are the dip that splits them below.
+      if (f.m === null) { if (cur && ++gap > maxGap) close(); else if (cur) quiet.push(f); continue; }
       gap = 0;
       const n = Math.round(f.m);
       if (!cur) { cur = { n, fr: [f] }; continue; }
-      if (n === cur.n) { cur.fr.push(f); continue; }
+      if (n === cur.n) { cur.fr.push(...quiet, f); quiet = []; continue; }
+      quiet = [];
       // A new note once the new pitch holds for 3 of the next 4 voiced frames; shorter blips are slides or noise
       const next = frames.slice(i, i + 6).filter((x) => x.m !== null).slice(0, 4);
       if (next.length >= 3 && next.filter((x) => Math.round(x.m) === n).length >= 3) { close(); cur = { n, fr: [f] }; }
@@ -47,7 +50,10 @@
       while (lo + 1 < fr.length && fr[lo + 1].rms <= fr[lo].rms) lo++;
       const rise = fr.findIndex((f, k) => k > lo && f.t - fr[lo].t < 200 && f.rms >= peak * 0.8);
       if (rise < 0) continue;
-      const a = { n: g.n, fr: fr.slice(0, lo) }, b = { n: g.n, fr: fr.slice(lo) };
+      // The old note ends where it dipped; the new one starts where the attack begins, at the end of the quiet
+      // stretch rather than its quietest point (with a stop in the bow, that would be the length of the stop too early)
+      const back = fr.findIndex((f, k) => k > lo && f.rms > peak * 0.45) - 1;
+      const a = { n: g.n, fr: fr.slice(0, i) }, b = { n: g.n, fr: fr.slice(back) };
       if (a.fr.length && b.fr.length && a.fr[a.fr.length - 1].t - a.fr[0].t >= minMs && b.fr[b.fr.length - 1].t - b.fr[0].t >= minMs)
         return [a, ...splitOnDips(b, minMs)];
     }
