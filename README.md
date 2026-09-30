@@ -2,6 +2,9 @@
 
 A practice app that listens through your microphone while you play scales in the positions and strings you're learning, or while you play a whole piece. It tells you, note by note, whether you played it right.
 
+![IMG_7049](https://github.com/user-attachments/assets/8f1286b7-dfb3-45f0-b664-905e2857804b)
+
+
 ## Path
 
 **Path** (the default view) is a skill graph that takes a first-year player from one-octave scales in 1st position to two-octave scales through 3rd and 5th position. There are 77 skills in 9 stages:
