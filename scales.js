@@ -85,6 +85,8 @@
     return out;
   }
 
+  const inKey = (sp, midi) => scaleMidis(sp, midi, midi).length > 0;
+
   // Find the longest tonic-to-tonic run (up to 3 octaves) that climbs through the positions in order,
   // shifting once between each neighbouring pair. Open strings count as 1st position.
   // opts.octaves asks for exactly that many octaves (lowest tonic first) and never falls back to a partial span.
@@ -214,11 +216,18 @@
     const drills = [];
     for (const p of positions) {
       const group = `${ordinal(p)} position`;
-      const u = strings.map((s) => fingers4(s, p, spUp)), d = strings.map((s) => fingers4(s, p, spDown));
+      // In 1st position the open strings belong to the frame too (when the key has them)
+      const one = (s, sp) => (p === 1 && inKey(sp, STRINGS[s].midi) ? [openString(s, sp)] : []).concat(fingers4(s, p, sp));
+      const u = strings.map((s) => one(s, spUp)), d = strings.map((s) => one(s, spDown));
       strings.forEach((s, i) => drills.push({ id: `p${p}-${s}`, group, name: `${s} string`, notes: upDown(u[i], d[i]), frame: framePattern(u[i]), tip: frameTip(u[i]) }));
-      if (strings.length > 1)
-        drills.push({ id: `p${p}-${strings.join("")}`, group, name: `${strings.join(" + ")} strings`, notes: upDown(u.flat(), d.flat()), frame: u.map(framePattern).join(" | "),
-          tip: `Keep the hand still when you cross from ${strings[0]} to ${strings[strings.length - 1]}. Only the finger pattern changes.` });
+      if (strings.length > 1) {
+        // Crossing in 1st position: the next open string replaces the 4th finger, so the drill runs the whole range once
+        const cross = (xs) => xs.map((x, i) => (i + 1 < xs.length && xs[i + 1][0].finger === "0" ? x.slice(0, -1) : x));
+        const cu = cross(u), cd = cross(d), lo = cu[0][0], hi = cu[cu.length - 1][cu[cu.length - 1].length - 1];
+        drills.push({ id: `p${p}-${strings.join("")}`, group, name: `${strings.join(" + ")} strings`, notes: upDown(cu.flat(), cd.flat()), frame: cu.map(framePattern).join(" | "),
+          tip: p === 1 ? `The whole range, ${lo.label}${lo.oct} to ${hi.label}${hi.oct}. Open strings take the place of the 4th finger, and the hand stays still while you cross.`
+            : `Keep the hand still when you cross from ${strings[0]} to ${strings[strings.length - 1]}. Only the finger pattern changes.` });
+      }
     }
     // A one-position run is only worth adding when it's a real tonic-to-tonic scale, not the string-crossing drill again
     const found = findRun(cfg.tonic, type, strings, positions);
@@ -236,7 +245,8 @@
     }
     const pool = new Map();
     for (const sp of [spUp, spDown]) for (const p of positions) for (const s of strings) for (const it of fingers4(s, p, sp)) pool.set(it.key + it.finger + it.pos, it);
-    drills.push({ id: "hunt", group: "Put it together", name: "Note Hunt (adaptive)", hunt: true, pool: [...pool.values()], frame: "12 random notes",
+    if (positions[0] === 1) for (const s of strings) if (inKey(spUp, STRINGS[s].midi)) { const o = openString(s, spUp); pool.set(o.key + o.finger + o.pos, o); }
+    drills.push({ id: "hunt", group: "Put it together", name: "Note Hunt (adaptive)", hunt: true, pool: [...pool.values()].sort((a, b) => a.midi - b.midi), frame: "12 random notes",
       tip: `No pattern to lean on: remember the spot, then land it.${multiPos ? "" : ` It's all ${ordinal(positions[0])} position, but on any string.`} Your weakest notes come up most.` });
     if (!multiPos) return drills;
 

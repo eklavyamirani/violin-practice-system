@@ -1938,7 +1938,7 @@ function renderProgress() {
 
   const keys = [...new Map(ALL_FINGERINGS.map((it) => [it.key, it])).values()];
   $("#noteMap").innerHTML = keys.map((it) => {
-    const fx = ALL_FINGERINGS.filter((o) => o.key === it.key).map((o) => `${fingerLabel(o).replace(" (stretched)", "x")} in ${ord(o.pos)}`).join(" / ");
+    const fx = ALL_FINGERINGS.filter((o) => o.key === it.key).map((o) => (o.pos ? `${fingerLabel(o).replace(" (stretched)", "x")} in ${ord(o.pos)}` : "open")).join(" / ");
     const s = noteStats(it.key);
     let bar = `<div class="dbar"><div class="mid"></div>`;
     if (s) {

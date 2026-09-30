@@ -31,7 +31,7 @@ The thresholds are starting defaults, not published norms. They live in `LEVELS`
 
 Use the **Scale** card to pick a key (12 per scale type), a scale type (major, natural minor, harmonic minor, melodic minor), a range of strings (from one string up to all four, e.g. G to E) and one to four positions (1st–7th, e.g. just 1st, 1st & 3rd, just 3rd, or 1st, 3rd & 5th). It generates the drills for that setup:
 
-- each string on its own in each position, and all the chosen strings together;
+- each string on its own in each position, and all the chosen strings together. In 1st position these include the open strings when the key has them, and when crossing strings the next open string takes the place of the 4th finger, so the all-strings drill covers the whole range (D minor on D to E: D4 up to B♭5 and back). Note Hunt includes those open strings too;
 - a scale run, as many octaves (up to 3) from tonic to tonic as fit. With one position it stays there. With several it climbs through them in order, shifting once between each pair. When 1st position is chosen, the run uses open strings, so G major in 1st position on G to E is the usual two-octave G3–G5;
 - an adaptive Note Hunt;
 - with two or more positions, *Shifting down* drills: repeated down-shift pairs with guide notes for each neighbouring pair of positions (on each string, or on the strings the run shifts on when there are more than two), plus a run that starts at the top so you shift down first. Medals and history are kept separately for each setup. Where each note tends to land is tracked per physical spot on the string, so it's shared across scales.

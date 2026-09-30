@@ -23,10 +23,10 @@ eq("G from the top", seq(byId(g, "down-run")).slice(0, 7), ["G6:E4x@5", "F♯6:E
 eq("G shift drill comes down with a guide", byId(g, "shift").notes.filter((n) => n.shift).map((n) => n.shift + (n.guide ? ":" + n.guide.label : "")), ["up", "down:A"]);
 
 // Spelling: flats, sharps, harmonic minor's raised 7th
-eq("Bb major 1st pos A", S.buildDrills({ tonic: "Bb", type: "major", strings: ["A", "E"], positions: [1, 3] })[0].notes.slice(0, 4).map((n) => n.label + n.oct), ["B♭4", "C5", "D5", "E♭5"]);
+eq("Bb major 1st pos A", S.buildDrills({ tonic: "Bb", type: "major", strings: ["A", "E"], positions: [1, 3] })[0].notes.slice(0, 5).map((n) => n.label + n.oct), ["A4", "B♭4", "C5", "D5", "E♭5"]);
 const dh = S.buildDrills({ tonic: "D", type: "harmonic", strings: ["A", "E"], positions: [1, 3] });
-eq("D harmonic 1st E", byId(dh, "p1-E").notes.slice(0, 4).map((n) => n.label), ["F", "G", "A", "B♭"]);
-eq("D harmonic 1st A", byId(dh, "p1-A").frame, "1 ⟷ 2‿3 — 4"); // B♭–C♯ augmented 2nd
+eq("D harmonic 1st E", byId(dh, "p1-E").notes.slice(0, 5).map((n) => n.label), ["E", "F", "G", "A", "B♭"]);
+eq("D harmonic 1st A", byId(dh, "p1-A").frame, "0‿1 ⟷ 2‿3 — 4"); // B♭–C♯ augmented 2nd
 eq("C# harmonic minor has B#", S.spell("C#", S.SCALE_TYPES.harmonic).acc[6], 1); // B♯ in C♯ harmonic minor
 
 // Melodic minor: raised going up, natural coming down
@@ -39,6 +39,16 @@ eq("G 1st scale", byId(g1, "scale").name, "G3→G5 in 1st position");
 eq("G 1st scale up", seq(byId(g1, "scale")).slice(0, 9), ["G3:G0@null", "A3:G1@1", "B3:G2@1", "C4:G3@1", "D4:D0@null", "E4:D1@1", "F♯4:D2@1", "G4:D3@1", "A4:A0@null"]);
 eq("G 1st has no shifting", g1.filter((d) => d.group === "Shifting down" || (d.notes || []).some((n) => n.shift)).length, 0);
 eq("G 1st all-strings drill", byId(g1, "p1-GDAE").name, "G + D + A + E strings");
+// 1st position drills include the open strings; crossing, the next open string replaces the 4th finger, so it covers the whole range
+const d1 = S.buildDrills({ tonic: "D", type: "natural", strings: ["D", "A", "E"], positions: [1] });
+eq("D minor 1st D string", seq(byId(d1, "p1-D")).slice(0, 5), ["D4:D0@null", "E4:D1@1", "F4:D2@1", "G4:D3@1", "A4:D4@1"]);
+eq("D minor 1st D–E range", byId(d1, "p1-DAE").frame, "0 — 1‿2 — 3 | 0‿1 — 2 — 3 | 0‿1 — 2 — 3‿4");
+eq("D minor 1st D–E ends", [0, 12].map((i) => byId(d1, "p1-DAE").notes[i].label + byId(d1, "p1-DAE").notes[i].oct), ["D4", "B♭5"]);
+eq("D minor 1st hunt has open strings", byId(d1, "hunt").pool.filter((n) => n.finger === "0").map((n) => n.label + n.oct).sort(), ["A4", "D4", "E5"]);
+// An open string outside the key is left out, and the 4th finger stays
+const eb1 = S.buildDrills({ tonic: "Eb", type: "major", strings: ["D", "A"], positions: [1] });
+eq("Eb 1st D–A crossing", byId(eb1, "p1-DA").frame, "0‿1 — 2 — 3‿4 | 1 — 2 — 3‿4");
+eq("Eb 1st hunt skips open A", byId(eb1, "hunt").pool.filter((n) => n.finger === "0").map((n) => n.label), ["D"]);
 // One position, no tonic octave fits: no duplicate of the string-crossing drill
 eq("G 3rd A·E no scale", S.buildDrills({ tonic: "G", type: "major", strings: ["A", "E"], positions: [3] }).some((d) => d.id === "scale"), false);
 eq("D 3rd A·E scale", seq(byId(S.buildDrills({ tonic: "D", type: "major", strings: ["A", "E"], positions: [3] }), "scale")).slice(0, 8),
