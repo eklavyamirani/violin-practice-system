@@ -92,6 +92,7 @@ main { max-width: 1280px; margin: 0 auto; padding: 1rem; }
 .checks tr.ok td.v { color: var(--good); }
 
 .seg { display: flex; background: var(--panel-2); border-radius: 10px; padding: 3px; margin-bottom: .7rem; }
+.seg[hidden] { display: none; }
 .seg button { flex: 1; border: 0; background: none; padding: .35rem .3rem; border-radius: 8px; font-size: .84rem; color: var(--muted); }
 .seg button.on { background: var(--panel); color: var(--ink); font-weight: 600; box-shadow: var(--shadow); }
 .toggle { display: flex; align-items: flex-start; gap: .6rem; padding: .35rem 0; cursor: pointer; }
@@ -116,6 +117,15 @@ main { max-width: 1280px; margin: 0 auto; padding: 1rem; }
 .meter i { display: block; height: 100%; width: 0; background: var(--good); }
 
 .path { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 5px; align-items: center; min-height: 38px; }
+.rhythmChart { width: 100%; height: auto; display: block; }
+.path .rhythmChart { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 4px; }
+.lens { width: 100%; border-collapse: collapse; font-size: .86rem; margin-bottom: 1rem; }
+.lens td, .lens th { padding: .3rem .4rem; border-bottom: 1px solid var(--line); text-align: left; }
+.lens th { font-size: .74rem; color: var(--muted); font-weight: 600; }
+.lens td.v { font-variant-numeric: tabular-nums; }
+.lens .lbar { position: relative; height: 10px; background: var(--panel-2); border-radius: 5px; min-width: 90px; }
+.lens .lbar i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 5px; }
+.lens .lbar b { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--ink); }
 .chip { min-width: 42px; text-align: center; padding: .3rem .45rem; border-radius: 8px; background: var(--panel-2); font-weight: 600; font-size: .88rem; border: 2px solid transparent; transition: background .2s; }
 .chip sub { font-size: .65em; opacity: .6; }
 .chip.cur { border-color: var(--accent); background: var(--panel); animation: pulse 1.2s infinite; }
@@ -324,6 +334,10 @@ main { max-width: 1280px; margin: 0 auto; padding: 1rem; }
           <div class="tempo-row"><button class="tbtn" id="bpmDown" aria-label="Slower">−</button><div class="bpm"><b id="bpmVal">60</b> BPM</div><button class="tbtn" id="bpmUp" aria-label="Faster">+</button></div>
           <input type="range" id="bpmRange" min="30" max="200" step="1" aria-label="Tempo">
           <div class="seg" id="perSeg"><button data-v="1">1 note/beat</button><button data-v="2">2</button><button data-v="3">3</button><button data-v="4">4</button></div>
+          <div id="clickBox" hidden>
+            <div class="seg" id="clickSeg"><button data-v="2">Click on 8ths</button><button data-v="1">Click on beats</button></div>
+            <p class="muted small">Rhythm drills are always played with the click. With the ladder on, 3 passes in a row with clicks on 8ths take them down to beats; after that, 3 passes speed it up 6%. 2 misses in a row go back a step.</p>
+          </div>
           <label class="toggle" id="ladderBox"><input type="checkbox" id="optLadder"><span><b>Tempo ladder</b><small>Pass 3 runs in a row and the next one is 6% faster; miss 2 in a row and it's 8% slower. Speed only goes up once the notes are clean, and not on one lucky run.</small></span></label>
           <p class="muted small" id="pathTempoNote" hidden>The path sets the tempo for each skill: 6% faster after 3 clean runs in a row (both directions, one of them your first try of the session), 8% slower after 2 misses.</p>
           <div class="calib">Timing offset <b id="latVal">auto</b> <button id="tcalBtn">Calibrate timing</button></div>
@@ -349,6 +363,7 @@ main { max-width: 1280px; margin: 0 auto; padding: 1rem; }
         <div class="title" id="exTitle">—</div>
         <div class="beat" id="beatDot" hidden title="Metronome"></div>
         <div class="mic"><span id="micState">Mic off</span><div class="meter"><i id="meter"></i></div></div>
+        <button class="btn ghost" id="hearBtn" hidden title="Play the rhythm with the click, so you hear how it goes">🔊 Hear it</button>
         <button class="btn ghost" id="stopBtn" hidden>Stop</button>
         <button class="btn" id="startBtn">▶ Start</button>
       </div>
@@ -432,6 +447,7 @@ main { max-width: 1280px; margin: 0 auto; padding: 1rem; }
           </div>
           <div id="importMsg"></div>
         </div>
+        <div class="card"><h3>Drill packs</h3><p class="muted small">Ready-made rhythm drills for passages from pieces. Adding a pack puts its drills in My drills.</p><div id="packList"></div></div>
         <div class="card"><h3>My drills</h3><div id="customList"></div></div>
         <div class="card"><h3>Reports on other drills</h3><p class="muted small">Every drill you finish keeps its last 5 runs. Copy a report and paste it to Claude to talk through what's going wrong.</p><div id="reportList"></div></div>
       </div>
@@ -513,6 +529,7 @@ window.addEventListener("error", (e) => {
 <script src="curriculum.js"></script>
 <script src="drills.js"></script>
 <script src="piece.js"></script>
+<script src="rhythm.js"></script>
 <script>
 "use strict";
 const $ = (s) => document.querySelector(s);
@@ -530,11 +547,14 @@ const distMM = (s, m) => STRING_MM * (1 - Math.pow(2, -(m - OPEN[s]) / 12));
 
 const TIERS = [null, { name: "Bronze", tol: 25, icon: "🥉", mult: 1 }, { name: "Silver", tol: 15, icon: "🥈", mult: 2 }, { name: "Gold", tol: 10, icon: "🥇", mult: 3 }];
 const PASS = 0.85, CAPTURE = 60, STABLE_MS = 220, HOLD_MS = 600, DAILY_GOAL = 3;
+const HOLD_FRAC = [0, 0.8, 0.85, 0.9]; // rhythm drills: share of a long note's length it must sound for, per medal level
 const DEFAULT_CFG = { tonic: "G", type: "major", strings: ["A", "E"], positions: [3, 5] };
 
 let CFG, CFG_KEY, EXERCISES, ALL_FINGERINGS, RANGE;
 const C = Curriculum;
 const isPath = () => DB.settings.view === "path";
+// Rhythm drills are always played to the click
+const modeOf = (ex) => (ex && ex.rhythm ? "tempo" : DB.settings.mode);
 // The key in play: the selected Path skill's, or the Scale card's
 const curKey = () => { const ex = EXERCISES && exById(DB.selected); return ex && ex.path ? ex.keyCfg : CFG; };
 const keyName = () => `${Scales.prettyTonic(curKey().tonic)} ${Scales.SCALE_TYPES[curKey().type].name}`;
@@ -581,7 +601,7 @@ function applyRange() {
 // ---------- Storage ----------
 const STORE_KEY = "fingerboard-coach.v1";
 const defaults = () => ({ xp: 0, notes: {}, ex: {}, days: {}, sessions: [], selected: "p3-A", cfg: { ...DEFAULT_CFG }, custom: [], runs: {}, path: { states: {}, session: null },
-  settings: { view: "path", mode: "lock", tier: 1, drone: false, hear: false, hide: false, ears: false, chime: true, a4: 440, bpm: 60, per: 1, ladder: true, latencyMs: null, voiceMic: false, handsFree: true } });
+  settings: { view: "path", mode: "lock", tier: 1, drone: false, hear: false, hide: false, ears: false, chime: true, a4: 440, bpm: 60, per: 1, ladder: true, latencyMs: null, voiceMic: false, handsFree: true, clicks: 2 } });
 function loadDB() {
   const d = defaults();
   try {
@@ -750,28 +770,31 @@ function droneMidis() {
 // Clicks are scheduled on the audio clock a little ahead of time. The click is a short burst of filtered
 // noise: it has no pitch, so the detector can't mistake it for a note.
 let metro = null, noiseBuf = null;
-function startMetronome(bpm, beats, bar = 4) {
+// sub: clicks per beat (2 = on 8ths too, quieter)
+function startMetronome(bpm, beats, bar = 4, sub = 1) {
   stopMetronome();
   const beatS = 60 / bpm, startCtx = ctx.currentTime + 0.3;
-  metro = { beatS, startCtx, next: 0, beats, bar, timer: setInterval(metroTick, 25) };
+  metro = { beatS, startCtx, next: 0, beats, bar, sub, timer: setInterval(metroTick, 25) };
   metroTick();
   return performance.now() + (startCtx - ctx.currentTime) * 1000; // performance-clock time of the first click
 }
 function metroTick() {
-  while (metro && metro.next < metro.beats && metro.startCtx + metro.next * metro.beatS < ctx.currentTime + 0.15) {
-    click(metro.startCtx + metro.next * metro.beatS, metro.next % metro.bar === 0);
+  while (metro && metro.next < metro.beats * metro.sub && metro.startCtx + (metro.next * metro.beatS) / metro.sub < ctx.currentTime + 0.15) {
+    const k = metro.next;
+    click(metro.startCtx + (k * metro.beatS) / metro.sub, k % (metro.bar * metro.sub) === 0 ? 2 : k % metro.sub === 0 ? 1 : 0);
     metro.next++;
   }
 }
 function stopMetronome() { if (metro) { clearInterval(metro.timer); metro = null; } }
-function click(at, accent) {
+// level: 2 = downbeat, 1 = beat, 0 = the 8th between beats
+function click(at, level) {
   if (!noiseBuf) {
     noiseBuf = ctx.createBuffer(1, Math.round(ctx.sampleRate * 0.02), ctx.sampleRate);
     const d = noiseBuf.getChannelData(0);
     for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 3);
   }
   const src = ctx.createBufferSource(), bp = ctx.createBiquadFilter(), g = ctx.createGain();
-  src.buffer = noiseBuf; bp.type = "bandpass"; bp.frequency.value = accent ? 3200 : 2400; bp.Q.value = 1.2; g.gain.value = accent ? 0.9 : 0.55;
+  src.buffer = noiseBuf; bp.type = "bandpass"; bp.frequency.value = [1800, 2400, 3200][level]; bp.Q.value = 1.2; g.gain.value = [0.3, 0.55, 0.9][level];
   src.connect(bp).connect(g).connect(ctx.destination);
   if (SIM) g.connect(hp); // the simulator hears the click too, as a real mic would
   src.start(at);
@@ -846,6 +869,7 @@ function loop(t, gen) {
   if (tcal) { tcal.frames.push({ t, m, rms: r.rms }); return tcalStep(t); }
 
   if (calib) return calibStep(t);
+  if (run && run.rhythm) run.rhythm.frames.push({ t, m, rms: r.rms });
 
   const recent = frames.filter((x) => x.t > t - 90 && x.m !== null).map((x) => x.m);
   smooth = recent.length >= 2 ? median(recent) : m;
@@ -906,30 +930,39 @@ function buildHunt() {
 // seq: a Note Hunt order drawn in advance, so hands-free start knows its first note
 function startRun(seq) {
   const ex = exById(DB.selected);
-  const s = DB.settings;
-  if (s.mode === "tempo" && !ctx) { startAudio().then((ok) => ok && startRun(seq)); return; }
+  const s = DB.settings, mode = modeOf(ex);
+  if (mode === "tempo" && !ctx) { startAudio().then((ok) => ok && startRun(seq)); return; }
   if (piece) stopPiece();
+  stopHearing();
   const P = ex.path ? pathLevel(ex) : null; // path skills are judged against their level's windows, not the medal tiers
-  run = { ex, seq: seq || (ex.hunt ? buildHunt() : ex.notes), idx: 0, mode: s.mode, tier: P ? (P.level === "learning" ? 1 : 2) : s.tier, tol: P ? P.L.window : TIERS[s.tier].tol,
+  run = { ex, seq: seq || (ex.hunt ? buildHunt() : ex.notes), idx: 0, mode, tier: P ? (P.level === "learning" ? 1 : 2) : s.tier, tol: P ? P.L.window : TIERS[s.tier].tol,
     results: [], combo: 0, maxCombo: 0, xp: 0, t0: performance.now() };
-  if (s.mode === "tempo") {
+  if (ex.rhythm) {
+    // One bar of clicks counts in; the notes are scored together once the last one has had its full length
+    const beatMs = 60000 / s.bpm, bar = ex.rhythm.bar, clicks = s.clicks;
+    const first = startMetronome(s.bpm, bar + Math.ceil(ex.rhythm.total) + 1, bar, clicks);
+    run.tempo = { bpm: s.bpm, per: 1, beatMs, slot: beatMs, bar, t0: first + bar * beatMs, lat: latencyMs(), outLat: outLatencyMs(), tolMs: timingTol(beatMs / 2, run.tier), counting: true, onTime: 0 };
+    run.rhythm = { clicks, frames: [], total: ex.rhythm.total, bar, holdFrac: HOLD_FRAC[run.tier] };
+    $("#beatDot").hidden = false;
+  } else if (mode === "tempo") {
     const beatMs = 60000 / s.bpm, slot = beatMs / s.per, countIn = 4;
     const first = startMetronome(s.bpm, countIn + Math.ceil(run.seq.length / s.per) + 1);
     run.tempo = { bpm: s.bpm, per: s.per, beatMs, slot, t0: first + countIn * beatMs, lat: latencyMs(), outLat: outLatencyMs(), tolMs: P ? P.L.onsetMs : timingTol(slot, s.tier), evalIdx: 0, counting: true, onTime: 0 };
     $("#beatDot").hidden = false;
   } else { stopMetronome(); $("#beatDot").hidden = true; }
   $("#results").hidden = true;
-  $("#startBtn").textContent = "↻ Restart"; $("#stopBtn").hidden = false;
+  $("#startBtn").textContent = "↻ Restart"; $("#stopBtn").hidden = false; $("#hearBtn").hidden = true;
   buildPath(); buildBoard();
   newTarget(performance.now());
-  setMsg(ex.path && s.mode === "lock" ? "Lock-in: learn the notes. Only Flow and Tempo runs count toward the path." : s.mode === "lock" ? "Play the note and hold it in tune until the ring fills." : s.mode === "flow" ? "Flow: play through at your own pace. Each note is scored where it first lands."
+  setMsg(ex.rhythm ? `🎵 ${s.bpm} BPM, clicks on ${run.rhythm.clicks === 2 ? "8ths" : "beats"}. One bar counts you in; then play each note for its full length. You get the results at the end.`
+    : ex.path && mode === "lock" ? "Lock-in: learn the notes. Only Flow and Tempo runs count toward the path." : mode === "lock" ? "Play the note and hold it in tune until the ring fills." : mode === "flow" ? "Flow: play through at your own pace. Each note is scored where it first lands."
     : `⏱ ${s.bpm} BPM, ${s.per} note${s.per > 1 ? "s" : ""} per beat. Four clicks count you in, then play each note on its beat.`);
 }
 
 function stopRun() {
   run = null;
   stopMetronome(); $("#beatDot").hidden = true;
-  $("#startBtn").textContent = "▶ Start"; $("#stopBtn").hidden = true;
+  $("#startBtn").textContent = "▶ Start"; $("#stopBtn").hidden = true; $("#hearBtn").hidden = !exById(DB.selected).rhythm;
   $("#holdArc").style.strokeDashoffset = 414.7;
   buildPath(); buildBoard(); renderIdle();
   setMsg("Stopped. Press Start (or Space) to go again.");
@@ -1002,6 +1035,7 @@ function land(dev, t) {
 // Tempo mode: the target follows the metronome. Each note owns the half-slot either side of its beat,
 // and is scored once its window has passed, from the frames heard in it.
 function tempoStep(t) {
+  if (run.rhythm) return rhythmStep(t);
   const T = run.tempo, n = run.seq.length, beat = t - T.lat;
   const i = Math.floor((beat - T.t0) / T.slot + 0.5);
   if (i >= 0 && Math.min(i, n - 1) !== run.idx) { run.idx = Math.min(i, n - 1); newTarget(t); }
@@ -1044,6 +1078,33 @@ function scoreTempoNote(k) {
   updatePath(); renderStats(true);
 }
 
+// Rhythm drills: the target follows the written rhythm; everything is scored at the end, from the whole recording,
+// because repeated notes and how long each note sounded can only be told once it's over
+function rhythmStep(t) {
+  const T = run.tempo, R = run.rhythm, pos = (t - T.lat - T.t0) / T.beatMs;
+  let i = run.idx;
+  while (i + 1 < run.seq.length && run.seq[i + 1].at <= pos + 0.15) i++;
+  if (i !== run.idx) { run.idx = i; newTarget(t); }
+  if (pos >= R.total + 0.6) finishRhythm();
+}
+function finishRhythm() {
+  const T = run.tempo, R = run.rhythm;
+  const sc = Rhythm.score(run.seq, PieceIO.segment(R.frames, { minNoteMs: 70 }), { t0: T.t0, beatMs: T.beatMs, lat: T.lat, tol: run.tol, tolMs: T.tolMs, holdFrac: R.holdFrac, total: R.total });
+  R.summary = sc.summary;
+  run.results = sc.notes;
+  for (const x of sc.notes) {
+    if (x.onTime) T.onTime++;
+    if (x.ok) { run.combo++; run.maxCombo = Math.max(run.maxCombo, run.combo); run.xp += 10 * TIERS[run.tier].mult + Math.min(run.combo, 10); }
+    else { run.combo = 0; if (x.inTune || x.onTime) run.xp += 3; }
+    if (x.cents !== null || x.wrong !== null) {
+      const ns = (DB.notes[x.item.key] ||= { n: 0, recent: [], wrong: 0 });
+      if (x.cents !== null) { ns.n++; ns.recent.push(Math.round(x.cents)); if (ns.recent.length > 20) ns.recent.shift(); }
+      if (x.wrong !== null) ns.wrong++;
+    }
+  }
+  finishRun();
+}
+
 function advance(t) {
   if (run.mode === "lock" && DB.settings.chime) chime();
   run.idx++;
@@ -1062,7 +1123,22 @@ function finishRun() {
   rec.bestScore[r.tier] = Math.max(prevBestScore, score);
   let medal = false;
   if (!path && passed && r.tier > rec.best) { rec.best = r.tier; medal = true; r.xp += 100 * r.tier; }
-  if (r.tempo && !path) {
+  if (r.rhythm) {
+    // Rhythm ladder: take the 8th clicks away first, then speed up. 3 passes in a row move it on a step, 2 misses in a row back
+    const bpm = r.tempo.bpm, clicks = r.rhythm.clicks;
+    const lad = (rec.rhythm ||= { clicks, bpm, passes: 0, fails: 0 });
+    if (lad.clicks !== clicks || lad.bpm !== bpm) Object.assign(lad, { clicks, bpm, passes: 0, fails: 0 }); // it follows what was just played
+    lad.move = null;
+    if (passed) {
+      lad.fails = 0; lad.passes++; r.xp += Math.round(bpm / 4);
+      if (lad.passes >= 3) { lad.passes = 0; if (clicks === 2) { lad.clicks = 1; lad.move = "fewer"; } else { lad.bpm = Math.min(200, Math.max(bpm + 1, Math.round(bpm * 1.06))); lad.move = "faster"; } }
+    } else {
+      lad.passes = 0; lad.fails++;
+      if (lad.fails >= 2) { lad.fails = 0; if (clicks === 1) { lad.clicks = 2; lad.move = "more"; } else { lad.bpm = Math.max(30, Math.round(bpm * 0.92)); lad.move = "slower"; } }
+    }
+    r.ladder = { ...lad };
+    if (DB.settings.ladder) { DB.settings.bpm = lad.bpm; DB.settings.clicks = lad.clicks; }
+  } else if (r.tempo && !path) {
     // Tempo ladder: 6% up after 3 passes in a row at this tempo, 8% down after 2 misses in a row; one run alone never moves it
     const lad = ((rec.tempo ||= {})[r.tempo.per] ||= { best: 0, next: r.tempo.bpm });
     const bpm = r.tempo.bpm, streakOn = bpm >= (lad.at || 0);
@@ -1090,10 +1166,44 @@ function finishRun() {
   if (path && path.events.some((e) => e.type === "mastered")) applyConfig(); // newly unlocked skills join the note map
   save();
   run = null;
-  $("#startBtn").textContent = "▶ Start"; $("#stopBtn").hidden = true;
+  $("#startBtn").textContent = "▶ Start"; $("#stopBtn").hidden = true; $("#hearBtn").hidden = !ex.rhythm;
   $("#holdArc").style.strokeDashoffset = 414.7;
   showResults({ r, res, score, passed, medal, okN, avgAbs, path, levelUp: levelOf(DB.xp) > lvlBefore, newBest: score > prevBestScore && prevBestScore > 0 });
   renderAll();
+}
+
+// ---------- Hear it ----------
+// Plays a rhythm drill with the click, each note sounding for its full written length
+let hearing = null;
+async function hearRhythm() {
+  const ex = exById(DB.selected);
+  if (!ex.rhythm || run) return;
+  if (hearing) return stopHearing();
+  if (!(await startAudio())) return;
+  const s = DB.settings, beatS = 60 / s.bpm, bar = ex.rhythm.bar;
+  startMetronome(s.bpm, bar + Math.ceil(ex.rhythm.total), bar, s.clicks);
+  const start = metro.startCtx + bar * beatS;
+  const oscs = ex.notes.map((it) => sustain(midiFreq(it.midi), start + it.at * beatS, it.beats * beatS));
+  const endMs = (start + ex.rhythm.total * beatS - ctx.currentTime) * 1000 + 300;
+  hearing = { oscs, timer: setTimeout(stopHearing, endMs) };
+  suppressUntil = performance.now() + endMs; // don't let the app hear itself
+  $("#hearBtn").textContent = "■ Stop";
+  setMsg(`🔊 One bar of clicks, then the rhythm at ${s.bpm} BPM. Listen to how long the long notes last.`);
+}
+function sustain(freq, at, dur) {
+  const o = ctx.createOscillator(), g = ctx.createGain(), end = at + Math.max(0.08, dur - 0.06); // a gap, so repeated notes are heard as two
+  o.type = "triangle"; o.frequency.value = freq;
+  g.gain.setValueAtTime(0, at); g.gain.linearRampToValueAtTime(0.16, at + 0.02); g.gain.linearRampToValueAtTime(0.12, end - 0.03); g.gain.linearRampToValueAtTime(0, end);
+  o.connect(g).connect(ctx.destination); o.start(at); o.stop(end + 0.05);
+  return o;
+}
+function stopHearing() {
+  if (!hearing) return;
+  clearTimeout(hearing.timer);
+  hearing.oscs.forEach((o) => { try { o.stop(); } catch (e) {} });
+  hearing = null; suppressUntil = 0;
+  if (!run) stopMetronome();
+  $("#hearBtn").textContent = "🔊 Hear it";
 }
 
 // ---------- Hands-free start ----------
@@ -1107,7 +1217,7 @@ function hfCand(ex, label, go) {
 }
 // What playing a note would start right now: Again / Next on the results, else the selected drill
 function hfCands() {
-  if (!DB.settings.handsFree || run || calib || tcal || piece || !$("#tab-practice").classList.contains("active")) return null;
+  if (!DB.settings.handsFree || run || calib || tcal || piece || hearing || !$("#tab-practice").classList.contains("active")) return null;
   if (!$("#results").hidden) return hfResults;
   const ex = exById(DB.selected);
   if (!ex) return null;
@@ -1177,12 +1287,14 @@ function recordRun(r, res, tips, path) {
   const score = res.filter((x) => x.ok).length / res.length;
   entry.runs.unshift({
     date: new Date().toISOString(), mode: r.mode, tolerance: r.tol, score: Math.round(score * 1000) / 1000, passed: score >= PASS,
-    ...(r.tempo ? { bpm: r.tempo.bpm, notesPerBeat: r.tempo.per, timingToleranceMs: r.tempo.tolMs } : {}),
+    ...(r.tempo ? { bpm: r.tempo.bpm, ...(r.rhythm ? {} : { notesPerBeat: r.tempo.per }), timingToleranceMs: r.tempo.tolMs } : {}),
+    ...(r.rhythm ? { rhythm: Rhythm.report(r.rhythm.summary, r.rhythm.clicks), holdFraction: r.rhythm.holdFrac } : {}),
     ...(path ? { path: { nodeId: r.ex.nodeId, direction: r.ex.dir, counted: path.counted, level: path.level, passed: path.passed, firstTryOfSession: path.cold,
       metrics: path.counted ? Object.fromEntries(Object.entries(path.metrics).filter(([k]) => k !== "notes")) : null } } : {}),
     landings: res.map((x, i) => ({ note: DrillIO.noteText(x.item), string: x.item.string, finger: x.item.finger === "4x" ? "4x" : +x.item.finger, position: x.item.pos,
       cents: x.cents === null ? null : Math.round(x.cents * 10) / 10, inTune: x.inTune, wrongNoteFirst: x.wrong === null ? null : DrillIO.midiText(x.wrong), shift: shiftDir(r.seq[i - 1], x.item),
-      ...(r.tempo ? { timingMs: x.timing === null ? null : Math.round(x.timing), onTime: x.onTime, missed: x.missed } : {}) })),
+      ...(r.tempo ? { timingMs: x.timing === null ? null : Math.round(x.timing), onTime: x.onTime, missed: x.missed } : {}),
+      ...(r.rhythm ? { beats: Math.round(x.beats * 1000) / 1000, heldBeats: x.heldBeats === null ? null : Math.round(x.heldBeats * 100) / 100, lastedBeats: x.lastedBeats === null ? null : Math.round(x.lastedBeats * 100) / 100, held: x.held } : {}) })),
     coachNotes: tips.map((t) => t.replace(/<[^>]+>/g, "")),
   });
   entry.runs = entry.runs.slice(0, 5);
@@ -1264,6 +1376,33 @@ function buildTips(res, tol, seq, ex) {
     if (Math.abs(up - down) > 12 && tips.length < 4) tips.push(`Going up you averaged ${up > 0 ? "+" : ""}${up.toFixed(0)}¢; coming down ${down > 0 ? "+" : ""}${down.toFixed(0)}¢. Your fingers are drifting ${up > down ? "sharp going up" : "flat going up"}. Keep lower fingers down as you climb so they anchor the hand.`);
   }
   return tips;
+}
+
+function rhythmTips(r) {
+  const L = r.ladder, R = r.rhythm, bpm = r.tempo.bpm, out = Rhythm.tips(R.summary, { holdFrac: R.holdFrac, tolMs: r.tempo.tolMs });
+  const clicks = R.clicks === 2 ? "8ths" : "beats";
+  const step = !L ? "" : L.move === "fewer" ? `🎵 <b>3 passes in a row with clicks on 8ths.</b> Next run clicks only on the beats: now you count the 8ths yourself.`
+    : L.move === "faster" ? `🎵 <b>3 passes in a row with clicks on beats.</b> Next run: ${L.bpm} BPM.`
+    : L.move === "more" ? `🎵 Two misses in a row: the 8th clicks come back for the next run. Take them away again once it's clean.`
+    : L.move === "slower" ? `🎵 Two misses in a row: next run at ${L.bpm} BPM. Get the lengths right first, then speed.`
+    : L.passes ? `🎵 Passed at ${bpm} BPM with clicks on ${clicks} (${L.passes} of 3 in a row).` : "";
+  if (step && DB.settings.ladder) out.unshift(step);
+  const missed = r.results.filter((x) => x.missed).length;
+  if (missed) out.push(`${missed} note${missed > 1 ? "s weren't" : " wasn't"} heard. Repeated notes need their own start: a new bow, or a small stop in a hooked bow.`);
+  return out;
+}
+// The written rhythm against what was played, and how long each kind of note lasted
+function rhythmResults(r, res) {
+  const s = r.rhythm.summary, lanes = Rhythm.lanes(r.seq, { total: r.rhythm.total, bar: r.rhythm.bar, clicks: r.rhythm.clicks, results: res, label: (e) => e.label });
+  let h = `<h3>Rhythm: written (top) and played (bottom)</h3>${lanes.svg}<p class="muted small">The bottom bar runs from where you started the note for as long as it sounded. Green: clean. Amber: rhythm right, pitch off. Red: early, late or cut short.</p>`;
+  if (s.values.length) {
+    const max = Math.max(...s.values.map((v) => Math.max(v.beats, v.lasted)));
+    h += `<h3>How long each kind of note lasted</h3><table class="lens"><tr><th>Note</th><th>Written</th><th>You played</th><th></th></tr>${s.values.map((v) => {
+      const off = Math.abs(v.lasted / v.beats - 1), color = off <= 0.08 ? "var(--good)" : off <= 0.15 ? "var(--near)" : "var(--bad)";
+      return `<tr><td>${Rhythm.valueName(v.beats)}</td><td class="v">${Rhythm.fmtBeats(v.beats)} beat${v.beats > 1 ? "s" : ""}</td><td class="v" style="color:${color}">${v.lasted.toFixed(2)}</td><td><div class="lbar"><i style="width:${(v.lasted / max) * 100}%;background:${color}"></i><b style="left:${(v.beats / max) * 100}%"></b></div></td></tr>`;
+    }).join("")}</table><p class="muted small">From each note's start to the next note's start (median). The black line marks the written length.</p>`;
+  }
+  return h;
 }
 
 function tempoTips(r, res) {
@@ -1519,16 +1658,18 @@ function renderTarget() {
   const dir = shiftDir(prev, cur);
   const shift = dir ? `<div class="badge">${dir === "down" ? "⇣" : "⇡"} Shift ${dir} to ${ord(cur.pos)} position</div>${cur.guide ? `<div class="guide">Slide ${prev.finger} to <b>${cur.guide.label}${cur.guide.oct}</b> (guide note), then drop ${cur.finger}</div>` : ""}` : "";
   $("#fing").innerHTML = showMap
-    ? `<div class="big">${cur.string} string · finger ${fingerLabel(cur)}</div><div>${cur.pos ? ord(cur.pos) + " position" : "open string"}</div>${run.ex.hunt ? "" : `<div class="frame">${run.ex.frame}</div>`}${shift}`
+    ? `<div class="big">${cur.string} string · finger ${fingerLabel(cur)}</div><div>${cur.pos ? ord(cur.pos) + " position" : "open string"}</div>${run.ex.hunt ? "" : `<div class="frame">${run.ex.frame}</div>`}${shift}${lengthBadge(cur)}`
     : `<div class="big">Find it from memory</div><div class="muted">String, finger and position are hidden until you land.</div>${dir ? `<div class="badge">${dir === "down" ? "⇣ Shift down" : "⇡ Shift up"}</div>` : ""}`;
   $("#board").classList.toggle("hideguide", !showMap);
   updateBoardTarget();
 }
 
+const lengthBadge = (it) => (run && run.rhythm ? `<div class="badge">${Rhythm.valueName(it.beats)} · ${Rhythm.fmtBeats(it.beats)} beat${it.beats > 1 ? "s" : ""}</div>` : "");
+
 function renderIdle() {
   const ex = exById(DB.selected);
   $("#bigNote").innerHTML = "♪";
-  $("#fing").innerHTML = `<div class="big">${ex.group} · ${ex.name}</div><div class="frame">${ex.frame}</div><div class="muted" style="margin-top:.4rem">${ex.tip}</div>`;
+  $("#fing").innerHTML = `<div class="big">${ex.group} · ${ex.name}</div><div class="frame">${ex.frame}</div><div class="muted" style="margin-top:.4rem">${ex.tip}</div>${ex.rhythm ? `<div class="muted small" style="margin-top:.4rem">Rhythm drill: played with the click. Press <b>🔊 Hear it</b> to listen first.</div>` : ""}`;
   $("#board").classList.remove("hideguide");
 }
 
@@ -1564,8 +1705,10 @@ function render() {
     $("#holdArc").style.strokeDashoffset = 414.7 * (1 - phase);
     const dot = $("#beatDot");
     dot.classList.toggle("on", phase < 0.15);
-    dot.classList.toggle("down", Math.round(since / T.beatMs) % 4 === 0);
-    if (since < 0) { T.counting = true; $("#bigNote").textContent = String(Math.min(4, Math.ceil(-since / T.beatMs))); }
+    const bar = T.bar || 4;
+    dot.classList.toggle("down", Math.round(since / T.beatMs) % bar === 0);
+    if (run.rhythm) moveHead(since / T.beatMs);
+    if (since < 0) { T.counting = true; $("#bigNote").textContent = String(Math.min(bar, Math.ceil(-since / T.beatMs))); }
     else if (T.counting) { T.counting = false; renderTarget(); }
   } else if (run && run.mode === "lock") $("#holdArc").style.strokeDashoffset = 414.7 * (1 - Math.min(1, run.st.hold / HOLD_MS));
   else if (run) $("#holdArc").style.strokeDashoffset = 414.7;
@@ -1592,13 +1735,30 @@ function nearestFingering(m) {
 
 function renderStats(pop) {
   if (!run) { $("#runstats").innerHTML = ""; return; }
+  if (run.rhythm) { $("#runstats").innerHTML = `<span>♩ = <b>${run.tempo.bpm}</b></span><span>Clicks on <b>${run.rhythm.clicks === 2 ? "8ths" : "beats"}</b></span><span>Note <b>${Math.min(run.idx + 1, run.seq.length)}</b>/${run.seq.length}</span><span>Goal <b>${TIERS[run.tier].icon} ±${run.tol}¢ · ±${run.tempo.tolMs} ms · long notes ${Math.round(run.rhythm.holdFrac * 100)}%</b></span>`; return; }
   const ok = run.results.filter((x) => x && x.ok).length;
   const tempo = run.tempo ? `<span>♩ = <b>${run.tempo.bpm}</b></span><span>On time <b>${run.tempo.onTime}</b>${run.lastTiming ? ` <span class="muted">(${run.lastTiming})</span>` : ""}</span>` : "";
   $("#runstats").innerHTML = `${tempo}<span>Note <b>${Math.min(run.idx + 1, run.seq.length)}</b>/${run.seq.length}</span><span>${run.tempo ? "In tune & on time" : "In tune"} <b>${ok}</b></span><span>Combo <b class="${pop && run.combo > 1 ? "combo-pop" : ""}">×${run.combo}</b></span><span>XP <b>+${run.xp}</b></span><span>Goal <b>${run.ex.path ? "" : TIERS[run.tier].icon + " "}±${run.tol}¢</b></span>`;
 }
 
+// Rhythm drills: the written rhythm with a playhead, in place of the chips
+let LANES = null;
+function buildLanes() {
+  const ex = run ? run.ex : exById(DB.selected);
+  LANES = Rhythm.lanes(run ? run.seq : ex.notes, { total: ex.rhythm.total, bar: ex.rhythm.bar, clicks: run ? run.rhythm.clicks : DB.settings.clicks, cur: run ? run.idx : -1, label: (e) => e.label });
+  $("#path").innerHTML = LANES.svg;
+}
+function moveHead(beats) {
+  const el = $("#rhHead");
+  if (!el || !LANES) return;
+  const h = LANES.head(beats);
+  el.setAttribute("x1", h.x); el.setAttribute("x2", h.x); el.setAttribute("y1", h.y1); el.setAttribute("y2", h.y2);
+  el.setAttribute("opacity", beats >= 0 ? 1 : 0);
+}
+
 // Path chips
 function buildPath() {
+  if ((run ? run.ex : exById(DB.selected)).rhythm) return buildLanes();
   const seq = run ? run.seq : (exById(DB.selected).hunt ? [] : exById(DB.selected).notes);
   const el = $("#path");
   el.innerHTML = "";
@@ -1611,6 +1771,7 @@ function buildPath() {
 }
 function updatePath() {
   if (!run) return;
+  if (run.rhythm) { buildLanes(); return renderStats(); }
   document.querySelectorAll("#path .chip").forEach((c) => {
     const i = +c.dataset.i, r = run.results[i];
     const near = r && !r.missed && r.wrong === null && (run.tempo ? r.inTune || r.onTime : Math.abs(r.cents) <= run.tol * 2);
@@ -1689,7 +1850,8 @@ function showResults(o) {
   const T = TIERS[r.tier];
   const tips = buildTips(res, r.tol, r.seq, r.ex);
   if (path && path.counted) tips.unshift(...C.tips(path.metrics));
-  if (r.tempo) tips.unshift(...tempoTips(r, res));
+  if (r.rhythm) tips.unshift(...rhythmTips(r));
+  else if (r.tempo) tips.unshift(...tempoTips(r, res));
   const downs = res.filter((x, i) => shiftDir(r.seq[i - 1], x.item) === "down" && x.cents !== null);
   if (downs.length >= 2) {
     const ok = downs.filter((x) => x.ok).length, avg = mean(downs.map((x) => x.cents));
@@ -1703,11 +1865,11 @@ function showResults(o) {
   const secs = ((performance.now() - r.t0) / 1000).toFixed(0);
   const head = path ? pathHead(path, r) : medal ? `<div class="medal-big">${T.icon}</div><div><h2 style="margin:0">${T.name} earned!</h2><div class="muted">${r.ex.group} · ${r.ex.name}</div></div>`
     : passed ? `<div class="medal-big">✓</div><div><h2 style="margin:0">Passed ${T.name}</h2><div class="muted">${r.ex.group} · ${r.ex.name}</div></div>`
-    : `<div class="medal-big">🎯</div><div><h2 style="margin:0">${need} more ${r.tempo ? "clean" : "in-tune"} note${need > 1 ? "s" : ""} for ${T.name}</h2><div class="muted">Need ${Math.round(PASS * 100)}% within ±${r.tol}¢${r.tempo ? ` and ±${r.tempo.tolMs} ms` : ""} · ${r.ex.name}</div></div>`;
+    : `<div class="medal-big">🎯</div><div><h2 style="margin:0">${need} more ${r.tempo ? "clean" : "in-tune"} note${need > 1 ? "s" : ""} for ${T.name}</h2><div class="muted">Need ${Math.round(PASS * 100)}% within ±${r.tol}¢${r.tempo ? ` and ±${r.tempo.tolMs} ms` : ""}${r.rhythm ? `, long notes held ${Math.round(r.rhythm.holdFrac * 100)}% of their length` : ""} · ${r.ex.name}</div></div>`;
   const labels = res.map((x) => x.item.label + (x.wrong !== null ? "✗" : ""));
   const pitchChart = barChart(res.map((x) => x.cents), labels, r.tol, 50, "sharp", "flat",
     res.map((x) => (x.wrong !== null ? "var(--bad)" : colorFor(Math.abs(x.cents || 0), r.tol))), res.map((x) => `${noteName(x.item.midi)} ${x.cents === null ? "missed" : (x.cents > 0 ? "+" : "") + x.cents.toFixed(0) + "¢"}`));
-  const timingChart = r.tempo ? barChart(res.map((x) => x.timing), labels, r.tempo.tolMs, Math.round(r.tempo.slot / 2), "late", "early",
+  const timingChart = r.tempo && !r.rhythm ? barChart(res.map((x) => x.timing), labels, r.tempo.tolMs, Math.round(r.tempo.slot / 2), "late", "early",
     res.map((x) => colorFor(Math.abs(x.timing || 0), r.tempo.tolMs)), res.map((x) => `${noteName(x.item.midi)} ${x.timing === null ? "missed" : (x.timing > 0 ? "+" : "") + x.timing.toFixed(0) + " ms"}`)) : "";
   const onTimeN = res.filter((x) => x.onTime).length;
   const next = path ? pathNext() : recommend();
@@ -1722,9 +1884,10 @@ function showResults(o) {
     </div>
     <div class="hf" id="hfRes" hidden></div>
     ${path ? pathResultsBody(path) : ""}
-    <h3>First landing of each note</h3>
+    ${r.rhythm ? rhythmResults(r, res) : ""}
+    <h3>${r.rhythm ? "Intonation of each note" : "First landing of each note"}</h3>
     ${pitchChart}
-    ${r.tempo ? `<h3>Timing of each note (vs the click)</h3>${timingChart}` : ""}
+    ${timingChart ? `<h3>Timing of each note (vs the click)</h3>${timingChart}` : ""}
     <h3>Coach's notes</h3>
     <ul class="tips">${tips.map((t) => `<li>${t}</li>`).join("")}</ul>
     <div class="mbtns">
@@ -1889,9 +2052,16 @@ function selectEx(id, tier) {
     return;
   }
   DB.settings.tier = tier || Math.min(3, ((exRec(id) || {}).best || 0) + 1);
-  if (ex.custom && ex.def.notesPerBeat) DB.settings.per = ex.def.notesPerBeat;
-  const lad = ((exRec(id) || {}).tempo || {})[DB.settings.per];
-  if (DB.settings.ladder) DB.settings.bpm = (lad && lad.next) || (ex.custom && ex.def.bpm) || DB.settings.bpm;
+  if (ex.rhythm) {
+    // A rhythm drill picks up where its ladder left off, or starts at its own tempo with clicks on 8ths
+    const lad = (exRec(id) || {}).rhythm;
+    if (!lad) { DB.settings.bpm = ex.def.bpm || DB.settings.bpm; DB.settings.clicks = 2; }
+    else if (DB.settings.ladder) { DB.settings.bpm = lad.bpm; DB.settings.clicks = lad.clicks; }
+  } else {
+    if (ex.custom && ex.def.notesPerBeat) DB.settings.per = ex.def.notesPerBeat;
+    const lad = ((exRec(id) || {}).tempo || {})[DB.settings.per];
+    if (DB.settings.ladder) DB.settings.bpm = (lad && lad.next) || (ex.custom && ex.def.bpm) || DB.settings.bpm;
+  }
   applyRange();
   save();
   $("#results").hidden = true;
@@ -1908,17 +2078,20 @@ function renderHUD() {
 }
 
 function syncSettingsUI() {
-  const s = DB.settings;
-  document.querySelectorAll("#modeSeg button").forEach((b) => b.classList.toggle("on", b.dataset.v === s.mode));
+  const s = DB.settings, selEx = exById(DB.selected), mode = modeOf(selEx), rh = !!(selEx && selEx.rhythm);
+  document.querySelectorAll("#modeSeg button").forEach((b) => { b.classList.toggle("on", b.dataset.v === mode); b.disabled = rh && b.dataset.v !== "tempo"; });
   document.querySelectorAll("#tierSeg button").forEach((b) => b.classList.toggle("on", +b.dataset.v === s.tier));
   $("#optHear").checked = s.hear; $("#optDrone").checked = s.drone; $("#optHide").checked = s.hide; $("#optEars").checked = s.ears; $("#optChime").checked = s.chime; $("#optVoiceMic").checked = !!s.voiceMic; $("#optHandsFree").checked = s.handsFree;
-  $("#optHear").disabled = s.mode !== "lock";
-  $("#tempoPanel").hidden = s.mode !== "tempo";
+  $("#optHear").disabled = mode !== "lock";
+  $("#tempoPanel").hidden = mode !== "tempo";
+  $("#clickBox").hidden = !rh;
+  document.querySelectorAll("#clickSeg button").forEach((b) => b.classList.toggle("on", +b.dataset.v === s.clicks));
+  if (!run) $("#hearBtn").hidden = !rh;
   $("#bpmVal").textContent = s.bpm; $("#bpmRange").value = s.bpm;
   document.querySelectorAll("#perSeg button").forEach((b) => b.classList.toggle("on", +b.dataset.v === s.per));
   $("#optLadder").checked = s.ladder;
   const sel = exById(DB.selected), P = sel && sel.path ? pathLevel(sel) : null;
-  $("#ladderBox").hidden = !!P; $("#pathTempoNote").hidden = !P; $("#perSeg").hidden = !!P;
+  $("#ladderBox").hidden = !!P; $("#pathTempoNote").hidden = !P; $("#perSeg").hidden = !!P || rh;
   $("#tierSeg").hidden = !!P; $("#pathTarget").hidden = !P;
   if (P) $("#pathTarget").innerHTML = `${P.level === "learning" ? "Learning" : "Mastery"} level: ±${P.L.window}¢${P.L.ring !== P.L.window ? ` (±${P.L.ring}¢ on G, D, A and E)` : ""}, ${Math.round(P.L.pct * 100)}% of notes clean${s.mode === "tempo" ? `, ±${P.L.onsetMs} ms on the beat` : ""}. Set by the path.`;
   $("#latVal").textContent = s.latencyMs === null ? "auto" : s.latencyMs + " ms";
@@ -2020,6 +2193,11 @@ function renderDrillsTab() {
     return `<div class="drow" data-id="${ex.id}"><div><div class="nm">${escapeHTML(d.title)} ${medals(key)}</div><div class="sub">${escapeHTML(ex.frame)} · ${last(key)}${d.goal ? `<br>${escapeHTML(d.goal)}` : ""}</div></div>
       <div class="acts"><button class="go" data-act="play">▶ Practice</button>${DB.runs[key] ? `<button data-act="copy">📋 Copy report</button><button data-act="save">⬇ Report</button>` : ""}<button data-act="json">Copy drill</button><button class="del" data-act="del">Delete</button></div></div>`;
   }).join("") : `<p class="muted small">No imported drills yet. Ask Claude for one, using the format on the right.</p>`;
+  $("#packList").innerHTML = Rhythm.PACKS.map((p) => {
+    const have = p.drills.filter((d) => DB.custom.some((c) => c.title === d.title)).length;
+    return `<div class="drow" data-pack="${p.id}"><div><div class="nm">${escapeHTML(p.title)}</div><div class="sub">${p.drills.length} drills · ${escapeHTML(p.blurb)}</div></div>
+      <div class="acts">${have === p.drills.length ? `<button class="go" data-act="play">▶ Practice</button>` : `<button class="go" data-act="add">+ Add ${have ? "the missing drills" : "pack"}</button>`}</div></div>`;
+  }).join("");
   const others = Object.keys(DB.runs).filter((k) => !k.startsWith("custom|"));
   $("#reportList").innerHTML = others.length ? others.map((k) => `<div class="drow" data-key="${escapeHTML(k)}"><div><div class="nm">${escapeHTML(DB.runs[k].label)} ${medals(k)}</div><div class="sub">${DB.runs[k].runs.length} run${DB.runs[k].runs.length > 1 ? "s" : ""} kept · ${last(k)}</div></div>
       <div class="acts"><button data-act="copy">📋 Copy report</button><button data-act="save">⬇ Report</button></div></div>`).join("") : `<p class="muted small">Finish a run of any drill and its report appears here.</p>`;
@@ -2076,6 +2254,8 @@ $("#bpmUp").onclick = () => setBpm(DB.settings.bpm + 2);
 $("#bpmRange").onchange = (e) => setBpm(+e.target.value);
 $("#bpmRange").oninput = (e) => ($("#bpmVal").textContent = e.target.value);
 document.querySelectorAll("#perSeg button").forEach((b) => (b.onclick = () => { DB.settings.per = +b.dataset.v; save(); syncSettingsUI(); if (run && run.tempo) startRun(); }));
+document.querySelectorAll("#clickSeg button").forEach((b) => (b.onclick = () => { DB.settings.clicks = +b.dataset.v; save(); syncSettingsUI(); if (!run) buildPath(); else if (run.rhythm) startRun(); }));
+$("#hearBtn").onclick = hearRhythm;
 $("#optLadder").onchange = (e) => { DB.settings.ladder = e.target.checked; save(); };
 $("#tcalBtn").onclick = () => calibrateTiming(false);
 $("#pcCalBtn").onclick = () => calibrateTiming(true);
@@ -2154,6 +2334,13 @@ $("#customList").onclick = (e) => {
     $("#importMsg").innerHTML = "";
     save(); applyConfig(); renderAll();
   }
+};
+$("#packList").onclick = (e) => {
+  const b = e.target.closest("button"), row = e.target.closest(".drow");
+  const p = b && row && Rhythm.PACKS.find((x) => x.id === row.dataset.pack);
+  if (!p) return;
+  if (b.dataset.act === "add") importDrills(JSON.stringify({ drills: p.drills.filter((d) => !DB.custom.some((c) => c.title === d.title)) }));
+  if (b.dataset.act === "play") practiceDrill(DrillIO.toExercise(DB.custom.find((c) => c.title === p.drills[0].title)).id);
 };
 $("#reportList").onclick = (e) => {
   const b = e.target.closest("button"), row = e.target.closest(".drow");

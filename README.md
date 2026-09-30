@@ -36,6 +36,19 @@ Use the **Scale** card to pick a key (12 per scale type), a scale type (major, n
 - an adaptive Note Hunt;
 - with two or more positions, *Shifting down* drills: repeated down-shift pairs with guide notes for each neighbouring pair of positions (on each string, or on the strings the run shifts on when there are more than two), plus a run that starts at the top so you shift down first. Medals and history are kept separately for each setup. Where each note tends to land is tracked per physical spot on the string, so it's shared across scales.
 
+## Rhythm drills
+
+A drill whose notes have lengths (`beats`) is a rhythm drill. It's for practising the rhythm of a passage from a piece: dotted rhythms, long notes, repeated notes and rests.
+
+- It is always played with the metronome. After one bar of count-in, a playhead moves over the written rhythm, with the count ("1 & 2 &") underneath.
+- **🔊 Hear it** plays the passage with the click first, each note lasting its full written length.
+- The same pitch may repeat. The app hears a repeated note as a dip in loudness, so each one needs its own bow or a small stop in the bow (as in a hooked bowing).
+- After the run, the whole recording is lined up with the written rhythm. Each note is scored on pitch, on when it starts (±60–120 ms, depending on tempo and medal level) and, for notes of 1½ beats or more, on how long it sounds (80 / 85 / 90% of its length at 🥉 / 🥈 / 🥇).
+- The results show the written rhythm against what you played, and how long each kind of note lasted (8th, quarter, half…). The coach names the problem: long notes cut short (moving on early, or the sound fading while the next note still waits), long notes shrinking next to short ones, dotted rhythms played too even (the long:short ratio, 3 : 1 exact, about 2 : 1 for a triplet feel), and repeated notes that rush.
+- **Clicks fade out**: with the ladder on, a rhythm drill starts with clicks on 8ths. After 3 passes in a row the clicks drop to beats only, so you count the 8ths yourself; after 3 more, the tempo goes up 6%. 2 misses in a row go back a step.
+
+**Drill packs** (My drills tab) add ready-made rhythm drills. *The Two Grenadiers · bars 10–21* works up from the dotted quarter + 8th and half notes on the open A string to bars 10–12, 12–14, 14–16, 16–18, 18–20 and the whole passage.
+
 ## Hands-free start
 
 So you don't have to put the violin down between runs: play and hold a drill's first note (about ¾ s) to start it. On the results, the drill's own first note goes again and the next drill's first note moves on; the notes to play are shown at the top of the results. It waits for a moment without any start note first, so the last note of a run ringing on doesn't restart it. The first note you hold counts as the run's first landing (in Tempo mode it starts the count-in). Turn it off with **Hands-free start** in Settings.
@@ -68,7 +81,7 @@ The **My drills** tab lets you import drills written for you, for example by Cla
 3. Practise it like any other drill. Afterwards, press **📋 Copy report for Claude** (in the results, or on My drills). The report holds the drill, your last 5 runs note by note (cents, wrong notes, shift direction), the coach's notes and per-note trends.
 4. Paste the report back. Claude can spot the pattern and write the next drill.
 
-Built-in drills keep reports too, and any report can be imported as a drill.
+Built-in drills keep reports too, and any report can be imported as a drill. Claude can also write rhythm drills for any passage: give every note a `beats` length and add `{"rest": …}` entries (see the format).
 
 ## Run it
 

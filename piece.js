@@ -47,7 +47,10 @@
       while (lo + 1 < fr.length && fr[lo + 1].rms <= fr[lo].rms) lo++;
       const rise = fr.findIndex((f, k) => k > lo && f.t - fr[lo].t < 200 && f.rms >= peak * 0.8);
       if (rise < 0) continue;
-      const a = { n: g.n, fr: fr.slice(0, lo) }, b = { n: g.n, fr: fr.slice(lo) };
+      // The old note ends where it dipped; the new one starts where the attack begins, at the end of the quiet
+      // stretch rather than its quietest point (with a stop in the bow, that would be the length of the stop too early)
+      const back = fr.findIndex((f, k) => k > lo && f.rms > peak * 0.45) - 1;
+      const a = { n: g.n, fr: fr.slice(0, i) }, b = { n: g.n, fr: fr.slice(back) };
       if (a.fr.length && b.fr.length && a.fr[a.fr.length - 1].t - a.fr[0].t >= minMs && b.fr[b.fr.length - 1].t - b.fr[0].t >= minMs)
         return [a, ...splitOnDips(b, minMs)];
     }
