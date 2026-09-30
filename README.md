@@ -36,6 +36,10 @@ Use the **Scale** card to pick a key (12 per scale type), a scale type (major, n
 - an adaptive Note Hunt;
 - with two or more positions, *Shifting down* drills: repeated down-shift pairs with guide notes for each neighbouring pair of positions (on each string, or on the strings the run shifts on when there are more than two), plus a run that starts at the top so you shift down first. Medals and history are kept separately for each setup. Where each note tends to land is tracked per physical spot on the string, so it's shared across scales.
 
+## Hands-free start
+
+So you don't have to put the violin down between runs: play and hold a drill's first note (about ¾ s) to start it. On the results, the drill's own first note goes again and the next drill's first note moves on; the notes to play are shown at the top of the results. It waits for a moment without any start note first, so the last note of a run ringing on doesn't restart it. The first note you hold counts as the run's first landing (in Tempo mode it starts the count-in). Turn it off with **Hands-free start** in Settings.
+
 ## Tempo mode
 
 Choose **⏱ Tempo** under Mode to practise with a metronome. After a four-click count-in, the drill moves on with the beat. A note counts only if it's in tune *and* on time; the on-time window gets tighter at each medal level.

@@ -255,6 +255,10 @@ main { max-width: 1280px; margin: 0 auto; padding: 1rem; }
 .tips { margin: 0 0 1rem; padding: 0; list-style: none; display: grid; gap: .5rem; }
 .tips li { background: var(--panel-2); border-radius: 10px; padding: .6rem .8rem; font-size: .9rem; border-left: 4px solid var(--accent); }
 .mbtns { display: flex; gap: .6rem; justify-content: flex-end; flex-wrap: wrap; }
+.hf { position: relative; overflow: hidden; padding: .55rem .8rem; border-radius: 10px; background: var(--panel-2); font-size: .9rem; margin: .6rem 0; }
+.hf[hidden] { display: none; }
+.hf i { position: absolute; inset: 0 auto 0 0; width: 0; background: color-mix(in srgb, var(--good) 30%, transparent); }
+.hf span { position: relative; }
 
 #simPanel { position: fixed; right: 12px; bottom: 12px; z-index: 30; background: var(--panel); border: 2px dashed var(--accent); border-radius: 12px; padding: .7rem; font-size: .8rem; display: grid; gap: .4rem; }
 #simPanel[hidden] { display: none; }
@@ -332,6 +336,7 @@ main { max-width: 1280px; margin: 0 auto; padding: 1rem; }
         <label class="toggle"><input type="checkbox" id="optHide"><span><b>Hide fingering</b><small>Memory test: find the note without the map.</small></span></label>
         <label class="toggle"><input type="checkbox" id="optEars"><span><b>Ears first</b><small>Needle stays hidden until you land. Wean yourself off the screen.</small></span></label>
         <label class="toggle"><input type="checkbox" id="optChime"><span><b>Chime on lock</b></span></label>
+        <label class="toggle"><input type="checkbox" id="optHandsFree"><span><b>Hands-free start</b><small>Play and hold a drill's first note to start it, so you don't have to put the violin down between runs. After a run, its first note goes again and the next drill's first note moves on.</small></span></label>
         <label class="toggle"><input type="checkbox" id="optVoiceMic"><span><b>iPad mic mode</b><small>Uses Safari's voice-processed mic. Turn this on if the app can't hear you on iPad (its raw mic is too quiet). Leave it off on other devices.</small></span></label>
         <div class="calib">A4 = <b id="a4Val">440</b> Hz <button id="calibBtn">Tune from open A</button></div>
       </div>
@@ -361,6 +366,7 @@ main { max-width: 1280px; margin: 0 auto; padding: 1rem; }
           <div class="gscale"><span>−50¢ flat</span><span>in tune</span><span>sharp +50¢</span></div>
         </div>
         <div class="msg" id="msg">Press Start (or Space) when you're ready.</div>
+        <div class="hf" id="hfIdle" hidden></div>
         <div class="runstats" id="runstats"></div>
       </div>
 
@@ -573,7 +579,7 @@ function applyRange() {
 // ---------- Storage ----------
 const STORE_KEY = "fingerboard-coach.v1";
 const defaults = () => ({ xp: 0, notes: {}, ex: {}, days: {}, sessions: [], selected: "p3-A", cfg: { ...DEFAULT_CFG }, custom: [], runs: {}, path: { states: {}, session: null },
-  settings: { view: "path", mode: "lock", tier: 1, drone: false, hear: false, hide: false, ears: false, chime: true, a4: 440, bpm: 60, per: 1, ladder: true, latencyMs: null, voiceMic: false } });
+  settings: { view: "path", mode: "lock", tier: 1, drone: false, hear: false, hide: false, ears: false, chime: true, a4: 440, bpm: 60, per: 1, ladder: true, latencyMs: null, voiceMic: false, handsFree: true } });
 function loadDB() {
   const d = defaults();
   try {
@@ -822,7 +828,10 @@ function loop(t, gen) {
   requestAnimationFrame((t2) => loop(t2, gen));
   const dt = Math.min(100, t - (lastT || t)); lastT = t;
   analyser.getFloatTimeDomainData(buf);
-  const r = PitchDetector.detectPitch(buf, ctx.sampleRate, { minFreq: calib ? Math.min(380, RANGE.min) : RANGE.min, maxFreq: calib ? Math.max(1000, RANGE.max) : RANGE.max, minRms: 0.006 });
+  let minFreq = RANGE.min, maxFreq = RANGE.max;
+  if (calib) { minFreq = Math.min(380, minFreq); maxFreq = Math.max(1000, maxFreq); }
+  if (hf.list) { minFreq = Math.min(hf.min, minFreq); maxFreq = Math.max(hf.max, maxFreq); } // hear the next drill's first note, even on another string
+  const r = PitchDetector.detectPitch(buf, ctx.sampleRate, { minFreq, maxFreq, minRms: 0.006 });
   $("#meter").style.width = Math.min(100, r.rms * 900) + "%";
   watchSilence(t, r.rms);
 
@@ -839,7 +848,9 @@ function loop(t, gen) {
   const recent = frames.filter((x) => x.t > t - 90 && x.m !== null).map((x) => x.m);
   smooth = recent.length >= 2 ? median(recent) : m;
 
-  if (run) runStep(t, dt, stableMedian(t));
+  const stable = stableMedian(t);
+  if (run) runStep(t, dt, stable);
+  handsFreeStep(dt, stable);
   render();
 }
 
@@ -890,13 +901,14 @@ function buildHunt() {
   return seq;
 }
 
-function startRun() {
+// seq: a Note Hunt order drawn in advance, so hands-free start knows its first note
+function startRun(seq) {
   const ex = exById(DB.selected);
   const s = DB.settings;
-  if (s.mode === "tempo" && !ctx) { startAudio().then((ok) => ok && startRun()); return; }
+  if (s.mode === "tempo" && !ctx) { startAudio().then((ok) => ok && startRun(seq)); return; }
   if (piece) stopPiece();
   const P = ex.path ? pathLevel(ex) : null; // path skills are judged against their level's windows, not the medal tiers
-  run = { ex, seq: ex.hunt ? buildHunt() : ex.notes, idx: 0, mode: s.mode, tier: P ? (P.level === "learning" ? 1 : 2) : s.tier, tol: P ? P.L.window : TIERS[s.tier].tol,
+  run = { ex, seq: seq || (ex.hunt ? buildHunt() : ex.notes), idx: 0, mode: s.mode, tier: P ? (P.level === "learning" ? 1 : 2) : s.tier, tol: P ? P.L.window : TIERS[s.tier].tol,
     results: [], combo: 0, maxCombo: 0, xp: 0, t0: performance.now() };
   if (s.mode === "tempo") {
     const beatMs = 60000 / s.bpm, slot = beatMs / s.per, countIn = 4;
@@ -1080,6 +1092,44 @@ function finishRun() {
   $("#holdArc").style.strokeDashoffset = 414.7;
   showResults({ r, res, score, passed, medal, okN, avgAbs, path, levelUp: levelOf(DB.xp) > lvlBefore, newBest: score > prevBestScore && prevBestScore > 0 });
   renderAll();
+}
+
+// ---------- Hands-free start ----------
+// Play and hold a drill's first note to start it, so the violin stays up between runs. It first waits for a moment
+// without any start note, so the last note of a run (often the tonic it starts on) ringing on doesn't restart it.
+const HF_HOLD_MS = 500, HF_CLEAR_MS = 400, HF_CENTS = 40;
+let hfResults = null, hfIdle = null, hf = { list: null, clear: 0, hold: 0, cand: null };
+function hfCand(ex, label, go) {
+  const seq = ex.hunt ? buildHunt() : ex.notes;
+  return { it: seq[0], label, go: () => go(seq) };
+}
+// What playing a note would start right now: Again / Next on the results, else the selected drill
+function hfCands() {
+  if (!DB.settings.handsFree || run || calib || tcal || piece || !$("#tab-practice").classList.contains("active")) return null;
+  if (!$("#results").hidden) return hfResults;
+  const ex = exById(DB.selected);
+  if (!ex) return null;
+  if (!hfIdle || hfIdle.ex !== ex) hfIdle = { ex, list: [hfCand(ex, "start", startRun)] };
+  return hfIdle.list;
+}
+function handsFreeStep(dt, stable) {
+  const list = hfCands();
+  if (list !== hf.list) {
+    const ms = list ? list.map((c) => c.it.midi) : [0];
+    hf = { list, clear: 0, hold: 0, cand: null, min: midiFreq(Math.min(...ms)) * 0.8, max: Math.min(2600, midiFreq(Math.max(...ms)) * 1.25) };
+    renderHandsFree();
+  }
+  if (!list) return;
+  const c = stable === null ? null : list.find((x) => Math.abs(stable - x.it.midi) * 100 <= HF_CENTS);
+  if (!c) { hf.clear += dt; hf.hold = 0; hf.cand = null; }
+  else if (hf.clear >= HF_CLEAR_MS) { if (c !== hf.cand) { hf.cand = c; hf.hold = 0; } hf.hold += dt; }
+  document.querySelectorAll(".hf i").forEach((el) => (el.style.width = Math.min(100, (hf.hold / HF_HOLD_MS) * 100) + "%"));
+  if (hf.cand && hf.hold >= HF_HOLD_MS) hf.cand.go(); // the run starting clears the list next frame
+}
+function renderHandsFree() {
+  const list = hf.list, inResults = !$("#results").hidden;
+  const html = list ? `<i></i><span>🎻 Or just play ${list.map((c) => `<b>${c.it.label}${c.it.oct}</b> on ${c.it.string} to ${c.label}`).join(", or ")}.</span>` : "";
+  for (const [el, show] of [[$("#hfIdle"), !inResults], [$("#hfRes"), inResults]]) if (el) { el.hidden = !(list && show); el.innerHTML = html; }
 }
 
 const drillLabel = (ex) => (ex.custom ? `My drill · ${ex.name}` : ex.path ? `Path · ${ex.name}` : `${keyName()} · ${ex.group === "Put it together" ? "" : ex.group.replace(" position", "") + " "}${ex.name}`);
@@ -1668,6 +1718,7 @@ function showResults(o) {
       ${r.tempo ? `<div><b>${onTimeN}/${res.length}</b><span>on time (±${r.tempo.tolMs} ms)</span></div>` : `<div><b>×${r.maxCombo}</b><span>best combo</span></div>`}
       <div><b>+${r.xp}</b><span>XP${o.levelUp ? " · LEVEL UP!" : ""} · ${secs}s</span></div>
     </div>
+    <div class="hf" id="hfRes" hidden></div>
     ${path ? pathResultsBody(path) : ""}
     <h3>First landing of each note</h3>
     ${pitchChart}
@@ -1686,7 +1737,11 @@ function showResults(o) {
   $("#rAgain").onclick = () => startRun();
   $("#rReport").onclick = (e) => copyText(JSON.stringify(buildReport(recKey(r.ex.id)), null, 2), e.target);
   const nb = $("#rNext");
-  if (nb) nb.onclick = () => { if (path) selectEx(`n:${next.nodeId}@${next.dir}`); else selectEx(next.id, next.tier); startRun(); };
+  const goNext = (seq) => { if (path) selectEx(`n:${next.nodeId}@${next.dir}`); else selectEx(next.id, next.tier); startRun(seq); };
+  if (nb) nb.onclick = () => goNext();
+  hfResults = [hfCand(r.ex, "go again", startRun)];
+  if (nb) hfResults.unshift(hfCand(exById(path ? `n:${next.nodeId}@${next.dir}` : next.id), "go on to the next one", goNext));
+  if (hfResults.length > 1 && hfResults[0].it.midi === hfResults[1].it.midi) hfResults.pop(); // same first note: it moves on
   setMsg(passed ? "Nice work. Press Space to go again, or take the next drill." : "Look over the coach's notes, then try again.");
   $("#runstats").innerHTML = "";
 }
@@ -1854,7 +1909,7 @@ function syncSettingsUI() {
   const s = DB.settings;
   document.querySelectorAll("#modeSeg button").forEach((b) => b.classList.toggle("on", b.dataset.v === s.mode));
   document.querySelectorAll("#tierSeg button").forEach((b) => b.classList.toggle("on", +b.dataset.v === s.tier));
-  $("#optHear").checked = s.hear; $("#optDrone").checked = s.drone; $("#optHide").checked = s.hide; $("#optEars").checked = s.ears; $("#optChime").checked = s.chime; $("#optVoiceMic").checked = !!s.voiceMic;
+  $("#optHear").checked = s.hear; $("#optDrone").checked = s.drone; $("#optHide").checked = s.hide; $("#optEars").checked = s.ears; $("#optChime").checked = s.chime; $("#optVoiceMic").checked = !!s.voiceMic; $("#optHandsFree").checked = s.handsFree;
   $("#optHear").disabled = s.mode !== "lock";
   $("#tempoPanel").hidden = s.mode !== "tempo";
   $("#bpmVal").textContent = s.bpm; $("#bpmRange").value = s.bpm;
@@ -2011,6 +2066,7 @@ const bindOpt = (id, key, after) => ($(id).onchange = (e) => { DB.settings[key] 
 bindOpt("#optHear", "hear"); bindOpt("#optHide", "hide"); bindOpt("#optEars", "ears"); bindOpt("#optChime", "chime");
 bindOpt("#optDrone", "drone", async () => { if (await startAudio()) applyDrone(); });
 bindOpt("#optVoiceMic", "voiceMic", restartAudio);
+bindOpt("#optHandsFree", "handsFree");
 const setBpm = (v) => { DB.settings.bpm = Math.max(30, Math.min(200, Math.round(v))); save(); syncSettingsUI(); if (run && run.tempo) startRun(); };
 $("#bpmDown").onclick = () => setBpm(DB.settings.bpm - 2);
 $("#bpmUp").onclick = () => setBpm(DB.settings.bpm + 2);
