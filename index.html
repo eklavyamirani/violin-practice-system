@@ -487,6 +487,19 @@ main { max-width: 1280px; margin: 0 auto; padding: 1rem; }
   <div style="display:flex;gap:.3rem"><button id="simPlay">Play target</button><button id="simWrong">Wrong note</button><button id="simStop">Silence</button></div>
 </div>
 
+<script>
+// A script that fails to load or run would otherwise leave a blank app; say so on the page, where a phone user can see it
+window.addEventListener("error", (e) => {
+  if (document.getElementById("loadError")) return;
+  const d = document.createElement("div");
+  d.id = "loadError";
+  d.style.cssText = "position:fixed;left:12px;right:12px;bottom:12px;z-index:50;background:var(--panel);color:var(--ink);border:2px solid var(--bad);border-radius:12px;padding:.8rem 1rem;font-size:.9rem";
+  d.innerHTML = "<b>Something went wrong loading the app.</b> Reload the page. If it keeps happening, send this message:<br><code></code><br><button style='margin-top:.5rem'>Reload</button>";
+  d.querySelector("code").textContent = `${e.message} (${String(e.filename || "").split("/").pop()}:${e.lineno})`;
+  d.querySelector("button").onclick = () => location.reload();
+  document.body.appendChild(d);
+});
+</script>
 <script src="pitch.js"></script>
 <script src="scales.js"></script>
 <script src="curriculum.js"></script>
