@@ -56,7 +56,7 @@ for (const type of Object.keys(S.SCALE_TYPES)) for (const tonic of S.SCALE_TYPES
       const json = D.fromSequence(drill.name, drill.notes, { key: `${tonic} ${type}` });
       const r = D.parseImport(JSON.stringify(json));
       const back = r.drills.length ? D.toExercise(r.drills[0]).notes : [];
-      const same = back.length === drill.notes.length && back.every((b, i) => b.midi === drill.notes[i].midi && b.string === drill.notes[i].string && b.finger === drill.notes[i].finger && b.pos === drill.notes[i].pos && (b.guide || {}).midi === (drill.notes[i].guide || {}).midi);
+      const same = back.length === drill.notes.length && back.every((b, i) => b.midi === drill.notes[i].midi && b.string === drill.notes[i].string && b.finger === drill.notes[i].finger && b.pos === drill.notes[i].pos && (b.guide || {}).midi === (drill.notes[i].guide || {}).midi && Math.abs((b.beats || 0) - (drill.notes[i].beats || 0)) < 1e-6);
       if (r.errors.length || r.warnings.length || !same) { fails++; if (fails < 6) console.log(`FAIL round trip ${tonic} ${type} ${strings} ${positions} ${drill.id}`, r.errors.concat(r.warnings).slice(0, 2)); }
       roundTrips++;
     }

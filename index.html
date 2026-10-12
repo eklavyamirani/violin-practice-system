@@ -102,6 +102,8 @@ main { max-width: 1280px; margin: 0 auto; padding: 1rem; }
 .cfgrow { display: flex; gap: .5rem; align-items: center; margin-bottom: .7rem; }
 .cfgstrs { margin: -.4rem 0 .7rem; font-size: .8rem; }
 .cfgsub { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: .3rem; }
+.cfgrow input[type=number] { width: 4.2em; font: inherit; font-size: .9rem; color: var(--ink); background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: .35rem .4rem; }
+.ex .fr.goal { font-family: inherit; color: var(--accent); }
 .cfgrow select { flex: 1; min-width: 0; font: inherit; font-size: .9rem; color: var(--ink); background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: .35rem .4rem; }
 .calib { display: flex; gap: .5rem; align-items: center; margin-top: .6rem; font-size: .85rem; }
 .calib button { border: 1px solid var(--line); background: var(--panel-2); border-radius: 8px; padding: .3rem .6rem; font-size: .8rem; }
@@ -321,6 +323,8 @@ main { max-width: 1280px; margin: 0 auto; padding: 1rem; }
           <div class="cfgstrs muted" id="cfgStrs" aria-live="polite"></div>
           <div class="cfgsub"><span class="muted">Positions</span><small class="muted">pick 1–4</small></div>
           <div class="seg" id="cfgPos" role="group" aria-label="Positions"></div>
+          <div class="cfgrow"><span class="muted">Goal</span><span class="muted">♩=</span><input type="number" id="cfgGoalBpm" min="30" max="200" step="1" aria-label="Goal tempo (BPM)"><span class="muted">×</span><select id="cfgGoalPer" aria-label="Notes per beat"><option value="1">1 note/beat</option><option value="2">2 notes/beat</option><option value="3">3 notes/beat</option><option value="4">4 notes/beat</option></select></div>
+          <div class="cfgstrs muted">The full scale and its rhythms are done at 🥇 at this tempo. Build-up drills need 🥈.</div>
         </div>
         <div id="pathInfo" class="pinfo" hidden></div>
       </div>
@@ -550,6 +554,10 @@ const TIERS = [null, { name: "Bronze", tol: 25, icon: "🥉", mult: 1 }, { name:
 const PASS = 0.85, CAPTURE = 60, STABLE_MS = 220, HOLD_MS = 600, DAILY_GOAL = 3;
 const HOLD_FRAC = [0, 0.8, 0.85, 0.9]; // rhythm drills: share of a long note's length it must sound for, per medal level
 const DEFAULT_CFG = { tonic: "G", type: "major", strings: ["A", "E"], positions: [3, 5] };
+// Free practice: the full scale (and its rhythms) is mastered at 🥇 at this tempo, set per scale setup
+const DEFAULT_GOAL = { bpm: 60, per: 2 };
+const goalOf = () => ({ ...DEFAULT_GOAL, ...(DB.goals[CFG_KEY] || {}) });
+const goalStart = () => Math.max(30, Math.round(goalOf().bpm * 0.75)); // the tempo phase starts at 75% of the goal
 
 let CFG, CFG_KEY, EXERCISES, ALL_FINGERINGS, RANGE;
 const C = Curriculum;
@@ -601,7 +609,7 @@ function applyRange() {
 
 // ---------- Storage ----------
 const STORE_KEY = "fingerboard-coach.v1";
-const defaults = () => ({ xp: 0, notes: {}, ex: {}, days: {}, sessions: [], selected: "p3-A", cfg: { ...DEFAULT_CFG }, custom: [], runs: {}, path: { states: {}, session: null },
+const defaults = () => ({ xp: 0, notes: {}, ex: {}, days: {}, sessions: [], selected: "p3-A", cfg: { ...DEFAULT_CFG }, custom: [], runs: {}, path: { states: {}, session: null }, goals: {},
   settings: { view: "path", mode: "lock", tier: 1, drone: false, hear: false, hide: false, ears: false, chime: true, a4: 440, bpm: 60, per: 1, ladder: true, latencyMs: null, voiceMic: false, handsFree: true, clicks: 2 } });
 function loadDB() {
   const d = defaults();
@@ -1140,6 +1148,7 @@ function finishRun() {
     if (lad.clicks !== clicks || lad.bpm !== bpm) Object.assign(lad, { clicks, bpm, passes: 0, fails: 0 }); // it follows what was just played
     lad.move = null;
     if (passed) {
+      if (r.tier === 3 && clicks === 1) lad.gold = Math.max(lad.gold || 0, bpm); // 🥇 with clicks on beats only
       lad.fails = 0; lad.passes++; r.xp += Math.round(bpm / 4);
       if (lad.passes >= 3) { lad.passes = 0; if (clicks === 2) { lad.clicks = 1; lad.move = "fewer"; } else { lad.bpm = Math.min(200, Math.max(bpm + 1, Math.round(bpm * 1.06))); lad.move = "faster"; } }
     } else {
@@ -1154,7 +1163,8 @@ function finishRun() {
     const bpm = r.tempo.bpm, streakOn = bpm >= (lad.at || 0);
     lad.at = bpm; lad.next = bpm;
     if (passed) {
-      lad.best = Math.max(lad.best, bpm); lad.fails = 0; lad.passes = (streakOn ? lad.passes || 0 : 0) + 1; r.xp += Math.round(bpm / 4);
+      lad.best = Math.max(lad.best, bpm); lad.fails = 0;
+      if (r.tier === 3) lad.gold = Math.max(lad.gold || 0, bpm); lad.passes = (streakOn ? lad.passes || 0 : 0) + 1; r.xp += Math.round(bpm / 4);
       if (lad.passes >= 3) { lad.next = Math.min(200, Math.max(bpm + 1, Math.round(bpm * 1.06))); lad.passes = 0; }
     } else {
       lad.passes = 0; lad.fails = (lad.fails || 0) + 1;
@@ -1170,7 +1180,8 @@ function finishRun() {
   const landed = res.filter((x) => x.cents !== null);
   const avgAbs = landed.length ? mean(landed.map((x) => Math.abs(x.cents))) : 0;
   DB.sessions.unshift({ t: Date.now(), cfg: ex.custom ? "custom" : path ? "path" : CFG_KEY, ex: ex.id, label: drillLabel(ex), tier: r.tier, mode: r.mode, bpm: r.tempo ? r.tempo.bpm : undefined,
-    score: path && path.counted ? path.judged.pct : score, avgAbs, ...(path ? { passed } : {}) });
+    score: path && path.counted ? path.judged.pct : score, avgAbs, ...(path ? { passed } : {}),
+    ...(path || ex.custom ? {} : { miss: res.filter((x) => !x.ok).map((x) => ({ key: x.item.key, pos: x.item.pos, shift: x.item.shift || null })) }) });
   DB.sessions = DB.sessions.slice(0, 60);
   if (medal && DB.settings.tier < 3 && !r.tempo) DB.settings.tier = r.tier + 1; // in Tempo mode the ladder raises speed instead
   if (path && path.events.some((e) => e.type === "mastered")) applyConfig(); // newly unlocked skills join the note map
@@ -1871,6 +1882,8 @@ function showResults(o) {
   if (path) tips.unshift(...pathEventTips(path));
   const need = Math.ceil(PASS * res.length) - okN;
   recordRun(r, res, tips, path);
+  if (r.ex.role === "key") tips.push(`🎯 ${trackText(r.ex)}${r.ex.rhythm ? "" : `. Change the goal tempo on the Scale card`}.`);
+  if (tips.length === 1 && r.ex.role === "key") tips.unshift(passed ? "A clean run." : "Close! Listen for each note before you place the finger.");
   if (!tips.length) tips.push(passed ? `A clean run. Next, try it with <b>Hide fingering</b> or <b>Ears first</b> on, or ${path ? "play it the other way round" : "go for the next medal"}.` : "Close! Play it slower. Listen for each note before you place the finger.");
   const secs = ((performance.now() - r.t0) / 1000).toFixed(0);
   const head = path ? pathHead(path, r) : medal ? `<div class="medal-big">${T.icon}</div><div><h2 style="margin:0">${T.name} earned!</h2><div class="muted">${r.ex.group} · ${r.ex.name}</div></div>`
@@ -1905,14 +1918,14 @@ function showResults(o) {
       <button class="btn ghost" id="rClose">Close</button>
       <button class="btn ghost" id="rAgain">↻ Again</button>
       ${path ? (next ? `<button class="btn" id="rNext">Next: ${escapeHTML(C.nodeName(C.BY_ID[next.nodeId]))} ${next.dir === "desc_asc" ? "⇣⇡" : "⇡⇣"}</button>` : "")
-        : !r.ex.custom && (next.id !== r.ex.id || next.tier !== DB.settings.tier) ? `<button class="btn" id="rNext">Next: ${exById(next.id).name} ${TIERS[next.tier].icon}</button>` : ""}
+        : !r.ex.custom && !recIsCurrent(next) ? `<button class="btn" id="rNext">Next: ${escapeHTML(recLabel(next))}</button>` : ""}
     </div>`;
   $("#results").hidden = false;
   $("#rClose").onclick = () => { $("#results").hidden = true; renderIdle(); buildPath(); buildBoard(); };
   $("#rAgain").onclick = () => startRun();
   $("#rReport").onclick = (e) => copyText(JSON.stringify(buildReport(recKey(r.ex.id)), null, 2), e.target);
   const nb = $("#rNext");
-  const goNext = (seq) => { if (path) selectEx(`n:${next.nodeId}@${next.dir}`); else selectEx(next.id, next.tier); startRun(seq); };
+  const goNext = (seq) => { if (path) selectEx(`n:${next.nodeId}@${next.dir}`); else applyRec(next); startRun(seq); };
   if (nb) nb.onclick = () => goNext();
   hfResults = [hfCand(r.ex, "go again", startRun)];
   if (nb) hfResults.unshift(hfCand(exById(path ? `n:${next.nodeId}@${next.dir}` : next.id), "go on to the next one", goNext));
@@ -1977,33 +1990,95 @@ function barChart(vals, labels, tol, max, top, bottom, colors, titles) {
 }
 
 // Recommendation: lowest medal first, rotating so you don't repeat the same drill (interleaving)
-// Free practice moves through the drills in order: a run that misses stays on that drill (so you can jump ahead
-// to the full scale and keep at it), a pass moves to the next drill that isn't gold yet. Note Hunt only comes up
-// when you pick it, or once everything's gold.
-function recommend() {
-  const last = DB.sessions.find((s) => s.cfg === CFG_KEY);
-  const regular = EXERCISES.filter((e) => !e.hunt && !e.custom);
-  const best = (e) => (exRec(e.id) || {}).best || 0;
-  const pick = (e) => {
-    const b = best(e), tier = Math.min(3, b + 1);
-    return { id: e.id, tier, why: b === 0 ? ((exRec(e.id) || {}).last ? "No medal yet. Go get the bronze." : "New drill. Start with the bronze target.") : `You have ${TIERS[b].icon}. Now tighten to ±${TIERS[tier].tol}¢.` };
-  };
-  const lastEx = last && exById(last.ex);
-  if (lastEx && !lastEx.custom) {
-    if (last.score < PASS) return { id: lastEx.id, tier: last.tier, why: `Not passed yet. Again, aiming for ${TIERS[last.tier].icon} ±${TIERS[last.tier].tol}¢.` };
-    const after = lastEx.hunt ? regular : regular.slice(regular.indexOf(lastEx) + 1);
-    const nxt = after.find((e) => best(e) < 3) || (!lastEx.hunt && best(lastEx) < 3 ? lastEx : null);
-    if (nxt) return pick(nxt);
-  }
-  const first = regular.find((e) => best(e) < 3);
-  return first ? pick(first) : { id: "hunt", tier: 3, why: "Everything's gold! Keep it sharp with Note Hunt and Ears first." };
+// Free practice works toward the full scale. Its drills (role "key": the run, the run from the top and its rhythms)
+// are mastered at 🥇 in Flow, then 🥇 in Tempo up to the goal tempo. The build-up drills (role "build") need 🥈,
+// and come back when the scale keeps missing on their notes. A missed run stays on its drill.
+function trackStep(ex) {
+  const rec = exRec(ex.id) || {}, best = rec.best || 0, G = goalOf();
+  const flow = ex.rhythm ? {} : { mode: "flow" };
+  if (ex.role !== "key") return best >= 2 ? null : { id: ex.id, tier: best + 1, ...flow };
+  if (best < 3) return { id: ex.id, tier: best + 1, ...flow };
+  if (ex.rhythm) return ((rec.rhythm || {}).gold || 0) >= G.bpm ? null : { id: ex.id, tier: 3 };
+  const lad = (rec.tempo || {})[G.per];
+  return ((lad || {}).gold || 0) >= G.bpm ? null : { id: ex.id, tier: 3, mode: "tempo", per: G.per, bpm: (lad && lad.next) || goalStart() };
 }
+const goldBpm = (ex) => { const rec = exRec(ex.id) || {}; return (ex.rhythm ? rec.rhythm || {} : (rec.tempo || {})[goalOf().per] || {}).gold || 0; };
+const goalText = (ex) => { const G = goalOf(); return `♩=${G.bpm}${G.per > 1 && !(ex && ex.rhythm) ? ` ×${G.per}` : ""}`; };
+function trackText(ex) {
+  if (ex.role !== "key") return "";
+  const g = goldBpm(ex), G = goalOf();
+  return g >= G.bpm ? `✓ 🥇 at ${goalText(ex)}` : (exRec(ex.id) || {}).best >= 3 ? `🥇 at ♩=${g || "—"} of ${G.bpm}` : `goal 🥇 at ${goalText(ex)}`;
+}
+function stepWhy(ex, st) {
+  const G = goalOf();
+  if (st.mode === "tempo") return `⏱ ♩=${st.bpm}, ${st.per} note${st.per > 1 ? "s" : ""} per beat, at 🥇 ±10¢. Goal ♩=${G.bpm}: 3 passes in a row and it goes up 6%.`;
+  if (ex.rhythm && st.tier === 3) return `At 🥇, with the clicks on beats. Goal ♩=${G.bpm}.`;
+  return `Aim for ${TIERS[st.tier].icon} ±${TIERS[st.tier].tol}¢. ${ex.role === "key" ? `Then 🥇 at ${goalText(ex)}.` : "🥈 is enough for a build-up drill."}`;
+}
+// The build-up drill where a run's misses cluster (`min` or more): shift landings go to the shift drills, the rest to their position
+function weakSpot(miss, min) {
+  const build = EXERCISES.filter((e) => e.role === "build"), count = new Map();
+  for (const m of miss || []) {
+    const has = (e, sh) => e.notes.some((x) => x.key === m.key && x.pos === m.pos && (!sh || x.shift));
+    const d = (m.shift && build.find((e) => has(e, true))) || build.find((e) => has(e, false));
+    if (d) count.set(d, (count.get(d) || 0) + 1);
+  }
+  let w = null;
+  for (const [e, n] of count) if (n >= min && (!w || n > count.get(w))) w = e;
+  return w;
+}
+function weakRec(w, lead) {
+  const best = (exRec(w.id) || {}).best || 0;
+  return { ...(trackStep(w) || { id: w.id, tier: Math.min(3, Math.max(2, best)), mode: "flow" }), why: `${lead} on <b>${w.group} · ${w.name}</b>. Clean it up here, then back to the scale.` };
+}
+function recommend() {
+  const mine = DB.sessions.filter((s) => s.cfg === CFG_KEY), last = mine[0];
+  const regular = EXERCISES.filter((e) => !e.hunt && !e.custom);
+  const run = regular.find((e) => e.id === "shift" || e.id === "scale");
+  // The run and the run from the top first; the rhythms once the run has 🥇
+  const keys = regular.filter((e) => e.role === "key" && !e.rhythm).concat(run && ((exRec(run.id) || {}).best || 0) >= 3 ? regular.filter((e) => e.rhythm) : []);
+  const builds = regular.filter((e) => e.role === "build");
+  const lastEx = last && exById(last.ex);
+  const step = (e) => { const st = trackStep(e); return st && { ...st, why: stepWhy(e, st) }; };
+  if (lastEx && !lastEx.custom && !lastEx.hunt) {
+    if (last.score < PASS) {
+      // Three misses in a row on the scale: work on where it keeps going wrong. Otherwise, same again.
+      const n = mine.findIndex((s) => s.ex !== last.ex || s.score >= PASS);
+      const w = lastEx.role === "key" && (n < 0 ? mine.length : n) >= 3 && weakSpot(last.miss, 2);
+      if (w) return weakRec(w, "Three misses in a row, most of them");
+      return { id: lastEx.id, tier: last.tier, ...(lastEx.rhythm ? {} : { mode: last.mode }), why: `Not passed yet. Same again, for ${TIERS[last.tier].icon} ±${TIERS[last.tier].tol}¢.` };
+    }
+    if (lastEx.role === "key") {
+      const w = weakSpot(last.miss, 3);
+      if (w) return weakRec(w, "Passed, but 3 or more misses landed");
+      // Rotate through the scale drills, each moving along its own track
+      const i = keys.indexOf(lastEx);
+      for (const e of keys.slice(i + 1).concat(keys.slice(0, i + 1))) { const st = step(e); if (st) return st; }
+    }
+    if (lastEx.role === "build") { const st = step(lastEx); if (st) return st; }
+  }
+  // Before the scale's been tried, the build-up drills in order (from where you are); after, the scale
+  const started = keys.some((e) => exRec(e.id));
+  const after = lastEx && lastEx.role === "build" ? builds.slice(builds.indexOf(lastEx) + 1) : [];
+  for (const e of started ? keys.concat(after, builds) : after.concat(builds, keys)) { const st = step(e); if (st) return st; }
+  return { id: "hunt", tier: 3, why: `Everything's mastered at ${goalText()}! Raise the goal tempo, or keep it sharp with Note Hunt and Ears first.` };
+}
+// Select a recommendation, with its mode and tempo. Lock-in stays Lock-in for Flow steps (you're still learning the notes).
+function applyRec(n) {
+  const s = DB.settings;
+  if (n.mode === "tempo" || (n.mode === "flow" && s.mode === "tempo")) s.mode = n.mode;
+  if (n.per) s.per = n.per;
+  selectEx(n.id, n.tier);
+  if (n.bpm && n.bpm !== s.bpm) { s.bpm = n.bpm; save(); renderAll(); }
+}
+const recIsCurrent = (n) => { const s = DB.settings; return n.id === DB.selected && n.tier === s.tier && (!n.mode || n.mode === s.mode || (n.mode === "flow" && s.mode === "lock")) && (!n.bpm || n.bpm === s.bpm) && (!n.per || n.per === s.per); };
+const recLabel = (n) => `${exById(n.id).name} ${TIERS[n.tier].icon}${n.mode === "tempo" && n.bpm ? ` ⏱ ♩=${n.bpm}` : ""}`;
 
 function renderNext() {
   if (isPath()) return renderPathNext();
   const n = recommend(), ex = exById(n.id);
-  $("#nextUp").innerHTML = `<h3>Next up</h3><div class="nx-title">${ex.group} · ${ex.name} ${TIERS[n.tier].icon}</div><div class="nx-why">${n.why}</div><button id="nxGo">Start this drill</button>`;
-  $("#nxGo").onclick = async () => { selectEx(n.id, n.tier); if (await startAudio()) startRun(); };
+  $("#nextUp").innerHTML = `<h3>Next up</h3><div class="nx-title">${ex.group} · ${recLabel(n)}</div><div class="nx-why">${n.why}</div><button id="nxGo">Start this drill</button>`;
+  $("#nxGo").onclick = async () => { applyRec(n); if (await startAudio()) startRun(); };
 }
 
 const ROLE = { review: "Review", focus: "Focus", support: "Groundwork", bonus: "Bonus", extra: "Extra" };
@@ -2045,7 +2120,8 @@ function renderExList() {
   for (const e of EXERCISES) {
     if (e.group !== grp) { grp = e.group; h += `<div class="ex-group">${grp}</div>`; }
     const best = (exRec(e.id) || {}).best || 0;
-    h += `<button class="ex ${DB.selected === e.id ? "sel" : ""}" data-id="${e.id}"><span><div class="nm">${e.name}</div><div class="fr">${e.frame}</div></span><span class="medals">${[1, 2, 3].map((t) => `<span class="${best >= t ? "on" : ""}">${TIERS[t].icon}</span>`).join("")}</span></button>`;
+    const tt = trackText(e);
+    h += `<button class="ex ${DB.selected === e.id ? "sel" : ""}" data-id="${e.id}"><span><div class="nm">${e.name}</div><div class="fr">${e.frame}</div>${tt ? `<div class="fr goal">${tt}</div>` : ""}</span><span class="medals">${[1, 2, 3].map((t) => `<span class="${best >= t ? "on" : ""}">${TIERS[t].icon}</span>`).join("")}</span></button>`;
   }
   $("#exList").innerHTML = h;
   document.querySelectorAll("#exList .ex").forEach((b) => (b.onclick = () => { if (run) stopRun(); selectEx(b.dataset.id); }));
@@ -2066,7 +2142,7 @@ function selectEx(id, tier) {
   if (ex.rhythm) {
     // A rhythm drill picks up where its ladder left off, or starts at its own tempo with clicks on 8ths
     const lad = (exRec(id) || {}).rhythm;
-    if (!lad) { DB.settings.bpm = ex.def.bpm || DB.settings.bpm; DB.settings.clicks = 2; }
+    if (!lad) { DB.settings.bpm = (ex.def && ex.def.bpm) || (ex.custom ? DB.settings.bpm : goalStart()); DB.settings.clicks = 2; }
     else if (DB.settings.ladder) { DB.settings.bpm = lad.bpm; DB.settings.clicks = lad.clicks; }
   } else {
     if (ex.custom && ex.def.notesPerBeat) DB.settings.per = ex.def.notesPerBeat;
@@ -2161,6 +2237,9 @@ function renderConfig() {
   $("#cfgStrs").textContent = c.strings.length > 1 ? `Uses ${c.strings.length} strings: ${c.strings.join(" · ")}` : `Uses the ${c.strings[0]} string only`;
   $("#cfgPos").innerHTML = [1, 2, 3, 4, 5, 6, 7].map((p) => `<button data-p="${p}" class="${c.positions.includes(p) ? "on" : ""}" aria-pressed="${c.positions.includes(p)}" title="${ord(p)} position">${ord(p)}</button>`).join("");
   document.querySelectorAll("#cfgPos button").forEach((b) => (b.onclick = () => togglePosition(+b.dataset.p)));
+  const G = goalOf();
+  if (document.activeElement !== $("#cfgGoalBpm")) $("#cfgGoalBpm").value = G.bpm;
+  $("#cfgGoalPer").value = G.per;
   const ex = exById(DB.selected);
   $("#cfgLabel").textContent = isPath() ? `Path · ${ex.path ? `Stage ${C.BY_ID[ex.nodeId].stage}: ${C.STAGES[C.BY_ID[ex.nodeId].stage].name}` : "my drill"}` : Scales.cfgLabel(c);
   $("#droneName").textContent = `${ex.custom && ex.drone ? DrillIO.parseNote(ex.drone + "4").label : Scales.prettyTonic(curKey().tonic)} drone`;
@@ -2379,6 +2458,9 @@ $("#reportList").onclick = (e) => {
 
 document.querySelectorAll("#viewSeg button").forEach((b) => (b.onclick = () => changeView(b.dataset.v)));
 $("#cfgType").onchange = (e) => changeConfig({ type: e.target.value });
+const setGoal = (patch) => { DB.goals[CFG_KEY] = { ...goalOf(), ...patch }; save(); renderAll(); };
+$("#cfgGoalBpm").onchange = (e) => setGoal({ bpm: Math.max(30, Math.min(200, Math.round(+e.target.value) || DEFAULT_GOAL.bpm)) });
+$("#cfgGoalPer").onchange = (e) => setGoal({ per: +e.target.value });
 $("#cfgTonic").onchange = (e) => changeConfig({ tonic: e.target.value });
 $("#cfgStrLo").onchange = (e) => changeConfig({ strings: [e.target.value, $("#cfgStrHi").value] });
 $("#cfgStrHi").onchange = (e) => changeConfig({ strings: [$("#cfgStrLo").value, e.target.value] });

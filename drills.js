@@ -184,6 +184,7 @@
       const o = { note: noteText(it), string: it.string, finger: it.finger === "4x" ? "4x" : +it.finger };
       if (it.pos) o.position = it.pos;
       if (it.guide) o.guide = noteText(it.guide);
+      if (it.beats !== undefined) o.beats = Math.round(it.beats * 1000) / 1000;
       return o;
     }) };
   }
