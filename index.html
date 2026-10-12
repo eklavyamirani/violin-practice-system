@@ -154,9 +154,10 @@ main { max-width: 1280px; margin: 0 auto; padding: 1rem; }
 .gneedle { position: absolute; top: 6px; bottom: 6px; width: 8px; margin-left: -4px; border-radius: 4px; background: var(--muted); left: 50%; transition: left .08s linear, background .15s; opacity: 0; }
 .gscale { display: flex; justify-content: space-between; font-size: .72rem; color: var(--muted); margin-top: .3rem; }
 .gread { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: .5rem; gap: 1rem; }
-.gread .cents { font-size: 2rem; font-weight: 800; font-variant-numeric: tabular-nums; }
-.gread .dir { font-weight: 600; text-align: right; }
-.msg { padding: .8rem 1rem; border-radius: 12px; background: var(--panel-2); font-weight: 600; min-height: 3rem; display: flex; align-items: center; gap: .5rem; }
+.gread .cents { font-size: 2.6rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+/* The live hints are read from a music-stand distance while playing, so they're big */
+.gread .dir { font-size: 1.6rem; font-weight: 800; text-align: right; line-height: 1.2; }
+.msg { padding: .8rem 1rem; border-radius: 12px; background: var(--panel-2); font-weight: 700; font-size: 1.35rem; line-height: 1.3; min-height: 3rem; display: flex; align-items: center; gap: .5rem; }
 .msg.good { background: color-mix(in srgb, var(--good) 18%, var(--panel)); }
 .msg.bad { background: color-mix(in srgb, var(--bad) 18%, var(--panel)); }
 .runstats { display: flex; gap: 1.5rem; font-size: .9rem; color: var(--muted); flex-wrap: wrap; }
@@ -167,7 +168,7 @@ main { max-width: 1280px; margin: 0 auto; padding: 1rem; }
 .boardcard { padding: .8rem; text-align: center; }
 #board { width: 100%; max-width: 210px; height: auto; display: block; margin: 0 auto; }
 #board.hideguide .guide { display: none; }
-#mm { font-size: .82rem; color: var(--muted); min-height: 2.4em; margin-top: .3rem; }
+#mm { font-size: 1.15rem; font-weight: 700; min-height: 2.4em; margin-top: .3rem; }
 
 /* Piece */
 .pcgrid { display: grid; grid-template-columns: 320px minmax(0, 1fr); gap: 1rem; align-items: start; }
@@ -893,12 +894,20 @@ function stableMedian(t) {
 }
 
 // ---------- Calibration ----------
+// Waits up to CALIB_WAIT_MS for the A to start, then measures 2.5 s from when it's first heard steadily
+const CALIB_WAIT_MS = 20000, CALIB_MS = 2500;
 function calibStep(t) {
-  const x = frames[frames.length - 1];
-  if (x.f > 400 && x.f < 480) calib.samples.push(x.f);
+  const x = frames[frames.length - 1], isA = x.f > 400 && x.f < 480;
   $("#bigNote").innerHTML = "A";
-  $("#cents").textContent = x.f > 400 && x.f < 480 ? x.f.toFixed(1) + " Hz" : "…";
-  if (t - calib.start < 2500) return;
+  $("#cents").textContent = isA ? x.f.toFixed(1) + " Hz" : "…";
+  if (!calib.heard) {
+    calib.streak = isA ? (calib.streak || 0) + 1 : 0;
+    if (calib.streak >= 6) { calib.heard = t; setMsg("🎻 Hearing your A. Keep bowing…"); }
+    else if (t - calib.start > CALIB_WAIT_MS) { calib = null; setMsg("I didn't hear an open A. Press <b>Tune from open A</b> to try again.", "bad"); }
+    return;
+  }
+  if (isA) calib.samples.push(x.f);
+  if (t - calib.heard < CALIB_MS) return;
   const s = calib.samples;
   calib = null;
   if (s.length < 40) { setMsg("I couldn't hear a steady open A. Try again, bowing a long, even note.", "bad"); return; }
@@ -934,6 +943,7 @@ function startRun(seq) {
   if (mode === "tempo" && !ctx) { startAudio().then((ok) => ok && startRun(seq)); return; }
   if (piece) stopPiece();
   stopHearing();
+  calib = null; // starting a drill cancels a tuning that's still waiting for the A
   const P = ex.path ? pathLevel(ex) : null; // path skills are judged against their level's windows, not the medal tiers
   run = { ex, seq: seq || (ex.hunt ? buildHunt() : ex.notes), idx: 0, mode, tier: P ? (P.level === "learning" ? 1 : 2) : s.tier, tol: P ? P.L.window : TIERS[s.tier].tol,
     results: [], combo: 0, maxCombo: 0, xp: 0, t0: performance.now() };
@@ -1689,12 +1699,12 @@ function render() {
     needle.style.opacity = 1;
     needle.style.background = colorFor(Math.abs(dev), tol);
     $("#cents").textContent = `${dev > 0 ? "+" : dev < 0 ? "−" : ""}${Math.abs(dev).toFixed(0)}¢`;
-    $("#cents").style.color = colorFor(Math.abs(dev), tol);
+    $("#cents").style.color = $("#dir").style.color = colorFor(Math.abs(dev), tol);
     $("#dir").textContent = Math.abs(dev) <= tol ? (cur ? "In tune ✓" : `${noteName(ref)} ✓`) : dev > 0 ? `${cur ? "" : noteName(ref) + " "}Sharp → toward the scroll` : `${cur ? "" : noteName(ref) + " "}Flat → toward the bridge`;
     if (!cur) $("#bigNote").innerHTML = noteHTML(ref);
   } else {
     needle.style.opacity = 0;
-    $("#cents").style.color = "";
+    $("#cents").style.color = $("#dir").style.color = "";
     if (hideNeedle) { $("#cents").textContent = "👂"; $("#dir").textContent = "Listen, land, then look"; }
     else if (smooth !== null && cur) { $("#cents").textContent = "—"; $("#dir").textContent = `Hearing ${noteName(Math.round(smooth))}`; }
     else { $("#cents").textContent = "—"; $("#dir").textContent = ""; }
@@ -1967,25 +1977,26 @@ function barChart(vals, labels, tol, max, top, bottom, colors, titles) {
 }
 
 // Recommendation: lowest medal first, rotating so you don't repeat the same drill (interleaving)
+// Free practice moves through the drills in order: a run that misses stays on that drill (so you can jump ahead
+// to the full scale and keep at it), a pass moves to the next drill that isn't gold yet. Note Hunt only comes up
+// when you pick it, or once everything's gold.
 function recommend() {
-  const mine = DB.sessions.filter((s) => s.cfg === CFG_KEY);
-  const last = mine[0];
-  const totalRuns = mine.length;
+  const last = DB.sessions.find((s) => s.cfg === CFG_KEY);
   const regular = EXERCISES.filter((e) => !e.hunt && !e.custom);
-  const huntDue = totalRuns >= 3 && mine.slice(0, 3).every((s) => s.ex !== "hunt");
-  if (huntDue) return { id: "hunt", tier: Math.min(3, ((exRec("hunt") || {}).best || 0) + 1), why: "Time to mix it up. Random notes, weighted toward your weakest ones." };
-  const cands = regular.map((e, i) => ({ e, i, best: (exRec(e.id) || {}).best || 0, last: (exRec(e.id) || {}).last || 0 }))
-    .filter((c) => c.best < 3);
-  if (!cands.length) return { id: "hunt", tier: 3, why: "Everything's gold! Keep it sharp with Note Hunt and Ears first." };
-  cands.sort((a, b) => a.best - b.best || (a.i - b.i));
-  let pick = cands[0];
-  if (last && pick.e.id === last.ex && cands.length > 1 && !(last.tier === pick.best + 1 && last.score < PASS && last.score > 0.6)) {
-    const alt = cands.find((c) => c.e.id !== last.ex && c.best <= pick.best + 1);
-    if (alt) pick = alt;
+  const best = (e) => (exRec(e.id) || {}).best || 0;
+  const pick = (e) => {
+    const b = best(e), tier = Math.min(3, b + 1);
+    return { id: e.id, tier, why: b === 0 ? ((exRec(e.id) || {}).last ? "No medal yet. Go get the bronze." : "New drill. Start with the bronze target.") : `You have ${TIERS[b].icon}. Now tighten to ±${TIERS[tier].tol}¢.` };
+  };
+  const lastEx = last && exById(last.ex);
+  if (lastEx && !lastEx.custom) {
+    if (last.score < PASS) return { id: lastEx.id, tier: last.tier, why: `Not passed yet. Again, aiming for ${TIERS[last.tier].icon} ±${TIERS[last.tier].tol}¢.` };
+    const after = lastEx.hunt ? regular : regular.slice(regular.indexOf(lastEx) + 1);
+    const nxt = after.find((e) => best(e) < 3) || (!lastEx.hunt && best(lastEx) < 3 ? lastEx : null);
+    if (nxt) return pick(nxt);
   }
-  const tier = Math.min(3, pick.best + 1);
-  const why = pick.best === 0 ? (pick.last ? "No medal yet. Go get the bronze." : "New drill. Start with the bronze target.") : `You have ${TIERS[pick.best].icon}. Now tighten to ±${TIERS[tier].tol}¢.`;
-  return { id: pick.e.id, tier, why };
+  const first = regular.find((e) => best(e) < 3);
+  return first ? pick(first) : { id: "hunt", tier: 3, why: "Everything's gold! Keep it sharp with Note Hunt and Ears first." };
 }
 
 function renderNext() {
@@ -2279,7 +2290,7 @@ $("#calibBtn").onclick = async () => {
   if (!(await startAudio())) return;
   if (run) stopRun();
   calib = { start: performance.now(), samples: [] };
-  setMsg("🎻 Bow your open A string steadily for 2–3 seconds…");
+  setMsg("🎻 Bow your open A string steadily for 2–3 seconds. Take your time to get set: it waits for the A.");
 };
 $("#resetBtn").onclick = () => {
   if (!confirm("Erase all medals, XP, streak and note history?")) return;

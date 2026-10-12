@@ -58,6 +58,10 @@ const g135 = S.buildDrills({ tonic: "G", type: "major", strings: ["G", "D", "A",
 eq("G 1-3-5 run", byId(g135, "shift").name, "G3→G6 with 2 shifts");
 eq("G 1-3-5 shifts", byId(g135, "shift").notes.filter((n) => n.shift).map((n) => `${n.shift}${n.pos}`), ["up3", "up5", "down3", "down1"]);
 eq("G 1-3-5 down pairs", g135.filter((d) => d.group === "Shifting down").map((d) => d.id), ["down-3-1-D", "down-5-3-E", "down-run"]);
+// The usual climb: shift to 3rd on A, cross to E in 3rd, shift to 5th on E (not both shifts on the A string)
+const d135 = S.buildDrills({ tonic: "D", type: "major", strings: ["D", "A", "E"], positions: [1, 3, 5] });
+eq("D 1-3-5 frame", byId(d135, "shift").frame, "1st: 0 1 2 3 0 1 2 ⇡ 3rd: 1 2 3 4 1 2 ⇡ 5th: 1 2");
+eq("D 1-3-5 shifts", byId(d135, "shift").notes.filter((n) => n.shift === "up").map((n) => `${n.label}${n.oct}:${n.string}${n.finger}@${n.pos}`), ["D5:A1@3", "C♯6:E1@5"]);
 // A shift never leaves from an open string (the hand has nothing to slide on)
 eq("A 1-3 shift", byId(S.buildDrills({ tonic: "A", type: "major", strings: ["A", "E"], positions: [1, 3] }), "shift").frame, "1st: 0 1 2 ⇡ 3rd: 1 2 3 4 1");
 // Fallback span: open G isn't in E major, so start from the 1st finger

@@ -102,30 +102,34 @@
     };
     // Rank: open strings, then fingers, then the stretched 4th
     const rank = (o) => (o.finger === "0" ? 0 : o.finger === "4x" ? 2 : 1);
-    const shiftScore = (a, b) => (b.finger === "1" ? 4 : 0) + (b.midi - a.midi === 1 ? 2 : 0) + (+b.finger <= +a.finger ? 1 : 0);
+    const shiftScore = (a, b) => (b.finger === "1" ? 4 : 0) + (b.midi - a.midi === 1 ? 2 : 0) + (+b.finger <= +a.finger ? 1 : 0) - (a.finger === "4" ? 1 : 0); // the 4th finger is the weakest to slide on
     const route = (sp, midis) => {
       const av = avail(sp), n = midis.length, m = positions.length, memo = new Map();
       const cands = (i, j) => av.filter((o) => o.midi === midis[i] && (o.finger === "0" ? j === 0 : o.pos === positions[j]) && (o.finger !== "4x" || i === n - 1))
         .sort((a, b) => rank(a) - rank(b));
-      // Best way to play notes i.. when the previous note `a` was in positions[j], `len` notes into that position.
-      // Each position gets at least 2 notes, and a shift always leaves from a stopped (not open) note.
-      const go = (i, j, a, len) => {
+      // Best way to play notes i.. when the previous note `a` was in positions[j], `len` notes into that position,
+      // and the last shift landed on string `ls`. Each position gets at least 2 notes, and a shift always leaves
+      // from a stopped (not open) note. Between equally good routes, the one that doesn't shift twice on the same string wins,
+      // so a scale climbs the way it's usually taught: shift on one string, cross over in the new position, shift
+      // again on the next (D major on D–E through 1st, 3rd & 5th shifts to 3rd on A and to 5th on E, not twice on A).
+      const go = (i, j, a, len, ls) => {
         if (i === n) return j === m - 1 && len >= 2 ? { score: 0, seq: [] } : null;
-        const key = `${i}|${j}|${a ? a.key + a.finger : ""}|${Math.min(len, 2)}`;
+        const key = `${i}|${j}|${a ? a.key + a.finger : ""}|${Math.min(len, 2)}|${ls || ""}`;
         if (memo.has(key)) return memo.get(key);
         let best = null;
         const steps = a && j + 1 < m && len >= 2 && a.finger !== "0" ? [j + 1, j] : [j]; // shift first: on a tie the earlier shift wins
         for (const jj of steps) for (const b of cands(i, jj)) {
           if (a && STRING_ORDER.indexOf(b.string) < STRING_ORDER.indexOf(a.string)) continue;
-          const rest = go(i + 1, jj, b, jj === j ? len + 1 : 1);
+          const shift = jj !== j;
+          const rest = go(i + 1, jj, b, shift ? 1 : len + 1, shift ? b.string : ls);
           if (!rest) continue;
-          const score = rest.score + (jj !== j ? shiftScore(a, b) : 0) - (b.finger === "4x" ? 1 : 0) + (b.finger === "0" ? 0.01 : 0);
+          const score = rest.score + (shift ? shiftScore(a, b) - (b.string === ls ? 0.5 : 0) : 0) - (b.finger === "4x" ? 1 : 0) + (b.finger === "0" ? 0.01 : 0);
           if (!best || score > best.score) best = { score, seq: [b, ...rest.seq] };
         }
         memo.set(key, best);
         return best;
       };
-      const r = go(0, 0, null, 0);
+      const r = go(0, 0, null, 0, null);
       return r && r.seq;
     };
     // Up and down share their end notes (melodic minor's two forms can differ at the edges of a span)
