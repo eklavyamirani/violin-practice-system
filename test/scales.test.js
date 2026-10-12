@@ -58,6 +58,18 @@ const g135 = S.buildDrills({ tonic: "G", type: "major", strings: ["G", "D", "A",
 eq("G 1-3-5 run", byId(g135, "shift").name, "G3→G6 with 2 shifts");
 eq("G 1-3-5 shifts", byId(g135, "shift").notes.filter((n) => n.shift).map((n) => `${n.shift}${n.pos}`), ["up3", "up5", "down3", "down1"]);
 eq("G 1-3-5 down pairs", g135.filter((d) => d.group === "Shifting down").map((d) => d.id), ["down-3-1-D", "down-5-3-E", "down-run"]);
+// The usual climb: shift to 3rd on A, cross to E in 3rd, shift to 5th on E (not both shifts on the A string)
+const d135 = S.buildDrills({ tonic: "D", type: "major", strings: ["D", "A", "E"], positions: [1, 3, 5] });
+eq("D 1-3-5 frame", byId(d135, "shift").frame, "1st: 0 1 2 3 0 1 2 ⇡ 3rd: 1 2 3 4 1 2 ⇡ 5th: 1 2");
+eq("D 1-3-5 shifts", byId(d135, "shift").notes.filter((n) => n.shift === "up").map((n) => `${n.label}${n.oct}:${n.string}${n.finger}@${n.pos}`), ["D5:A1@3", "C♯6:E1@5"]);
+// Rhythm variants of the run: same notes, dotted pairs or triplets, ending on a note that fills the bar
+const rh = (id) => byId(d135, id);
+eq("D rhythms", d135.filter((d) => d.group === "Rhythms").map((d) => d.id), ["rh-dotted", "rh-snap", "rh-triplets"]);
+eq("D rhythm notes", rh("rh-dotted").notes.map((n) => n.midi), byId(d135, "shift").notes.map((n) => n.midi));
+eq("D dotted", rh("rh-dotted").notes.slice(0, 4).map((n) => [n.beats, n.at]), [[0.75, 0], [0.25, 0.75], [0.75, 1], [0.25, 1.75]]);
+eq("D snap", rh("rh-snap").notes.slice(0, 2).map((n) => n.beats), [0.25, 0.75]);
+eq("D rhythm totals", ["rh-dotted", "rh-snap", "rh-triplets"].map((id) => rh(id).rhythm.total), [16, 16, 12]);
+eq("D roles", [...new Set(d135.filter((d) => d.role === "key").map((d) => d.id))], ["shift", "rh-dotted", "rh-snap", "rh-triplets", "down-run"]);
 // A shift never leaves from an open string (the hand has nothing to slide on)
 eq("A 1-3 shift", byId(S.buildDrills({ tonic: "A", type: "major", strings: ["A", "E"], positions: [1, 3] }), "shift").frame, "1st: 0 1 2 ⇡ 3rd: 1 2 3 4 1");
 // Fallback span: open G isn't in E major, so start from the 1st finger

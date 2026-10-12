@@ -35,9 +35,18 @@ The thresholds are starting defaults, not published norms. They live in `LEVELS`
 Use the **Scale** card to pick a key (12 per scale type), a scale type (major, natural minor, harmonic minor, melodic minor), a range of strings (from one string up to all four, e.g. G to E) and one to four positions (1st–7th, e.g. just 1st, 1st & 3rd, just 3rd, or 1st, 3rd & 5th). It generates the drills for that setup:
 
 - each string on its own in each position, and all the chosen strings together. In 1st position these include the open strings when the key has them, and when crossing strings the next open string takes the place of the 4th finger, so the all-strings drill covers the whole range (D minor on D to E: D4 up to B♭5 and back). Note Hunt includes those open strings too;
-- a scale run, as many octaves (up to 3) from tonic to tonic as fit. With one position it stays there. With several it climbs through them in order, shifting once between each pair. When 1st position is chosen, the run uses open strings, so G major in 1st position on G to E is the usual two-octave G3–G5;
+- a scale run, as many octaves (up to 3) from tonic to tonic as fit. With one position it stays there. With several it climbs through them in order, shifting once between each pair, and prefers to shift on one string, cross over in the new position, then make the next shift on the next string (D major on D to E through 1st, 3rd & 5th: shift to 3rd on A, cross to E, shift to 5th on E). It avoids sliding on the 4th finger. When 1st position is chosen, the run uses open strings, so G major in 1st position on G to E is the usual two-octave G3–G5;
 - an adaptive Note Hunt;
 - with two or more positions, *Shifting down* drills: repeated down-shift pairs with guide notes for each neighbouring pair of positions (on each string, or on the strings the run shifts on when there are more than two), plus a run that starts at the top so you shift down first. Medals and history are kept separately for each setup. Where each note tends to land is tracked per physical spot on the string, so it's shared across scales.
+
+**Working toward the full scale.** The full scale is the target: the run, the run from the top (*From the top*) and its three rhythms (*Rhythms*: dotted long–short ¾ + ¼, dotted short–long ¼ + ¾, and triplets, all with the same notes and fingering). Each of these goes 🥉 → 🥈 → 🥇 in Flow, then 🥇 in Tempo from 75% of the **Goal** tempo (set on the Scale card, e.g. ♩=60 × 2 notes per beat), up 6% after 3 passes in a row, until it passes at the goal (rhythms: with the clicks on beats). The rhythms join in once the plain run has 🥇. The build-up drills (each string and position, the shift pairs) only need 🥈.
+
+**Next drill:**
+- A missed run stays on that drill, so you can jump straight to the full scale and keep at it (playing its first note hands-free goes again).
+- A pass on a scale drill moves to the next scale drill that still has a step to make, so the run, the run from the top and the rhythms take turns.
+- If 3 or more of a passed run's misses (or 2 or more after three misses in a row) land in one build-up drill's notes, that drill comes next: shift landings go to the shift pairs, the rest to the string and position. Then it's back to the scale.
+- Before you've tried the scale, the build-up drills come in order, carrying on from the one you just did.
+- Note Hunt only comes up when you pick it, or once everything is done.
 
 ## Rhythm drills
 
