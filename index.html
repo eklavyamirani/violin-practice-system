@@ -475,6 +475,7 @@ main { max-width: 1280px; margin: 0 auto; padding: 1rem; }
       <div style="display:grid;gap:1rem;align-content:start">
         <div class="card"><h3>Last 4 weeks</h3><div class="cal" id="cal"></div></div>
         <div class="card"><h3>Recent runs</h3><div id="sessList"></div><button class="linkbtn" id="resetBtn">Reset all progress</button></div>
+        <div class="card" id="syncCard" hidden><h3>Sync across devices</h3><p class="muted" id="syncStatus" style="margin:.2rem 0 .7rem;font-size:.84rem"></p><button id="syncBtn"></button></div>
       </div>
     </div>
   </section>
@@ -535,6 +536,7 @@ window.addEventListener("error", (e) => {
 <script src="drills.js"></script>
 <script src="piece.js"></script>
 <script src="rhythm.js"></script>
+<script src="sync.js"></script>
 <script>
 "use strict";
 const $ = (s) => document.querySelector(s);
@@ -630,7 +632,7 @@ function migrate(d) {
   return d;
 }
 let DB = loadDB();
-const save = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(DB)); } catch (e) {} };
+const save = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(DB)); } catch (e) {} Sync.changed(); };
 const dayKey = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 function streak() {
   const d = new Date();
@@ -2469,6 +2471,27 @@ applyConfig();
 if (exById(DB.selected).path) selectEx(DB.selected); // a path skill brings its own tempo
 else renderAll();
 loadPacks();
+
+// Sync across devices (sync.js): only where the app platform serves a runtime config.
+Sync.onStatus((st) => {
+  $("#syncCard").hidden = !Sync.enabled();
+  const on = Sync.signedIn(), name = Sync.who();
+  $("#syncStatus").textContent = on
+    ? `Signed in${name ? ` as ${name}` : ""}. ${st.text}`
+    : st.text || "Sign in to keep your progress on all your devices. Practice works offline either way.";
+  $("#syncBtn").textContent = on ? "Sign out" : "Sign in";
+});
+$("#syncBtn").onclick = () => (Sync.signedIn() ? Sync.signOut() : Sync.signIn());
+Sync.start({
+  get: () => DB,
+  // Another device's progress, merged: keep this device's settings and selection.
+  set: (doc) => {
+    DB = migrate(Object.assign(defaults(), doc, { settings: DB.settings, selected: DB.selected }));
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(DB)); } catch (e) {}
+    renderAll();
+  },
+  idle: () => !run,
+});
 </script>
 </body>
 </html>
