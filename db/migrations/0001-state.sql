@@ -1,4 +1,4 @@
--- Progress sync (app-platform record 0042): one JSON document per person,
+-- Progress sync (app-platform record 0046): one JSON document per person,
 -- the app's localStorage DB without its per-device keys (sync.js). Served by
 -- the platform's PostgREST, which exposes only schema "api":
 --

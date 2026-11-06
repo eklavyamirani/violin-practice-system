@@ -1,5 +1,5 @@
 #!/bin/sh
-# Database image of a PostgREST app (app-platform record 0042; copied from
+# Database image of a PostgREST app (app-platform record 0046; copied from
 # templates/postgrest-db/). The platform runs it as the database owner:
 #
 #   migrate.sh migrate   before each deploy: apply migrations/*.sql in name

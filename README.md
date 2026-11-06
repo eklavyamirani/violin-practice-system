@@ -105,7 +105,7 @@ Built-in drills keep reports too, and any report can be imported as a drill. Cla
 
 ## Sync across devices
 
-On the app platform (`eklavyamirani/app-platform`, record 0042) the **Progress** tab has a **Sync across devices** card: sign in once per device and your progress follows you. The app still keeps everything in the browser and works offline; it syncs when it starts, a few seconds after each change, and when you come back to the tab.
+On the app platform (`eklavyamirani/app-platform`, record 0046) the **Progress** tab has a **Sync across devices** card: sign in once per device and your progress follows you. The app still keeps everything in the browser and works offline; it syncs when it starts, a few seconds after each change, and when you come back to the tab.
 
 - What syncs: XP, streak days, medals, note history, recent runs, path progress, goals, your drills and piece analyses. Settings (iPad mic mode, timing calibration, A4, …) and the selected drill stay on each device.
 - If you practised on two devices before they synced, both are kept: XP and practice counts add up, runs from both devices are listed, and something you deleted on one device stays deleted unless you changed it on the other.

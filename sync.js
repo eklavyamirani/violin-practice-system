@@ -1,4 +1,4 @@
-// Sync across devices (app-platform record 0042). When the app is served by
+// Sync across devices (app-platform record 0046). When the app is served by
 // the app platform, /runtime-config.json names the sign-in (Pocket ID) and
 // progress is kept in the platform's database as one document per person,
 // behind PostgREST (db/migrations). Elsewhere (GitHub Pages, a local
