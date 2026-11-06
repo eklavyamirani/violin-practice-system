@@ -103,6 +103,16 @@ The **My drills** tab lets you import drills written for you, for example by Cla
 
 Built-in drills keep reports too, and any report can be imported as a drill. Claude can also write rhythm drills for any passage: give every note a `beats` length and add `{"rest": …}` entries (see the format).
 
+## Sync across devices
+
+On the app platform (`eklavyamirani/app-platform`, record 0046) the **Progress** tab has a **Sync across devices** card: sign in once per device and your progress follows you. The app still keeps everything in the browser and works offline; it syncs when it starts, a few seconds after each change, and when you come back to the tab.
+
+- What syncs: XP, streak days, medals, note history, recent runs, path progress, goals, your drills and piece analyses. Settings (iPad mic mode, timing calibration, A4, …) and the selected drill stay on each device.
+- If you practised on two devices before they synced, both are kept: XP and practice counts add up, runs from both devices are listed, and something you deleted on one device stays deleted unless you changed it on the other.
+- Without the platform (GitHub Pages, `python3 -m http.server`) there is no sign-in and nothing leaves the browser, as before.
+
+How it works: `sync.js` (sign-in with PKCE, three-way merge against the last synced copy), `db/migrations/` (one row per person, row-level security, `api.get_state` / `api.put_state` served by the platform's PostgREST), `deploy/` (the web image), `.github/workflows/platform-images.yml` (images for the platform). `node test/sync.test.js` checks the merge.
+
 ## Run it
 
 ```bash
@@ -117,6 +127,7 @@ Then open http://localhost:8765 and allow microphone access. Chrome and Safari b
 - `node test/pitch.test.js` checks the pitch detector against synthesized violin-like tones (A3–B6).
 - `node test/piece.test.js` checks note splitting, intonation (including vibrato) and timing analysis on synthetic performances.
 - `node test/drills.test.js` checks drill import/export, including that every built-in drill exports and re-imports unchanged.
+- `node test/sync.test.js` checks the sync merge (both devices' progress kept, settings per device).
 - `node test/scales.test.js` checks scale spelling and generated fingerings for every key and scale type across a range of string and position choices.
 - `node test/curriculum.test.js` checks the Path graph (every skill can be fingered, prerequisites come first, keys need the positions claimed), its drills in both directions, the run metrics, and how skills progress.
 
