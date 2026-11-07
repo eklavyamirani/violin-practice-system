@@ -103,12 +103,25 @@ The **My drills** tab lets you import drills written for you, for example by Cla
 
 Built-in drills keep reports too, and any report can be imported as a drill. Claude can also write rhythm drills for any passage: give every note a `beats` length and add `{"rest": …}` entries (see the format).
 
+## Practice plans with Claude
+
+The **Plan** tab holds a practice schedule written for you by Claude: which days you practise, for how long, and what each session covers. Plans use the scale setups you choose, the same as the Scale card in Free practice. Nothing has to be unlocked on the Path first.
+
+1. Press **Copy format for Claude** on the Plan tab and paste it into a conversation with Claude. The format is also in `plan.js` (`FORMAT_DOC`). Say what you're working on (e.g. D major and D melodic minor through 3rd and 5th position on D to E) and which days you can practise.
+2. Paste the plan into **Import**. Drills written for the plan go into My drills. If something's wrong you get messages you can paste back. Importing a plan replaces the current one; what you practised is kept.
+3. On practice days the **Today** card (Practice tab) lists the session's steps with a timer for each. **Start** sets up the step: the scale setup and its part (full scale, from the top, rhythms, shift pairs, build-up drills or Note Hunt), a drill, Path reviews, tuning, or a piece recording.
+   - During a scale step, Next up stays on that part. A missed run stays on the run, and when the run's misses cluster in one spot it sends you to that spot's build-up drill and then back. Medals and tempo carry on as in Free practice.
+   - Time counts while you play, tune or record, and for up to 2 minutes between runs. A step is done once its minutes are in; you can also tick it done.
+4. Sessions take turns on the practice days. A missed day doesn't skip a session: the next practice day gets the one after the last one you practised. On a rest day you can **Practise anyway**.
+5. With a plan, the dots at the top are today's steps, and the 🔥 streak counts practice days in a row with the session done (80% of its minutes). Rest days don't break it.
+6. After a week or two, press **📋 Copy plan report for Claude**. It holds the plan, each day's steps (planned and practised minutes), and for each scale setup in the plan its drills' medals and tempo, plus recent runs with the notes missed. Paste it back and Claude writes the next plan.
+
 ## Sync across devices
 
 On the app platform (`eklavyamirani/app-platform`, record 0046) the **Progress** tab has a **Sync across devices** card: sign in once per device and your progress follows you. The app still keeps everything in the browser and works offline; it syncs when it starts, a few seconds after each change, and when you come back to the tab.
 
-- What syncs: XP, streak days, medals, note history, recent runs, path progress, goals, your drills and piece analyses. Settings (iPad mic mode, timing calibration, A4, …) and the selected drill stay on each device.
-- If you practised on two devices before they synced, both are kept: XP and practice counts add up, runs from both devices are listed, and something you deleted on one device stays deleted unless you changed it on the other.
+- What syncs: XP, streak days, medals, note history, recent runs, path progress, goals, your drills, your practice plan and what you practised of it, and piece analyses. Settings (iPad mic mode, timing calibration, A4, …) and the selected drill stay on each device.
+- If you practised on two devices before they synced, both are kept: XP, practice counts and plan minutes add up, runs from both devices are listed, and something you deleted on one device stays deleted unless you changed it on the other.
 - Without the platform (GitHub Pages, `python3 -m http.server`) there is no sign-in and nothing leaves the browser, as before.
 
 How it works: `sync.js` (sign-in with PKCE, three-way merge against the last synced copy), `db/migrations/` (one row per person, row-level security, `api.get_state` / `api.put_state` served by the platform's PostgREST), `deploy/` (the web image), `.github/workflows/platform-images.yml` (images for the platform). `node test/sync.test.js` checks the merge.
@@ -127,6 +140,7 @@ Then open http://localhost:8765 and allow microphone access. Chrome and Safari b
 - `node test/pitch.test.js` checks the pitch detector against synthesized violin-like tones (A3–B6).
 - `node test/piece.test.js` checks note splitting, intonation (including vibrato) and timing analysis on synthetic performances.
 - `node test/drills.test.js` checks drill import/export, including that every built-in drill exports and re-imports unchanged.
+- `node test/plan.test.js` checks practice plan import (keys, strings, parts, errors), the session rotation, the calendar and the streak.
 - `node test/sync.test.js` checks the sync merge (both devices' progress kept, settings per device).
 - `node test/scales.test.js` checks scale spelling and generated fingerings for every key and scale type across a range of string and position choices.
 - `node test/curriculum.test.js` checks the Path graph (every skill can be fingered, prerequisites come first, keys need the positions claimed), its drills in both directions, the run metrics, and how skills progress.
@@ -135,6 +149,7 @@ Then open http://localhost:8765 and allow microphone access. Chrome and Safari b
 
 - `index.html`: the app (UI, drills, scoring, progress)
 - `piece.js`: Piece tab analysis (note splitting, intonation, metronome and free timing, reports)
+- `plan.js`: practice plan format (documentation, validation), session rotation, calendar, streak and report days
 - `drills.js`: custom drill format (documentation, validation, import/export)
 - `curriculum.js`: Path mode (skill graph, drills per skill and direction, run metrics and pass criteria, tempo, mastery and review, what to practise next)
 - `scales.js`: scale spelling, position fingerings (including open strings), finger patterns and scale-run routing through the chosen positions
