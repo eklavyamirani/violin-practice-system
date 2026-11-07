@@ -82,5 +82,14 @@ const m6 = merge3(base, L, M);
 check("key order is not a change", m6.custom.length === 2 && m6.notes.A4.recent[0] === 9 && m6.xp === 500, m6);
 check("merge with only reordered keys = mine", eq(merge3(base, L, keyOrder(clone(base))), L));
 
+// Practice plan log: minutes on the same step from two devices add up; ticks and a new day from either are kept
+const pb = { planLog: { "2026-11-09": { plan: 1, session: 0, secs: { 1: 120 } } } };
+const pa = clone(pb), pm = clone(pb);
+pa.planLog["2026-11-09"].secs[1] = 300; pa.planLog["2026-11-09"].done = { 0: true };
+pm.planLog["2026-11-09"].secs[1] = 180; pm.planLog["2026-11-10"] = { plan: 1, session: 1, secs: { 0: 60 } };
+const m7 = merge3(pb, pa, pm);
+check("plan seconds add up", m7.planLog["2026-11-09"].secs[1] === 360, m7.planLog);
+check("plan tick and new day kept", m7.planLog["2026-11-09"].done[0] === true && m7.planLog["2026-11-10"].secs[0] === 60, m7.planLog);
+
 console.log(fails ? `${fails} failed` : "sync merge: all passed");
 process.exit(fails ? 1 : 0);
