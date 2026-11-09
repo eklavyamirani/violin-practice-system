@@ -122,6 +122,10 @@ On the app platform (`eklavyamirani/app-platform`, record 0046) the **Progress**
 - If you practised on two devices before they synced, both are kept: XP and practice counts add up, runs from both devices are listed, and something you deleted on one device stays deleted unless you changed it on the other.
 - Without the platform (GitHub Pages, `python3 -m http.server`) there is no sign-in and nothing leaves the browser, as before.
 
+### Progress file (backup, or moving to a preview)
+
+**Download progress** on the Progress tab saves everything that syncs (medals, note history, practice log, your drills, piece analyses) to a `fingerboard-coach/progress@1` JSON file. **Load progress file** replaces the progress on that copy of the app with the file's; the device's settings stay. Use it to keep a backup, or to try a preview (`violin-pr-<n>.app.ekkylab.uk`) with your real data. Previews have their own database seeded without anyone's data, so sign in on the preview, then load the file you downloaded from production. Nothing you do in the preview reaches production.
+
 How it works: `sync.js` (sign-in with PKCE, three-way merge against the last synced copy), `db/migrations/` (one row per person, row-level security, `api.get_state` / `api.put_state` served by the platform's PostgREST), `deploy/` (the web image), `.github/workflows/platform-images.yml` (images for the platform). `node test/sync.test.js` checks the merge.
 
 ## Run it

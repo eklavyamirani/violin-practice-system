@@ -1,5 +1,5 @@
 // Run: node test/sync.test.js — checks the three-way merge used to sync progress across devices.
-const { merge3, shared } = require("../sync.js");
+const { merge3, shared, backup, readBackup } = require("../sync.js");
 let fails = 0;
 const check = (name, ok, detail) => { if (!ok) { fails++; console.log(`FAIL ${name}`, detail !== undefined ? JSON.stringify(detail) : ""); } };
 const eq = (a, b) => JSON.stringify(a) === JSON.stringify(b);
@@ -81,6 +81,17 @@ const M = keyOrder(clone(base)); M.notes.A4.recent = [9];
 const m6 = merge3(base, L, M);
 check("key order is not a change", m6.custom.length === 2 && m6.notes.A4.recent[0] === 9 && m6.xp === 500, m6);
 check("merge with only reordered keys = mine", eq(merge3(base, L, keyOrder(clone(base))), L));
+
+// Progress file: the synced part only, read back unchanged; anything else is refused with a message
+const full = { ...clone(base), settings: { a4: 442 }, selected: "p5-E", log: [{ t: 1, key: "k", notes: [] }] };
+const file = JSON.stringify(backup(full, Date.UTC(2026, 10, 8)));
+const back = readBackup(file);
+check("progress file round-trips the synced part", eq(back, shared(full)) && back.log.length === 1, back);
+check("progress file leaves device settings out", back.settings === undefined && back.selected === undefined);
+const refuses = (text) => { try { readBackup(text); return false; } catch (e) { return /JSON|progress file/.test(e.message); } };
+check("not JSON refused", refuses("nope"));
+check("other JSON refused", refuses(JSON.stringify({ format: "fingerboard-coach/report@1", drill: {} })));
+check("missing progress refused", refuses(JSON.stringify({ format: "fingerboard-coach/progress@1" })));
 
 console.log(fails ? `${fails} failed` : "sync merge: all passed");
 process.exit(fails ? 1 : 0);

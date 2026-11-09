@@ -483,6 +483,8 @@ main { max-width: 1280px; margin: 0 auto; padding: 1rem; }
       <div style="display:grid;gap:1rem;align-content:start">
         <div class="card"><h3>Last 4 weeks</h3><div class="cal" id="cal"></div></div>
         <div class="card"><h3>Recent runs</h3><div id="sessList"></div><button class="linkbtn" id="resetBtn">Reset all progress</button></div>
+        <div class="card"><h3>Progress file</h3><p class="muted small">Download all your progress (medals, note history, practice log, your drills, piece analyses) as a backup, or to move it to another copy of the app, such as a preview. Loading a file replaces the progress here; this device's settings stay. On a site with sync, sign in first so it syncs there too.</p>
+          <div class="row"><button class="btn ghost" id="backupSave">⬇ Download progress</button><label class="btn ghost filebtn">Load progress file…<input type="file" id="backupLoad" accept=".json,application/json" hidden></label></div><p class="muted small" id="backupMsg"></p></div>
         <div class="card" id="syncCard" hidden><h3>Sync across devices</h3><p class="muted" id="syncStatus" style="margin:.2rem 0 .7rem;font-size:.84rem"></p><button id="syncBtn"></button></div>
       </div>
     </div>
@@ -2424,6 +2426,21 @@ $("#calibBtn").onclick = async () => {
 $("#resetBtn").onclick = () => {
   if (!confirm("Erase all medals, XP, streak and note history?")) return;
   const s = DB.settings; DB = defaults(); DB.settings = s; save(); renderAll();
+};
+$("#backupSave").onclick = () => download(`fingerboard-coach-progress-${dayKey()}.json`, JSON.stringify(Sync.backup(DB, Date.now())));
+$("#backupLoad").onchange = async (e) => {
+  const f = e.target.files[0];
+  e.target.value = "";
+  if (!f) return;
+  let p;
+  try { p = Sync.readBackup(await f.text()); } catch (err) { $("#backupMsg").textContent = err.message; return; }
+  const days = Object.keys(p.days || {}).length;
+  if (!confirm(`Replace the progress here with this file's (${p.xp || 0} XP, ${days} day${days === 1 ? "" : "s"} practised)? This device's settings stay.`)) return;
+  if (run) stopRun();
+  if (!Array.isArray(p.log)) p.log = PracticeLog.backfill(p.runs, Date.now());
+  DB = migrate(Object.assign(defaults(), p, { settings: DB.settings, selected: DB.selected }));
+  save(); applyConfig(); renderAll();
+  $("#backupMsg").textContent = `✓ Loaded progress from ${f.name}.${Sync.enabled() && Sync.signedIn() ? " It syncs to this site's account next." : ""}`;
 };
 document.addEventListener("keydown", async (e) => {
   if (["INPUT", "SELECT", "TEXTAREA"].includes(e.target.tagName)) return;
