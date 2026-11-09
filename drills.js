@@ -293,6 +293,9 @@ Rhythm example (a dotted quarter and an 8th, then a half note):
 ## Piece reports
 The Piece tab records a whole performance, without the score, and exports JSON with format "fingerboard-coach/piece-report@1". Each report includes its own "howToRead" field. It lists every note with its time, intonation and (with a metronome) timing against the click, plus tendencies, out-of-key notes, sections that sped up or slowed down, moments worth listening back to, and summaries of earlier performances of the same piece. Use it to suggest which passages to practise, then write drills (above) for the notes and shifts involved.
 
+## Practice logs
+"Copy practice log for Claude" (My drills) exports JSON with format "fingerboard-coach/practice-log@1": one session, a day, or the last 3–30 days, across every drill (the app keeps every run for 90 days). It has its own "howToRead" field. overview: runs, sessions, days, scores and intonation, split into an earlier and a later half with a trend. patterns: intonation after shifts up/down, by finger, position and string, the 30 worst spots (a pitch on a string, across all drills) with their own earlier/later trend, common wrong-note swaps, and timing in tempo runs. drills: each drill's runs, scores and tempos in order. claudeDrills: each imported drill, with its target spots before and after it was added, across all practice. sessions: every run, with coach notes and landings when "every note" is on. Use it to find habits that repeat across drills, write drills for them, and in a later log check whether those spots improved.
+
 How to read landings:
 - After a shift down, sharp = stopped short and flat = overshot.
 - After a shift up, sharp = overshot and flat = fell short.

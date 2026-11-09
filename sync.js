@@ -13,7 +13,7 @@
 
   // ---------- Three-way merge (pure; node test/sync.test.js) ----------
   const LOCAL_ONLY = ["settings", "selected"];
-  const CAPS = { sessions: 60, pieces: 10 }; // the app's own list limits
+  const CAPS = { sessions: 60, pieces: 10, log: 1000 }; // the app's own list limits (log: PracticeLog.KEEP_RUNS)
   const isObj = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
   // Key order doesn't matter (the server's jsonb reorders keys).
   const canon = (v) => (Array.isArray(v) ? `[${v.map(canon).join(",")}]`

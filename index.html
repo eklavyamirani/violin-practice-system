@@ -452,9 +452,17 @@ main { max-width: 1280px; margin: 0 auto; padding: 1rem; }
           </div>
           <div id="importMsg"></div>
         </div>
+        <div class="card">
+          <h3>Practice log for Claude</h3>
+          <p class="muted small">A whole session, or the last few days, across every drill: where notes land on each spot and after shifts, by finger, string and position, how each drill went, and whether the notes your imported drills target got better since you added them. Paste it to Claude to find the patterns and get drills for them; paste a later one to measure the change.</p>
+          <div class="cfgrow"><select id="logRange" aria-label="What to include"></select></div>
+          <label class="toggle"><input type="checkbox" id="logDetail"><span><b>Every note of every run</b><small>Each run's landings, not just the summaries. Best for a session or a day; over many days it gets long.</small></span></label>
+          <p class="muted small" id="logInfo"></p>
+          <div class="row"><button class="btn ghost" id="logCopy">📋 Copy practice log for Claude</button><button class="btn ghost" id="logSave">⬇ Save</button></div>
+        </div>
         <div class="card"><h3>Drill packs</h3><p class="muted small">Ready-made rhythm drills for passages from pieces. Adding a pack puts its drills in My drills.</p><div id="packList"></div></div>
         <div class="card"><h3>My drills</h3><div id="customList"></div></div>
-        <div class="card"><h3>Reports on other drills</h3><p class="muted small">Every drill you finish keeps its last 5 runs. Copy a report and paste it to Claude to talk through what's going wrong.</p><div id="reportList"></div></div>
+        <div class="card"><h3>Reports on other drills</h3><p class="muted small">Every drill you finish keeps its last 5 runs. Copy a report and paste it to Claude to talk through what's going wrong with one drill; for patterns across drills and days, use the practice log above.</p><div id="reportList"></div></div>
       </div>
       <div class="card formatcard">
         <div class="row" style="justify-content:space-between;margin:0 0 .6rem"><h3 style="margin:0">Drill &amp; report format</h3><button class="btn ghost" id="copyFormat">Copy format for Claude</button></div>
@@ -534,6 +542,7 @@ window.addEventListener("error", (e) => {
 <script src="scales.js"></script>
 <script src="curriculum.js"></script>
 <script src="drills.js"></script>
+<script src="practicelog.js"></script>
 <script src="piece.js"></script>
 <script src="rhythm.js"></script>
 <script src="sync.js"></script>
@@ -611,12 +620,14 @@ function applyRange() {
 
 // ---------- Storage ----------
 const STORE_KEY = "fingerboard-coach.v1";
-const defaults = () => ({ xp: 0, notes: {}, ex: {}, days: {}, sessions: [], selected: "p3-A", cfg: { ...DEFAULT_CFG }, custom: [], runs: {}, path: { states: {}, session: null }, goals: {},
+const defaults = () => ({ xp: 0, notes: {}, ex: {}, days: {}, sessions: [], selected: "p3-A", cfg: { ...DEFAULT_CFG }, custom: [], customMeta: {}, runs: {}, log: [], path: { states: {}, session: null }, goals: {},
   settings: { view: "path", mode: "lock", tier: 1, drone: false, hear: false, hide: false, ears: false, chime: true, a4: 440, bpm: 60, per: 1, ladder: true, latencyMs: null, voiceMic: false, handsFree: true, clicks: 2 } });
 function loadDB() {
   const d = defaults();
   try {
     const s = JSON.parse(localStorage.getItem(STORE_KEY));
+    // The practice log is newer than the per-drill reports: start it from their last 5 runs
+    if (s && !Array.isArray(s.log)) s.log = PracticeLog.backfill(s.runs, Date.now());
     if (s) return migrate(Object.assign(d, s, { settings: Object.assign(d.settings, s.settings) }));
   } catch (e) {}
   return d;
@@ -632,7 +643,14 @@ function migrate(d) {
   return d;
 }
 let DB = loadDB();
-const save = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(DB)); } catch (e) {} Sync.changed(); };
+const save = () => {
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(DB)); }
+  catch (e) {
+    // Out of space: the practice log is the big part, so give up its older half rather than stop saving
+    try { if (DB.log.length > 20) { DB.log = DB.log.slice(0, DB.log.length >> 1); localStorage.setItem(STORE_KEY, JSON.stringify(DB)); } } catch (e2) {}
+  }
+  Sync.changed();
+};
 const dayKey = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 function streak() {
   const d = new Date();
@@ -1321,6 +1339,7 @@ function recordRun(r, res, tips, path) {
     coachNotes: tips.map((t) => t.replace(/<[^>]+>/g, "")),
   });
   entry.runs = entry.runs.slice(0, 5);
+  DB.log = PracticeLog.add(DB.log, PracticeLog.record(key, entry.label, entry.runs[0]), Date.now());
   save();
 }
 
@@ -2293,7 +2312,34 @@ function renderDrillsTab() {
   const others = Object.keys(DB.runs).filter((k) => !k.startsWith("custom|"));
   $("#reportList").innerHTML = others.length ? others.map((k) => `<div class="drow" data-key="${escapeHTML(k)}"><div><div class="nm">${escapeHTML(DB.runs[k].label)} ${medals(k)}</div><div class="sub">${DB.runs[k].runs.length} run${DB.runs[k].runs.length > 1 ? "s" : ""} kept · ${last(k)}</div></div>
       <div class="acts"><button data-act="copy">📋 Copy report</button><button data-act="save">⬇ Report</button></div></div>`).join("") : `<p class="muted small">Finish a run of any drill and its report appears here.</p>`;
+  renderLogCard();
 }
+// ---------- Practice log for Claude ----------
+function practiceLog() {
+  const packTitles = new Set((PACKS.error ? [] : PACKS).flatMap((p) => p.drills.map((d) => d.title)));
+  const customs = DB.custom.map((d) => {
+    const ex = DrillIO.toExercise(d), seen = new Set();
+    const spots = ex.notes.filter((n) => n.label && !seen.has(n.midi + n.string) && seen.add(n.midi + n.string)).map((n) => ({ note: DrillIO.noteText(n), string: n.string }));
+    return { key: recKey(ex.id), title: d.title, goal: d.goal || null, source: packTitles.has(d.title) ? "drill pack" : "imported", added: (DB.customMeta[d.title] || {}).added || null, spots };
+  });
+  const pieces = (DB.pieces || []).map((x) => ({ t: Date.parse(x.report.date), title: x.report.title, key: x.report.key, summary: x.report.summary }));
+  return PracticeLog.build(DB.log, $("#logRange").value, { now: Date.now(), a4: DB.settings.a4, customs, pieces, detail: $("#logDetail").checked });
+}
+function renderLogCard(resetDetail) {
+  const sel = $("#logRange");
+  if (!sel.options.length) { sel.innerHTML = PracticeLog.RANGES.map((r) => `<option value="${r.id}">${escapeHTML(r.label)}</option>`).join(""); resetDetail = true; }
+  if (resetDetail) $("#logDetail").checked = !!PracticeLog.RANGES.find((r) => r.id === sel.value).detail;
+  const rep = practiceLog(), o = rep.overview, kb = Math.round(PracticeLog.stringify(rep).length / 1000);
+  $("#logInfo").textContent = o.runs
+    ? `${o.runs} run${o.runs > 1 ? "s" : ""} in ${o.sessions} session${o.sessions > 1 ? "s" : ""} over ${o.daysPractised} day${o.daysPractised > 1 ? "s" : ""} (${rep.range.from} to ${rep.range.to.slice(-5)}) · ${rep.drills.length} drill${rep.drills.length > 1 ? "s" : ""} · about ${kb < 1 ? "1" : kb} KB`
+    : `No runs in this range yet. The log keeps every run for ${PracticeLog.KEEP_DAYS} days (it started with each drill's last 5 runs).`;
+  $("#logCopy").disabled = $("#logSave").disabled = !o.runs;
+}
+$("#logRange").onchange = () => renderLogCard(true);
+$("#logDetail").onchange = () => renderLogCard(false);
+$("#logCopy").onclick = (e) => copyText(PracticeLog.stringify(practiceLog()), e.target);
+$("#logSave").onclick = () => download(`practice-log-${dayKey()}.json`, PracticeLog.stringify(practiceLog()));
+
 // Drill packs live in packs/ as drill-import JSON files, listed in packs/index.json (a static server can't list a folder)
 let PACKS = [];
 async function loadPacks() {
@@ -2316,9 +2362,11 @@ function importDrills(text) {
   const r = DrillIO.parseImport(text);
   const list = (items, cls) => (items.length ? `<ul class="${cls}">${items.map((m) => `<li>${escapeHTML(m)}</li>`).join("")}</ul>` : "");
   if (r.errors.length) { $("#importMsg").innerHTML = `${list(r.errors, "errs")}${list(r.warnings, "warns")}<p class="muted small">Nothing was imported. You can paste these messages back to Claude.</p>`; return; }
+  const now = Date.now();
   for (const d of r.drills) {
     const i = DB.custom.findIndex((c) => c.title === d.title);
     if (i >= 0) DB.custom[i] = d; else DB.custom.push(d);
+    DB.customMeta[d.title] = { added: (DB.customMeta[d.title] || {}).added || now, updated: now };
   }
   save(); applyConfig(); renderAll();
   const first = DrillIO.toExercise(r.drills[0]);
@@ -2437,7 +2485,7 @@ $("#customList").onclick = (e) => {
   if (b.dataset.act === "save") download(`${DrillIO.slug(d.title)}-report.json`, JSON.stringify(buildReport(key), null, 2));
   if (b.dataset.act === "json") copyText(JSON.stringify(d, null, 2), b);
   if (b.dataset.act === "del" && confirm(`Delete “${d.title}”? Its medals and reports go too.`)) {
-    DB.custom = DB.custom.filter((c) => c !== d); delete DB.ex[key]; delete DB.runs[key];
+    DB.custom = DB.custom.filter((c) => c !== d); delete DB.ex[key]; delete DB.runs[key]; delete DB.customMeta[d.title];
     if (DB.selected === id) DB.selected = "p3-A";
     $("#importMsg").innerHTML = "";
     save(); applyConfig(); renderAll();

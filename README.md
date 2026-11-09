@@ -101,13 +101,24 @@ The **My drills** tab lets you import drills written for you, for example by Cla
 3. Practise it like any other drill. Afterwards, press **📋 Copy report for Claude** (in the results, or on My drills). The report holds the drill, your last 5 runs note by note (cents, wrong notes, shift direction), the coach's notes and per-note trends.
 4. Paste the report back. Claude can spot the pattern and write the next drill.
 
-Built-in drills keep reports too, and any report can be imported as a drill. Claude can also write rhythm drills for any passage: give every note a `beats` length and add `{"rest": …}` entries (see the format).
+Built-in drills keep reports too, and any report can be imported as a drill.
+
+### Practice log: a whole session or the last few days
+
+Per-drill reports hold one drill's last 5 runs. To find habits that repeat across drills, and to see whether Claude's drills helped, use **📋 Copy practice log for Claude** on My drills. Pick **This session**, **Today**, the last 3, 7, 14 or 30 days, or everything kept. The app keeps every run, note by note, for 90 days (up to 1,000 runs). The log starts from each drill's last 5 runs if you practised before this feature existed.
+
+- **Patterns:** intonation after shifts up and down, by finger, position and string; the worst spots (a pitch on a string, across every drill and spelling); common wrong notes; timing in tempo runs.
+- **Progress:** the range split into an earlier and a later half, overall and per spot, plus each drill's scores and tempos in order.
+- **Claude's drills:** for each imported drill, its target notes before and after you added it, measured across all your practice and not just that drill.
+- **Every note of every run** adds each run's landings and coach notes. It's on by default for a session or a day; leave it off for longer ranges to keep the log short.
+
+A loop that works: paste a week's log and ask Claude for the consistent problems and drills for them; practise those for a week or two; then paste a new log covering both periods and ask what changed. Claude can also write rhythm drills for any passage: give every note a `beats` length and add `{"rest": …}` entries (see the format).
 
 ## Sync across devices
 
 On the app platform (`eklavyamirani/app-platform`, record 0046) the **Progress** tab has a **Sync across devices** card: sign in once per device and your progress follows you. The app still keeps everything in the browser and works offline; it syncs when it starts, a few seconds after each change, and when you come back to the tab.
 
-- What syncs: XP, streak days, medals, note history, recent runs, path progress, goals, your drills and piece analyses. Settings (iPad mic mode, timing calibration, A4, …) and the selected drill stay on each device.
+- What syncs: XP, streak days, medals, note history, recent runs, the practice log, path progress, goals, your drills and piece analyses. Settings (iPad mic mode, timing calibration, A4, …) and the selected drill stay on each device.
 - If you practised on two devices before they synced, both are kept: XP and practice counts add up, runs from both devices are listed, and something you deleted on one device stays deleted unless you changed it on the other.
 - Without the platform (GitHub Pages, `python3 -m http.server`) there is no sign-in and nothing leaves the browser, as before.
 
@@ -127,6 +138,7 @@ Then open http://localhost:8765 and allow microphone access. Chrome and Safari b
 - `node test/pitch.test.js` checks the pitch detector against synthesized violin-like tones (A3–B6).
 - `node test/piece.test.js` checks note splitting, intonation (including vibrato) and timing analysis on synthetic performances.
 - `node test/drills.test.js` checks drill import/export, including that every built-in drill exports and re-imports unchanged.
+- `node test/practicelog.test.js` checks the practice log: storage limits, backfill, ranges and sessions, patterns, and before/after for imported drills.
 - `node test/sync.test.js` checks the sync merge (both devices' progress kept, settings per device).
 - `node test/scales.test.js` checks scale spelling and generated fingerings for every key and scale type across a range of string and position choices.
 - `node test/curriculum.test.js` checks the Path graph (every skill can be fingered, prerequisites come first, keys need the positions claimed), its drills in both directions, the run metrics, and how skills progress.
@@ -135,6 +147,7 @@ Then open http://localhost:8765 and allow microphone access. Chrome and Safari b
 
 - `index.html`: the app (UI, drills, scoring, progress)
 - `piece.js`: Piece tab analysis (note splitting, intonation, metronome and free timing, reports)
+- `practicelog.js`: the 90-day practice log and its export for Claude (patterns, progress, before/after for imported drills)
 - `drills.js`: custom drill format (documentation, validation, import/export)
 - `curriculum.js`: Path mode (skill graph, drills per skill and direction, run metrics and pass criteria, tempo, mastery and review, what to practise next)
 - `scales.js`: scale spelling, position fingerings (including open strings), finger patterns and scale-run routing through the chosen positions
