@@ -13,7 +13,7 @@
 
   // ---------- Three-way merge (pure; node test/sync.test.js) ----------
   const LOCAL_ONLY = ["settings", "selected"];
-  const CAPS = { sessions: 60, pieces: 10 }; // the app's own list limits
+  const CAPS = { sessions: 60, pieces: 10, log: 1000 }; // the app's own list limits (log: PracticeLog.KEEP_RUNS)
   const isObj = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
   // Key order doesn't matter (the server's jsonb reorders keys).
   const canon = (v) => (Array.isArray(v) ? `[${v.map(canon).join(",")}]`
@@ -83,7 +83,17 @@
     return out;
   }
 
-  const api = { merge3, shared, LOCAL_ONLY };
+  // A progress file: the synced part, to keep as a backup or move to another copy of the app (e.g. a preview)
+  const BACKUP_FORMAT = "fingerboard-coach/progress@1";
+  const backup = (db, now) => ({ format: BACKUP_FORMAT, exported: new Date(now).toISOString(), progress: shared(db) });
+  function readBackup(text) {
+    let v;
+    try { v = JSON.parse(text); } catch (e) { throw new Error("That file isn't JSON."); }
+    if (!isObj(v) || v.format !== BACKUP_FORMAT || !isObj(v.progress)) throw new Error("That isn't a Fingerboard Coach progress file (from “Download progress”).");
+    return shared(v.progress);
+  }
+
+  const api = { merge3, shared, LOCAL_ONLY, BACKUP_FORMAT, backup, readBackup };
   if (typeof module !== "undefined" && module.exports) { module.exports = api; return; }
 
   // ---------- Browser: sign-in and sync ----------
