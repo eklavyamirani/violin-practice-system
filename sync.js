@@ -23,7 +23,8 @@
   // Numbers both devices added to: keep both additions.
   const isCounter = (p) =>
     (p.length === 1 && p[0] === "xp") || (p.length === 2 && p[0] === "days") ||
-    (p.length === 3 && p[0] === "notes" && (p[2] === "n" || p[2] === "wrong"));
+    (p.length === 3 && p[0] === "notes" && (p[2] === "n" || p[2] === "wrong")) ||
+    (p.length === 4 && p[0] === "planLog" && p[2] === "secs"); // practice plan: seconds per step and day
   const recordId = (x) => (isObj(x) ? (x.id !== undefined ? "id:" + x.id : x.t !== undefined ? "t:" + x.t : undefined) : undefined);
 
   function mergeLists(base, a, b, path) {

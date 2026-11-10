@@ -305,7 +305,7 @@ How to read landings:
 - In tempo runs, shifted notes arriving later than the others means the shift starts too late. Missed notes plus a low score mean the tempo is too fast; accuracy should come before speed.
 `;
 
-  const api = { FORMAT, REPORT_FORMAT, FORMAT_DOC, parseNote, noteText, midiText, parseImport, validateDrill, toExercise, fromSequence, slug };
+  const api = { FORMAT, REPORT_FORMAT, FORMAT_DOC, parseNote, noteText, midiText, parseImport, validateDrill, toExercise, fromSequence, slug, extractJSON };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else root.DrillIO = api;
 })(this);

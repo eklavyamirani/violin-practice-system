@@ -56,6 +56,37 @@ main { max-width: 1280px; margin: 0 auto; padding: 1rem; }
 .next .nx-title { font-weight: 700; font-size: 1.05rem; }
 .next .nx-why { font-size: .85rem; opacity: .9; margin: .25rem 0 .7rem; }
 .next button { background: #fff; color: #7a3a07; border: 0; border-radius: 9px; padding: .45rem .9rem; font-weight: 700; }
+.today .tsub { font-size: .82rem; color: var(--muted); margin: -.2rem 0 .4rem; }
+.tstep { display: grid; grid-template-columns: 1.3rem minmax(0, 1fr) auto; gap: .15rem .5rem; align-items: start; padding: .5rem .35rem; border-top: 1px solid var(--line); }
+.tstep .tic { font-size: .85rem; text-align: center; color: var(--muted); padding-top: .1rem; }
+.tstep .tl { font-size: .86rem; font-weight: 600; }
+.tstep .tn { font-size: .78rem; color: var(--muted); margin-top: .1rem; }
+.tstep .tt { font: .76rem ui-monospace, Menlo, monospace; color: var(--muted); margin-top: .15rem; }
+.tstep .tb { grid-column: 2 / 4; height: 4px; background: var(--panel-2); border-radius: 2px; overflow: hidden; }
+.tstep .tb i { display: block; height: 100%; background: var(--good); }
+.tstep .tacts { display: flex; gap: .3rem; }
+.tstep.on { background: color-mix(in srgb, var(--accent) 10%, transparent); border-radius: 8px; }
+.tstep.on .tic { color: var(--accent); }
+.tstep.done .tic { color: var(--good); }
+.tstep.done .tl { color: var(--muted); }
+.today button, .wday { color: var(--ink); }
+.today button { border: 1px solid var(--line); background: var(--panel); border-radius: 8px; padding: .3rem .6rem; font-size: .8rem; font-weight: 600; }
+.today button.go { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.today .tnext { font-size: .82rem; margin-top: .5rem; color: var(--good); font-weight: 600; }
+.week { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: .35rem; }
+.week + .week { margin-top: .35rem; }
+.wday { border: 1px solid var(--line); border-radius: 10px; padding: .35rem .2rem; font-size: .7rem; text-align: center; min-height: 4.4rem; overflow: hidden; }
+.wday b { display: block; font-size: .78rem; }
+.wday .ws { display: block; font-size: .95rem; margin: .1rem 0; }
+.wday .wn { display: block; color: var(--muted); line-height: 1.2; overflow-wrap: anywhere; }
+.wday.today { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.wday.rest, .wday.off { opacity: .55; }
+.wday.done, .wday.extra { background: color-mix(in srgb, var(--good) 14%, var(--panel)); }
+.wday.partial { background: color-mix(in srgb, var(--near) 16%, var(--panel)); }
+.wday.missed { background: color-mix(in srgb, var(--bad) 10%, var(--panel)); }
+.psess { margin-top: .7rem; font-size: .88rem; }
+.psess ol { margin: .25rem 0 0; padding-left: 1.3rem; }
+.psess li { margin: .12rem 0; }
 
 .ex { display: flex; justify-content: space-between; align-items: center; gap: .5rem; width: 100%; text-align: left; background: none; border: 1px solid transparent; border-radius: 10px; padding: .5rem .6rem; }
 .ex:hover { background: var(--panel-2); }
@@ -200,12 +231,12 @@ main { max-width: 1280px; margin: 0 auto; padding: 1rem; }
 .dgrid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 1rem; align-items: start; }
 .small { font-size: .84rem; margin: .1rem 0 .6rem; }
 .row { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; margin-top: .6rem; }
-#importText { width: 100%; min-height: 150px; font: .82rem/1.4 ui-monospace, Menlo, monospace; color: var(--ink); background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; padding: .6rem; resize: vertical; }
+#importText, #planImportText { width: 100%; min-height: 150px; font: .82rem/1.4 ui-monospace, Menlo, monospace; color: var(--ink); background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; padding: .6rem; resize: vertical; }
 .filebtn { cursor: pointer; }
-#importMsg ul { margin: .6rem 0 0; padding-left: 1.1rem; font-size: .85rem; }
-#importMsg .ok { color: var(--good); font-weight: 600; margin-top: .6rem; }
-#importMsg .errs li { color: var(--bad); }
-#importMsg .warns li { color: var(--near); }
+#importMsg ul, #planMsg ul { margin: .6rem 0 0; padding-left: 1.1rem; font-size: .85rem; }
+#importMsg .ok, #planMsg .ok { color: var(--good); font-weight: 600; margin-top: .6rem; }
+#importMsg .errs li, #planMsg .errs li { color: var(--bad); }
+#importMsg .warns li, #planMsg .warns li { color: var(--near); }
 .drow { display: flex; justify-content: space-between; gap: .8rem; align-items: center; padding: .55rem 0; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
 .drow:last-child { border-bottom: 0; }
 .drow .nm { font-weight: 600; }
@@ -287,7 +318,8 @@ main { max-width: 1280px; margin: 0 auto; padding: 1rem; }
   .stage { grid-template-columns: 1fr; }
   .target { flex-direction: column; text-align: center; }
   .mstats { grid-template-columns: repeat(2, 1fr); }
-  .tabs { margin-left: 0; }
+  .tabs { margin-left: 0; flex-wrap: wrap; }
+  .tabs button { padding: .4rem .55rem; }
   .nrow { grid-template-columns: 50px 1fr 44px; }
   .nrow .fx { display: none; }
 }
@@ -298,13 +330,14 @@ main { max-width: 1280px; margin: 0 auto; padding: 1rem; }
   <div class="brand">𝄞 Fingerboard Coach <small id="cfgLabel"></small></div>
   <nav class="tabs">
     <button data-tab="practice" class="active">Practice</button>
+    <button data-tab="plan">Plan</button>
     <button data-tab="piece">Piece</button>
     <button data-tab="drills">My drills</button>
     <button data-tab="progress">Progress</button>
     <button data-tab="how">Why it works</button>
   </nav>
   <div class="hud">
-    <div title="Daily goal: 3 runs"><div class="daygoal" id="dayGoal"></div></div>
+    <div title="Daily goal: 3 runs" id="dayGoalBox"><div class="daygoal" id="dayGoal"></div></div>
     <div id="hudStreak" title="Days in a row">🔥 0</div>
     <div><span id="hudLevel">Level 1</span><div class="xpbar"><i id="hudXp"></i></div></div>
   </div>
@@ -328,6 +361,7 @@ main { max-width: 1280px; margin: 0 auto; padding: 1rem; }
         </div>
         <div id="pathInfo" class="pinfo" hidden></div>
       </div>
+      <div class="card today" id="todayCard" hidden></div>
       <div class="card next" id="nextUp"></div>
       <div class="card"><h3 id="exListTitle">Drills</h3><div id="exList"></div></div>
       <div class="card">
@@ -438,6 +472,30 @@ main { max-width: 1280px; margin: 0 auto; padding: 1rem; }
     <div class="card" style="margin-top:1rem"><h3>Past performances</h3><div id="pcHistory"></div></div>
   </section>
 
+  <!-- PLAN -->
+  <section id="tab-plan" class="tab">
+    <div class="dgrid">
+      <div style="display:grid;gap:1rem;align-content:start">
+        <div class="card" id="planCard"></div>
+        <div class="card" id="planWeekCard" hidden><h3>Last week and next</h3><div id="planWeek"></div></div>
+        <div class="card">
+          <h3>Import a plan</h3>
+          <p class="muted small">Paste a practice plan from Claude (a code fence around it is fine), or load a .json file. The format is described on the right. A new plan replaces the current one; what you've practised is kept.</p>
+          <textarea id="planImportText" spellcheck="false" placeholder='{ "format": "fingerboard-coach/plan@1", "title": "…", "schedule": { … }, "sessions": [ … ] }'></textarea>
+          <div class="row">
+            <button class="btn" id="planImportBtn">Import</button>
+            <label class="btn ghost filebtn">Load file…<input type="file" id="planImportFile" accept=".json,application/json,text/plain" hidden></label>
+          </div>
+          <div id="planMsg"></div>
+        </div>
+      </div>
+      <div class="card formatcard">
+        <div class="row" style="justify-content:space-between;margin:0 0 .6rem"><h3 style="margin:0">Plan &amp; report format</h3><button class="btn ghost" id="copyPlanFormat">Copy format for Claude</button></div>
+        <pre id="planFormatDoc"></pre>
+      </div>
+    </div>
+  </section>
+
   <!-- MY DRILLS -->
   <section id="tab-drills" class="tab">
     <div class="dgrid">
@@ -514,7 +572,7 @@ main { max-width: 1280px; margin: 0 auto; padding: 1rem; }
         <li><b>Mix (2 min):</b> Note Hunt in Lock-in mode.</li>
         <li><b>Test (2 min):</b> the main drill in Flow mode with Hide fingering on. This is the honest test.</li>
       </ol>
-      <p class="muted" style="margin-bottom:0">Complete 3 runs to fill today's dots. Practise every day to keep your 🔥 streak going.</p>
+      <p class="muted" style="margin-bottom:0">Complete 3 runs to fill today's dots. Practise every day to keep your 🔥 streak going. With a practice plan (Plan tab), Claude writes the sessions instead, the dots are today's steps, and rest days don't break the streak.</p>
     </div>
   </section>
 </main>
@@ -545,6 +603,7 @@ window.addEventListener("error", (e) => {
 <script src="curriculum.js"></script>
 <script src="drills.js"></script>
 <script src="practicelog.js"></script>
+<script src="plan.js"></script>
 <script src="piece.js"></script>
 <script src="rhythm.js"></script>
 <script src="sync.js"></script>
@@ -622,7 +681,7 @@ function applyRange() {
 
 // ---------- Storage ----------
 const STORE_KEY = "fingerboard-coach.v1";
-const defaults = () => ({ xp: 0, notes: {}, ex: {}, days: {}, sessions: [], selected: "p3-A", cfg: { ...DEFAULT_CFG }, custom: [], customMeta: {}, runs: {}, log: [], path: { states: {}, session: null }, goals: {},
+const defaults = () => ({ xp: 0, notes: {}, ex: {}, days: {}, sessions: [], selected: "p3-A", cfg: { ...DEFAULT_CFG }, custom: [], customMeta: {}, runs: {}, log: [], path: { states: {}, session: null }, goals: {}, plan: null, planLog: {},
   settings: { view: "path", mode: "lock", tier: 1, drone: false, hear: false, hide: false, ears: false, chime: true, a4: 440, bpm: 60, per: 1, ladder: true, latencyMs: null, voiceMic: false, handsFree: true, clicks: 2 } });
 function loadDB() {
   const d = defaults();
@@ -968,6 +1027,7 @@ function buildHunt() {
 
 // seq: a Note Hunt order drawn in advance, so hands-free start knows its first note
 function startRun(seq) {
+  markActivity();
   const ex = exById(DB.selected);
   const s = DB.settings, mode = modeOf(ex);
   if (mode === "tempo" && !ctx) { startAudio().then((ok) => ok && startRun(seq)); return; }
@@ -1000,6 +1060,7 @@ function startRun(seq) {
 }
 
 function stopRun() {
+  markActivity();
   run = null;
   stopMetronome(); $("#beatDot").hidden = true;
   $("#startBtn").textContent = "▶ Start"; $("#stopBtn").hidden = true; $("#hearBtn").hidden = !exById(DB.selected).rhythm;
@@ -1153,6 +1214,7 @@ function advance(t) {
 }
 
 function finishRun() {
+  markActivity();
   stopMetronome(); $("#beatDot").hidden = true;
   const r = run, res = r.results, ex = r.ex;
   const okN = res.filter((x) => x.ok).length, score = okN / res.length;
@@ -1516,6 +1578,7 @@ async function startPiece() {
 }
 
 function stopPiece() {
+  markActivity();
   const p = piece;
   if (!p) return;
   piece = null;
@@ -1918,7 +1981,7 @@ function showResults(o) {
   const timingChart = r.tempo && !r.rhythm ? barChart(res.map((x) => x.timing), labels, r.tempo.tolMs, Math.round(r.tempo.slot / 2), "late", "early",
     res.map((x) => colorFor(Math.abs(x.timing || 0), r.tempo.tolMs)), res.map((x) => `${noteName(x.item.midi)} ${x.timing === null ? "missed" : (x.timing > 0 ? "+" : "") + x.timing.toFixed(0) + " ms"}`)) : "";
   const onTimeN = res.filter((x) => x.onTime).length;
-  const next = path ? pathNext() : recommend();
+  const next = path ? pathNext() : nextRec();
   const shown = path && path.counted ? path.judged.pct : score;
   $("#resultsBox").innerHTML = `
     <div class="mhead">${head}<div class="score" style="color:${passed ? "var(--good)" : "var(--near)"}">${Math.round(shown * 100)}%</div></div>
@@ -2099,8 +2162,8 @@ const recLabel = (n) => `${exById(n.id).name} ${TIERS[n.tier].icon}${n.mode === 
 
 function renderNext() {
   if (isPath()) return renderPathNext();
-  const n = recommend(), ex = exById(n.id);
-  $("#nextUp").innerHTML = `<h3>Next up</h3><div class="nx-title">${ex.group} · ${recLabel(n)}</div><div class="nx-why">${n.why}</div><button id="nxGo">Start this drill</button>`;
+  const n = nextRec(), ex = exById(n.id);
+  $("#nextUp").innerHTML = `<h3>Next up${activeStep() && activeStep().scale ? " · plan step" : ""}</h3><div class="nx-title">${ex.group} · ${recLabel(n)}</div><div class="nx-why">${n.why}</div><button id="nxGo">Start this drill</button>`;
   $("#nxGo").onclick = async () => { applyRec(n); if (await startAudio()) startRun(); };
 }
 
@@ -2182,9 +2245,18 @@ function renderHUD() {
   const lvl = levelOf(DB.xp), lo = (lvl - 1) ** 2 * 100, hi = lvl ** 2 * 100;
   $("#hudLevel").textContent = `Level ${lvl} · ${DB.xp} XP`;
   $("#hudXp").style.width = ((DB.xp - lo) / (hi - lo)) * 100 + "%";
-  $("#hudStreak").textContent = `🔥 ${streak()}`;
+  $("#hudStreak").textContent = `🔥 ${curStreak()}`;
+  $("#hudStreak").title = DB.plan ? "Practice days in a row with the plan's session done (rest days don't count against it)" : "Days in a row";
+  if (planToday()) {
+    // With a plan, today's dots are the session's steps
+    const e = todayEntry(false), steps = todaySession().steps;
+    $("#dayGoalBox").title = `Today's plan: ${steps.length} steps`;
+    $("#dayGoal").innerHTML = steps.map((st, i) => `<i class="${PlanIO.stepDone(st, e, i) ? "on" : ""}"></i>`).join("");
+    return;
+  }
   const today = DB.days[dayKey()] || 0;
-  $("#dayGoal").innerHTML = Array.from({ length: DAILY_GOAL }, (_, i) => `<i class="${i < today ? "on" : ""}"></i>`).join("");
+  $("#dayGoalBox").title = DB.plan ? "Rest day" : `Daily goal: ${DAILY_GOAL} runs`;
+  $("#dayGoal").innerHTML = DB.plan ? "" : Array.from({ length: DAILY_GOAL }, (_, i) => `<i class="${i < today ? "on" : ""}"></i>`).join("");
 }
 
 function syncSettingsUI() {
@@ -2216,7 +2288,7 @@ function renderProgress() {
   const builtIn = EXERCISES.filter((e) => !e.custom);
   const medals = builtIn.reduce((a, e) => a + ((exRec(e.id) || {}).best || 0), 0);
   $("#tiles").innerHTML = [
-    [`🔥 ${streak()}`, "day streak"], [`Lv ${levelOf(DB.xp)}`, `${DB.xp} XP`], [played, "notes landed"],
+    [`🔥 ${curStreak()}`, DB.plan ? "practice day streak" : "day streak"], [`Lv ${levelOf(DB.xp)}`, `${DB.xp} XP`], [played, "notes landed"],
     [recentAll.length ? Math.round((recentAll.filter((c) => Math.abs(c) <= 15).length / recentAll.length) * 100) + "%" : "—", "recent landings within ±15¢"],
     isPath() ? [`${C.NODES.filter((n) => DB.path.states[n.id] && DB.path.states[n.id].mastered).length}/${C.NODES.length}`, "path skills mastered"] : [`${medals}/${builtIn.length * 3}`, `medals in ${keyName()}`],
   ].map(([v, l]) => `<div class="card tile"><div class="v">${v}</div><div class="l">${l}</div></div>`).join("");
@@ -2360,16 +2432,20 @@ async function loadPacks() {
 }
 const escapeHTML = (t) => String(t).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 
+// Add or replace an imported drill (from My drills or carried by a practice plan) and note when it
+// arrived, so the practice log can compare its notes before and after
+function addCustomDrill(d, now) {
+  const i = DB.custom.findIndex((c) => c.title === d.title);
+  if (i >= 0) DB.custom[i] = d; else DB.custom.push(d);
+  DB.customMeta[d.title] = { added: (DB.customMeta[d.title] || {}).added || now, updated: now };
+}
+
 function importDrills(text) {
   const r = DrillIO.parseImport(text);
   const list = (items, cls) => (items.length ? `<ul class="${cls}">${items.map((m) => `<li>${escapeHTML(m)}</li>`).join("")}</ul>` : "");
   if (r.errors.length) { $("#importMsg").innerHTML = `${list(r.errors, "errs")}${list(r.warnings, "warns")}<p class="muted small">Nothing was imported. You can paste these messages back to Claude.</p>`; return; }
   const now = Date.now();
-  for (const d of r.drills) {
-    const i = DB.custom.findIndex((c) => c.title === d.title);
-    if (i >= 0) DB.custom[i] = d; else DB.custom.push(d);
-    DB.customMeta[d.title] = { added: (DB.customMeta[d.title] || {}).added || now, updated: now };
-  }
+  for (const d of r.drills) addCustomDrill(d, now);
   save(); applyConfig(); renderAll();
   const first = DrillIO.toExercise(r.drills[0]);
   $("#importMsg").innerHTML = `<div class="ok">✓ Imported ${r.drills.map((d) => `“${escapeHTML(d.title)}”`).join(", ")}.</div>${list(r.warnings, "warns")}<div class="row"><button class="btn" id="importGo">▶ Practice ${r.drills.length > 1 ? "the first one" : "it"} now</button></div>`;
@@ -2382,13 +2458,199 @@ function practiceDrill(id) {
   document.querySelector('.tabs button[data-tab="practice"]').click();
 }
 
+// ---------- Practice plan ----------
+// A plan (DB.plan) is written by Claude and imported on the Plan tab: practice days, minutes, and sessions of
+// timed steps that take turns. DB.planLog keeps, per day, the session followed and the seconds practised on each
+// step (synced; seconds from two devices add up). The step being worked on is per device and isn't saved.
+let planStep = null, planActivity = 0, planTicks = 0;
+const ACTIVE_GAP_MS = 2 * 60 * 1000; // time between runs counts toward the step, up to this long
+const markActivity = () => { planActivity = Date.now(); };
+const planStarted = () => !DB.plan.start || DB.plan.start <= dayKey();
+function todayEntry(create) {
+  const day = dayKey(), e = DB.planLog[day];
+  if (e && e.plan === DB.plan.id) return e;
+  return create ? (DB.planLog[day] = { plan: DB.plan.id, session: PlanIO.sessionIndex(DB.plan, DB.planLog, day), secs: {}, done: {} }) : null;
+}
+const todayIndex = () => PlanIO.sessionIndex(DB.plan, DB.planLog, dayKey());
+const todaySession = () => DB.plan.sessions[todayIndex()];
+// Today shows the session on practice days, and on a rest day once you choose to practise anyway
+const planToday = () => !!DB.plan && planStarted() && (PlanIO.isPracticeDay(DB.plan, dayKey()) || !!todayEntry(false));
+const activeStep = () => (planStep !== null && planToday() ? todaySession().steps[planStep] || null : null);
+const mmss = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
+const fmtDay = (day) => { const [y, m, d] = day.split("-").map(Number); return new Date(y, m - 1, d).toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" }); };
+const curStreak = () => (DB.plan ? PlanIO.streak(DB.plan, DB.planLog, dayKey()) : streak());
+
+// During a plan's scale step, Next up stays on the step's part of the setup
+function nextRec() {
+  const st = activeStep();
+  return st && st.scale && st.part !== "auto" && !isPath() && Scales.cfgKey(st.scale) === CFG_KEY ? recommendStep(st) : recommend();
+}
+function recommendStep(st) {
+  const ids = PlanIO.partIds(st), inPart = (id) => ids.includes(id);
+  const n = recommend(), nex = exById(n.id);
+  if (inPart(n.id)) return n;
+  const last = DB.sessions.find((x) => x.cfg === CFG_KEY), lastEx = last && exById(last.ex);
+  // A detour to the build-up drill where the scale's misses cluster, until it's cleaned up
+  if (["run", "top", "rhythms"].includes(st.part) && nex && nex.role === "build" && lastEx && (inPart(lastEx.id) || lastEx.id === n.id)) return n;
+  // Otherwise the step's own drills: same again after a miss, else the next one with a step to make
+  if (lastEx && inPart(lastEx.id) && last.score < PASS) return { id: lastEx.id, tier: last.tier, ...(lastEx.rhythm ? {} : { mode: last.mode }), why: `Not passed yet. Same again, for ${TIERS[last.tier].icon} ±${TIERS[last.tier].tol}¢.` };
+  const part = ids.map(exById).filter(Boolean), i = lastEx ? part.indexOf(lastEx) : -1;
+  for (const e of part.slice(i + 1).concat(part.slice(0, i + 1))) { const t = trackStep(e); if (t) return { ...t, why: stepWhy(e, t) }; }
+  return { id: part[0].id, tier: 3, why: `Done at ${goalText(part[0])}. Keep it sharp, or raise the goal tempo on the Scale card.` };
+}
+
+function startStep(i) {
+  const st = todaySession().steps[i];
+  todayEntry(true); planStep = i; markActivity();
+  const tab = (t) => document.querySelector(`.tabs button[data-tab="${t}"]`).click();
+  if (run) stopRun();
+  if (st.scale) {
+    DB.settings.view = "free"; DB.cfg = { ...st.scale }; applyConfig();
+    applyRec(nextRec());
+    tab("practice");
+  } else if (st.drill) {
+    const d = DB.custom.find((c) => c.title === st.drill);
+    if (d) practiceDrill(DrillIO.toExercise(d).id);
+    else { planStep = null; tab("practice"); setMsg(`“${escapeHTML(st.drill)}” isn't in My drills any more. Import the plan again to add it back.`, "bad"); }
+  } else if (st.path) {
+    DB.settings.view = "path"; applyConfig();
+    const n = pathNext();
+    if (st.path === "reviews" && (!n || n.role !== "review")) { todayEntry(true).done[i] = true; planStep = null; setMsg("No Path reviews are due today. ✓", "good"); }
+    else if (n) selectEx(`n:${n.nodeId}@${n.dir}`);
+    tab("practice");
+  } else if (st.piece) tab("piece");
+  else { tab("practice"); $("#calibBtn").click(); }
+  save(); renderAll();
+}
+function toggleStepDone(i) {
+  const e = todayEntry(true);
+  if (e.done[i]) delete e.done[i];
+  else { e.done[i] = true; if (planStep === i) planStep = null; }
+  save(); renderAll();
+}
+
+// Time on the step being worked on: while a drill, tuning or a piece recording runs, and between runs
+setInterval(() => {
+  const st = activeStep();
+  if (!st || document.hidden || !(run || piece || calib || Date.now() - planActivity < ACTIVE_GAP_MS)) return;
+  const e = todayEntry(true), wasDone = PlanIO.stepDone(st, e, planStep);
+  e.secs[planStep] = (e.secs[planStep] || 0) + 1;
+  if (++planTicks % 15 === 0) save();
+  if (!wasDone && PlanIO.stepDone(st, e, planStep)) { save(); renderToday(); renderHUD(); renderPlanTab(); }
+  else updateTodayTimes();
+}, 1000);
+
+function stepRow(st, e, i) {
+  const secs = (e && e.secs[i]) || 0, done = PlanIO.stepDone(st, e, i), ticked = !!(e && e.done && e.done[i]), on = planStep === i;
+  const pct = done ? 100 : Math.min(100, (secs / (st.minutes * 60)) * 100);
+  return `<div class="tstep ${on ? "on" : ""} ${done ? "done" : ""}" data-i="${i}"><span class="tic">${done ? "✓" : on ? "▶" : i + 1}</span>
+    <div><div class="tl">${escapeHTML(PlanIO.stepLabel(st))}</div>${st.note ? `<div class="tn">${escapeHTML(st.note)}</div>` : ""}<div class="tt">${mmss(Math.min(secs, st.minutes * 60))} / ${st.minutes} min</div></div>
+    <div class="tacts">${on ? `<button data-act="pause">Pause</button>` : `<button class="${done ? "" : "go"}" data-act="start">${secs && !done ? "Resume" : done ? "Again" : "Start"}</button>`}${ticked ? `<button data-act="done" title="Not done after all">Undo</button>` : done ? "" : `<button data-act="done" title="Mark this step done">✓</button>`}</div>
+    <div class="tb"><i style="width:${pct}%"></i></div></div>`;
+}
+function renderToday() {
+  const box = $("#todayCard");
+  box.hidden = !DB.plan;
+  if (!DB.plan) return;
+  if (!planStarted()) { box.innerHTML = `<h3>Practice plan</h3><div class="tsub">${escapeHTML(DB.plan.title)} starts ${fmtDay(DB.plan.start)}.</div>`; return; }
+  const si = todayIndex();
+  if (!planToday()) {
+    const next = PlanIO.calendar(DB.plan, DB.planLog, dayKey(), 0, 7).find((c) => c.state === "planned");
+    box.innerHTML = `<h3>Rest day</h3><div class="tsub">${next ? `Next practice: ${fmtDay(next.day)} · ${escapeHTML(DB.plan.sessions[next.session].name)}` : "No more practice days in this plan."}</div>
+      <button data-act="anyway">Practise anyway: ${escapeHTML(DB.plan.sessions[si].name)}</button>`;
+    return;
+  }
+  const e = todayEntry(false), s = DB.plan.sessions[si], st = activeStep();
+  const nextI = s.steps.findIndex((x, i) => !PlanIO.stepDone(x, e, i));
+  const doneHint = st && PlanIO.stepDone(st, e, planStep) ? `<div class="tnext">✓ Step done.${nextI >= 0 ? ` Next: ${escapeHTML(PlanIO.stepLabel(s.steps[nextI]))}` : " That's the session."}</div>` : "";
+  box.innerHTML = `<h3>Today · ${escapeHTML(s.name)}</h3><div class="tsub" id="todaySub"></div>${s.steps.map((x, i) => stepRow(x, e, i)).join("")}${doneHint}`;
+  updateTodayTimes();
+}
+// The running step's clock and bar, and the session's total, without rebuilding the card (so taps aren't lost)
+function updateTodayTimes() {
+  if (!planToday()) return;
+  const e = todayEntry(false), si = todayIndex(), s = DB.plan.sessions[si], pct = Math.round(PlanIO.progress(DB.plan, e, si) * 100);
+  const sub = $("#todaySub");
+  if (sub) sub.textContent = `${pct}% of ${s.steps.reduce((a, x) => a + x.minutes, 0)} min${pct >= PlanIO.DONE_AT * 100 ? " · session done ✓" : ""}`;
+  const row = planStep !== null && document.querySelector(`#todayCard .tstep[data-i="${planStep}"]`), st = activeStep();
+  if (!row || !st) return;
+  const secs = (e && e.secs[planStep]) || 0;
+  row.querySelector(".tt").textContent = `${mmss(Math.min(secs, st.minutes * 60))} / ${st.minutes} min`;
+  row.querySelector(".tb i").style.width = `${Math.min(100, (secs / (st.minutes * 60)) * 100)}%`;
+}
+
+const STATE_ICON = { done: "✓", extra: "✓", partial: "◐", missed: "✗", rest: "·", off: "", today: "▶", planned: "○" };
+function renderPlanTab() {
+  const p = DB.plan;
+  if (!p) {
+    $("#planCard").innerHTML = `<h3>No practice plan yet</h3><p class="muted small">Ask Claude for a plan: press <b>Copy format for Claude</b>, paste it into a conversation, and say what you're working on, which days you can practise and for how long. Paste the plan Claude writes into Import below. After a week or two, copy the plan report and Claude writes the next plan from how it went.</p>`;
+    $("#planWeekCard").hidden = true;
+    return;
+  }
+  const days = p.schedule.days.length === 7 ? "Every day" : p.schedule.days.join(", ");
+  $("#planCard").innerHTML = `<h3>${escapeHTML(p.title)}</h3>${p.goal ? `<p class="small" style="margin:.2rem 0">${escapeHTML(p.goal)}</p>` : ""}
+    <div class="muted small">${days} · ${p.schedule.minutes} min · from ${fmtDay(p.start)}${p.end ? ` to ${fmtDay(p.end)}` : ""} · 🔥 ${curStreak()}</div>
+    ${p.tips ? `<p class="small muted">${escapeHTML(p.tips)}</p>` : ""}
+    ${p.sessions.map((s, i) => `<div class="psess"><b>${i + 1}. ${escapeHTML(s.name)}</b> <span class="muted small">${s.steps.reduce((a, x) => a + x.minutes, 0)} min</span>
+      <ol>${s.steps.map((st) => `<li>${escapeHTML(PlanIO.stepLabel(st))} <span class="muted">· ${st.minutes} min</span></li>`).join("")}</ol></div>`).join("")}
+    <div class="row" style="flex-wrap:wrap"><button class="btn" data-act="report">📋 Copy plan report for Claude</button><button class="btn ghost" data-act="save">⬇ Report</button><button class="btn ghost" data-act="copy">Copy plan</button><button class="btn ghost" data-act="remove">Remove plan</button></div>`;
+  const cal = PlanIO.calendar(p, DB.planLog, dayKey(), 6, 7);
+  const cell = (c) => `<div class="wday ${c.state}" title="${c.day}: ${c.state}${c.session !== undefined ? ` · ${escapeHTML(p.sessions[c.session].name)}` : ""}"><b>${c.weekday}</b>${+c.day.slice(8)}<span class="ws">${STATE_ICON[c.state]}</span>${c.session !== undefined ? `<span class="wn">${escapeHTML(p.sessions[c.session].name)}</span>` : ""}</div>`;
+  $("#planWeek").innerHTML = `<div class="week">${cal.slice(0, 7).map(cell).join("")}</div><div class="week">${cal.slice(7).map(cell).join("")}</div>`;
+  $("#planWeekCard").hidden = false;
+}
+
+// The plan as it can be imported again: with the drills it uses, without the device's own id
+function planExport() {
+  const { id, ...p } = DB.plan;
+  const titles = [...new Set(p.sessions.flatMap((s) => s.steps.filter((st) => st.drill).map((st) => st.drill)))];
+  const drills = titles.map((t) => DB.custom.find((c) => c.title === t)).filter(Boolean);
+  return { ...p, ...(drills.length ? { drills } : {}) };
+}
+const missText = (m) => `${DrillIO.midiText(parseInt(m.key, 10))} (${m.key.replace(/^\d+/, "")} string, ${m.pos ? ord(m.pos) + " position" : "open"}${m.shift ? `, shift ${m.shift}` : ""})`;
+function buildPlanReport() {
+  const p = DB.plan, steps = p.sessions.flatMap((s) => s.steps), MEDAL = ["none", "bronze", "silver", "gold"];
+  const setups = [...new Map(steps.filter((st) => st.scale).map((st) => [Scales.cfgKey(st.scale), st.scale])).entries()];
+  const titles = [...new Set(steps.filter((st) => st.drill).map((st) => st.drill))];
+  const report = { format: PlanIO.REPORT_FORMAT, exported: new Date().toISOString(), plan: planExport(), days: PlanIO.reportDays(p, DB.planLog, dayKey()),
+    scales: setups.map(([key, cfg]) => {
+      const G = { ...DEFAULT_GOAL, ...(DB.goals[key] || {}) };
+      return { setup: Scales.cfgLabel(cfg), goalTempo: `♩=${G.bpm}, ${G.per} notes per beat`,
+        drills: Scales.buildDrills(cfg).map((d) => {
+          const r = DB.ex[`${key}|${d.id}`], lad = r && ((d.rhythm ? r.rhythm : (r.tempo || {})[G.per]) || null);
+          return { drill: `${d.group} · ${d.name}`, medal: r ? MEDAL[r.best || 0] : "not played", ...(r ? { runs: r.runs } : {}), ...(lad ? { tempo: { best: lad.best || lad.bpm, gold: lad.gold || 0, next: lad.next || lad.bpm } } : {}) };
+        }),
+        recent: DB.sessions.filter((x) => x.cfg === key).slice(0, 12).map((x) => ({ when: new Date(x.t).toISOString().slice(0, 16), drill: x.label, level: TIERS[x.tier].name, mode: x.mode, ...(x.bpm ? { bpm: x.bpm } : {}),
+          scorePct: Math.round(x.score * 100), avgMissCents: +(x.avgAbs || 0).toFixed(1), ...(x.miss && x.miss.length ? { missed: x.miss.map(missText) } : {}) })) };
+    }),
+    drills: titles.map((t) => { const d = DB.custom.find((c) => c.title === t), k = d && recKey(DrillIO.toExercise(d).id); return !d ? { title: t, missing: true } : DB.runs[k] ? buildReport(k) : { title: t, runs: [] }; }) };
+  if (steps.some((st) => st.path)) {
+    const n = pathNext(), today = dayKey();
+    report.path = { reviewsDue: Object.values(DB.path.states).filter((st) => st.mastered && st.due <= today).length, nextUp: n ? `${ROLE[n.role]}: ${C.nodeName(C.BY_ID[n.nodeId])}` : null };
+  }
+  return report;
+}
+
+function importPlan(text) {
+  const r = PlanIO.parseImport(text, { knownDrills: DB.custom.map((c) => c.title) });
+  const list = (items, cls) => (items.length ? `<ul class="${cls}">${items.map((m) => `<li>${escapeHTML(m)}</li>`).join("")}</ul>` : "");
+  if (r.errors.length) { $("#planMsg").innerHTML = `${list(r.errors, "errs")}${list(r.warnings, "warns")}<p class="muted small">Nothing was imported. You can paste these messages back to Claude.</p>`; return; }
+  const now = Date.now();
+  for (const d of r.drills) addCustomDrill(d, now);
+  DB.plan = { ...r.plan, start: r.plan.start || dayKey(), id: Date.now() };
+  planStep = null;
+  save(); applyConfig(); renderAll();
+  $("#planMsg").innerHTML = `<div class="ok">✓ Imported “${escapeHTML(DB.plan.title)}”${r.drills.length ? ` and ${r.drills.length} drill${r.drills.length > 1 ? "s" : ""}` : ""}.</div>${list(r.warnings, "warns")}<div class="row"><button class="btn" id="planGo">Go to today's practice</button></div>`;
+  $("#planGo").onclick = () => document.querySelector('.tabs button[data-tab="practice"]').click();
+}
+
 function renderAll() {
   renderConfig();
-  renderHUD(); renderNext(); renderExList(); syncSettingsUI();
+  renderHUD(); renderToday(); renderNext(); renderExList(); syncSettingsUI();
   const ex = exById(DB.selected);
   $("#exTitle").textContent = `${ex.group} · ${ex.name}`;
   if (!run) { renderIdle(); buildPath(); buildBoard(); }
-  renderProgress(); renderDrillsTab(); renderPieceHistory(); syncPieceUI();
+  renderProgress(); renderDrillsTab(); renderPlanTab(); renderPieceHistory(); syncPieceUI();
 }
 
 // ---------- Wiring ----------
@@ -2420,7 +2682,7 @@ $("#pcCalBtn").onclick = () => calibrateTiming(true);
 $("#calibBtn").onclick = async () => {
   if (!(await startAudio())) return;
   if (run) stopRun();
-  calib = { start: performance.now(), samples: [] };
+  calib = { start: performance.now(), samples: [] }; markActivity();
   setMsg("🎻 Bow your open A string steadily for 2–3 seconds. Take your time to get set: it waits for the A.");
 };
 $("#resetBtn").onclick = () => {
@@ -2489,6 +2751,28 @@ $("#pcHistory").onclick = (e) => {
   if (b.dataset.act === "del" && confirm("Delete this performance?")) { DB.pieces = DB.pieces.filter((x) => x !== entry); save(); renderPieceHistory(); }
 };
 
+$("#planFormatDoc").textContent = PlanIO.FORMAT_DOC;
+$("#copyPlanFormat").onclick = (e) => copyText(PlanIO.FORMAT_DOC, e.target);
+$("#planImportBtn").onclick = () => importPlan($("#planImportText").value);
+$("#planImportFile").onchange = async (e) => { const f = e.target.files[0]; if (f) { const t = await f.text(); $("#planImportText").value = t; importPlan(t); } e.target.value = ""; };
+$("#planCard").onclick = (e) => {
+  const b = e.target.closest("button[data-act]");
+  if (!b || !DB.plan) return;
+  const text = () => JSON.stringify(buildPlanReport(), null, 2);
+  if (b.dataset.act === "report") copyText(text(), b);
+  if (b.dataset.act === "save") download(`${DrillIO.slug(DB.plan.title)}-plan-report.json`, text());
+  if (b.dataset.act === "copy") copyText(JSON.stringify(planExport(), null, 2), b);
+  if (b.dataset.act === "remove" && confirm(`Remove the plan “${DB.plan.title}”? What you practised stays in your history.`)) { DB.plan = null; planStep = null; $("#planMsg").innerHTML = ""; save(); renderAll(); }
+};
+$("#todayCard").onclick = (e) => {
+  const b = e.target.closest("button[data-act]");
+  if (!b || !DB.plan) return;
+  const row = b.closest(".tstep"), i = row ? +row.dataset.i : null;
+  if (b.dataset.act === "anyway") { todayEntry(true); save(); renderAll(); }
+  if (b.dataset.act === "start") startStep(i);
+  if (b.dataset.act === "pause") { planStep = null; renderAll(); }
+  if (b.dataset.act === "done") toggleStepDone(i);
+};
 $("#formatDoc").textContent = DrillIO.FORMAT_DOC;
 $("#copyFormat").onclick = (e) => copyText(DrillIO.FORMAT_DOC, e.target);
 $("#importBtn").onclick = () => importDrills($("#importText").value);
