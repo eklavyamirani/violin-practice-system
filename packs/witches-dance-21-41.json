@@ -20,8 +20,7 @@
         { "note": "G#5", "string": "E", "finger": 2, "position": 1 },
         { "note": "A5", "string": "E", "finger": 3, "position": 1 }
       ],
-      "upAndBack": true,
-      "repeat": 2
+      "upAndBack": true
     },
     {
       "title": "Witches S2 · E string: G♯, then G",
@@ -82,8 +81,7 @@
         { "note": "A5", "string": "E", "finger": 3, "position": 1 },
         { "note": "Bb5", "string": "E", "finger": 4, "position": 1 }
       ],
-      "upAndBack": true,
-      "repeat": 2
+      "upAndBack": true
     },
     {
       "title": "Witches S5 · E string: F♮/F♯ and B♭/B",
