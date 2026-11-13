@@ -113,6 +113,10 @@ main { max-width: 1280px; margin: 0 auto; padding: 1rem; }
 .pnode .pdirs button { border: 1px solid var(--line); background: var(--panel-2); border-radius: 7px; padding: .15rem .35rem; font-size: .76rem; }
 .pnode .pdirs button.on { border-color: var(--accent); color: var(--accent); font-weight: 700; }
 .pnode .pdirs button:disabled { cursor: default; opacity: .5; }
+.pack .pdrill { width: 100%; text-align: left; background: none; cursor: pointer; font: inherit; color: inherit; }
+.pack .pdrill:hover { background: var(--panel-2); }
+.pack .pdrill.sel { background: color-mix(in srgb, var(--accent) 8%, transparent); }
+.pack .pnm .nx { color: var(--accent); font-weight: 700; }
 .pinfo { font-size: .84rem; }
 .pinfo .bar { height: 6px; background: var(--panel-2); border-radius: 3px; overflow: hidden; margin: .35rem 0 .5rem; }
 .pinfo .bar i { display: block; height: 100%; background: var(--good); }
@@ -2004,7 +2008,7 @@ function showResults(o) {
       <button class="btn ghost" id="rClose">Close</button>
       <button class="btn ghost" id="rAgain">↻ Again</button>
       ${path ? (next ? `<button class="btn" id="rNext">Next: ${escapeHTML(C.nodeName(C.BY_ID[next.nodeId]))} ${next.dir === "desc_asc" ? "⇣⇡" : "⇡⇣"}</button>` : "")
-        : !r.ex.custom && !recIsCurrent(next) ? `<button class="btn" id="rNext">Next: ${escapeHTML(recLabel(next))}</button>` : ""}
+        : (!r.ex.custom || next.pack) && !recIsCurrent(next) ? `<button class="btn" id="rNext">Next: ${escapeHTML(recLabel(next))}</button>` : ""}
     </div>`;
   $("#results").hidden = false;
   $("#rClose").onclick = () => { $("#results").hidden = true; renderIdle(); buildPath(); buildBoard(); };
@@ -2161,9 +2165,17 @@ const recIsCurrent = (n) => { const s = DB.settings; return n.id === DB.selected
 const recLabel = (n) => `${exById(n.id).name} ${TIERS[n.tier].icon}${n.mode === "tempo" && n.bpm ? ` ⏱ ♩=${n.bpm}` : ""}`;
 
 function renderNext() {
+  const p = packOf(DB.selected);
+  if (p) return renderPackNext(p);
   if (isPath()) return renderPathNext();
   const n = nextRec(), ex = exById(n.id);
   $("#nextUp").innerHTML = `<h3>Next up${activeStep() && activeStep().scale ? " · plan step" : ""}</h3><div class="nx-title">${ex.group} · ${recLabel(n)}</div><div class="nx-why">${n.why}</div><button id="nxGo">Start this drill</button>`;
+  $("#nxGo").onclick = async () => { applyRec(n); if (await startAudio()) startRun(); };
+}
+
+function renderPackNext(p) {
+  const n = packRec(p);
+  $("#nextUp").innerHTML = `<h3>Next up · ${escapeHTML(p.title)}</h3><div class="nx-title">${escapeHTML(recLabel(n))}</div><div class="nx-why">${n.why}</div><button id="nxGo">Start this drill</button>`;
   $("#nxGo").onclick = async () => { applyRec(n); if (await startAudio()) startRun(); };
 }
 
@@ -2178,7 +2190,8 @@ function renderPathNext() {
 // The skill map: stages, each skill's status, and a button per direction
 function renderPathList() {
   const P = DB.path.states, sel = exById(DB.selected), selStage = sel && sel.path ? C.BY_ID[sel.nodeId].stage : 0;
-  let h = "";
+  const mine = myDrillsHTML();
+  let h = mine.top;
   for (let sg = 1; sg < C.STAGES.length; sg++) {
     const nodes = C.NODES.filter((n) => n.stage === sg), done = nodes.filter((n) => P[n.id] && P[n.id].mastered).length;
     const open = sg === selStage || nodes.some((n) => C.unlocked(n, P) && !(P[n.id] && P[n.id].mastered));
@@ -2193,24 +2206,45 @@ function renderPathList() {
     }
     h += `</details>`;
   }
-  const custom = EXERCISES.filter((e) => e.custom);
-  if (custom.length) h += `<div class="ex-group">My drills</div>` + custom.map((e) => `<button class="ex ${DB.selected === e.id ? "sel" : ""}" data-id="${e.id}"><span><div class="nm">${escapeHTML(e.name)}</div><div class="fr">${escapeHTML(e.frame)}</div></span></button>`).join("");
-  $("#exList").innerHTML = h;
+  $("#exList").innerHTML = h + mine.rest;
   document.querySelectorAll("#exList [data-id]").forEach((b) => (b.onclick = () => { if (run) stopRun(); selectEx(b.dataset.id); }));
+}
+
+// Drill packs on the practice page: each pack's drills in order, like a stage of the path, with their medals. Nothing
+// is locked. The pack of the selected drill comes first, open; the other packs and imported drills go at the end.
+const medalRow = (id) => { const b = (exRec(id) || {}).best || 0; return `<span class="medals">${[1, 2, 3].map((t) => `<span class="${b >= t ? "on" : ""}">${TIERS[t].icon}</span>`).join("")}</span>`; };
+function packHTML(p, open) {
+  const ids = packIds(p), next = open ? packRec(p).id : null;
+  const gold = ids.filter((id) => ((exRec(id) || {}).best || 0) >= 3).length;
+  // Drop a first word all the pack's titles share ("Witches 3 · bars 21–24" → "3 · bars 21–24"): the pack's title says it
+  const names = ids.map((id) => exById(id).name), w = names[0].split(" ")[0] + " ";
+  const short = names.every((n) => n.startsWith(w)) ? names.map((n) => n.slice(w.length)) : names;
+  return `<details class="pstage pack" data-pack="${p.id}" ${open ? "open" : ""}><summary><b>♫</b> ${escapeHTML(p.title)}<span class="muted">${gold}/${ids.length} 🥇</span></summary>` + ids.map((id, i) => {
+    const rec = exRec(id) || {}, b = rec.best || 0, icon = b >= 3 ? "●" : b ? "◑" : rec.runs ? "◔" : "○";
+    return `<button class="pnode pdrill ${DB.selected === id ? "sel" : ""}" data-id="${id}" title="${b ? `Best: ${TIERS[b].name}` : rec.runs ? "Played, no medal yet" : "Not played yet"}"><span class="pico">${icon}</span>
+      <span class="pnm">${escapeHTML(short[i])}<div class="fr">${id === next ? `<span class="nx">▶ Next up</span> · ` : ""}${escapeHTML(exById(id).frame)}</div></span>${medalRow(id)}</button>`;
+  }).join("") + `</details>`;
+}
+function myDrillsHTML() {
+  const cur = packOf(DB.selected), packs = packsLoaded().filter((p) => packIds(p).length), inPack = new Set(packs.flatMap(packIds));
+  const loose = EXERCISES.filter((e) => e.custom && !inPack.has(e.id));
+  const rest = packs.filter((p) => p !== cur).map((p) => packHTML(p, false)).join("") + (loose.length ? `<div class="ex-group">My drills</div>` + loose.map((e) => `<button class="ex ${DB.selected === e.id ? "sel" : ""}" data-id="${e.id}"><span><div class="nm">${escapeHTML(e.name)}</div><div class="fr">${escapeHTML(e.frame)}</div></span>${medalRow(e.id)}</button>`).join("") : "");
+  return { top: cur ? packHTML(cur, true) : "", rest };
 }
 
 function renderExList() {
   $("#exListTitle").textContent = isPath() ? "Skill map" : "Drills";
   if (isPath()) return renderPathList();
-  let h = "", grp = "";
-  for (const e of EXERCISES) {
+  const mine = myDrillsHTML();
+  let h = mine.top, grp = "";
+  for (const e of EXERCISES.filter((x) => !x.custom)) {
     if (e.group !== grp) { grp = e.group; h += `<div class="ex-group">${grp}</div>`; }
     const best = (exRec(e.id) || {}).best || 0;
     const tt = trackText(e);
     h += `<button class="ex ${DB.selected === e.id ? "sel" : ""}" data-id="${e.id}"><span><div class="nm">${e.name}</div><div class="fr">${e.frame}</div>${tt ? `<div class="fr goal">${tt}</div>` : ""}</span><span class="medals">${[1, 2, 3].map((t) => `<span class="${best >= t ? "on" : ""}">${TIERS[t].icon}</span>`).join("")}</span></button>`;
   }
-  $("#exList").innerHTML = h;
-  document.querySelectorAll("#exList .ex").forEach((b) => (b.onclick = () => { if (run) stopRun(); selectEx(b.dataset.id); }));
+  $("#exList").innerHTML = h + mine.rest;
+  document.querySelectorAll("#exList [data-id]").forEach((b) => (b.onclick = () => { if (run) stopRun(); selectEx(b.dataset.id); }));
 }
 
 function selectEx(id, tier) {
@@ -2336,7 +2370,7 @@ function renderConfig() {
   if (document.activeElement !== $("#cfgGoalBpm")) $("#cfgGoalBpm").value = G.bpm;
   $("#cfgGoalPer").value = G.per;
   const ex = exById(DB.selected);
-  $("#cfgLabel").textContent = isPath() ? `Path · ${ex.path ? `Stage ${C.BY_ID[ex.nodeId].stage}: ${C.STAGES[C.BY_ID[ex.nodeId].stage].name}` : "my drill"}` : Scales.cfgLabel(c);
+  $("#cfgLabel").textContent = isPath() ? `Path · ${ex.path ? `Stage ${C.BY_ID[ex.nodeId].stage}: ${C.STAGES[C.BY_ID[ex.nodeId].stage].name}` : packOf(ex.id) ? packOf(ex.id).title : "my drill"}` : Scales.cfgLabel(c);
   $("#droneName").textContent = `${ex.custom && ex.drone ? DrillIO.parseNote(ex.drone + "4").label : Scales.prettyTonic(curKey().tonic)} drone`;
 }
 
@@ -2380,7 +2414,8 @@ function renderDrillsTab() {
   }).join("") : `<p class="muted small">No imported drills yet. Ask Claude for one, using the format on the right.</p>`;
   $("#packList").innerHTML = PACKS.error ? `<p class="muted small">${escapeHTML(PACKS.error)}</p>` : PACKS.map((p) => {
     const have = p.drills.filter((d) => DB.custom.some((c) => c.title === d.title)).length;
-    return `<div class="drow" data-pack="${p.id}"><div><div class="nm">${escapeHTML(p.title)}</div><div class="sub">${p.drills.length} drills · ${escapeHTML(p.blurb)}</div></div>
+    const gold = have ? packIds(p).filter((id) => ((exRec(id) || {}).best || 0) >= 3).length : 0;
+    return `<div class="drow" data-pack="${p.id}"><div><div class="nm">${escapeHTML(p.title)}</div><div class="sub">${p.drills.length} drills${have ? ` · ${gold} with 🥇` : ""} · ${escapeHTML(p.blurb)}</div></div>
       <div class="acts">${have === p.drills.length ? `<button class="go" data-act="play">▶ Practice</button>` : `<button class="go" data-act="add">+ Add ${have ? "the missing drills" : "pack"}</button>`}</div></div>`;
   }).join("");
   const others = Object.keys(DB.runs).filter((k) => !k.startsWith("custom|"));
@@ -2416,6 +2451,20 @@ $("#logSave").onclick = () => download(`practice-log-${dayKey()}.json`, Practice
 
 // Drill packs live in packs/ as drill-import JSON files, listed in packs/index.json (a static server can't list a folder)
 let PACKS = [];
+const packsLoaded = () => (PACKS.error ? [] : PACKS);
+const packIds = (p) => p.drills.map((d) => "c-" + DrillIO.slug(d.title)).filter((id) => EXERCISES.some((e) => e.id === id)); // the drills added
+const packOf = (id) => packsLoaded().find((p) => packIds(p).includes(id)) || null;
+// Next up inside a pack (DrillIO.packNext): same again after a miss, else the next drill in order short of 🥇
+function packRec(p) {
+  const ids = packIds(p), best = Object.fromEntries(ids.map((id) => [id, (exRec(id) || {}).best || 0]));
+  const s = DB.sessions.find((x) => ids.includes(x.ex));
+  const sel = ids.includes(DB.selected) ? DB.selected : s ? s.ex : ids[0]; // from the Drills tab: carry on where the pack was left
+  const n = DrillIO.packNext(ids, best, sel, s ? { id: s.ex, score: s.score, tier: s.tier } : null, PASS), ex = exById(n.id);
+  const why = n.again ? `Not passed yet. Same again, for ${TIERS[n.tier].icon} ±${TIERS[n.tier].tol}¢.`
+    : n.done ? "Every drill in the pack has 🥇. Keep it sharp with Hide fingering or Ears first, or play the whole passage on the Piece tab."
+    : `${ex.goal ? escapeHTML(ex.goal) + " " : ""}Aim for ${TIERS[n.tier].icon} ±${TIERS[n.tier].tol}¢.`;
+  return { id: n.id, tier: n.tier, ...(n.again && !ex.rhythm && s.mode ? { mode: s.mode } : {}), why, pack: p };
+}
 async function loadPacks() {
   try {
     const get = async (f) => { const r = await fetch(`packs/${f}`); if (!r.ok) throw new Error(`packs/${f}: ${r.status}`); return r.json(); };
@@ -2428,7 +2477,7 @@ async function loadPacks() {
   } catch (e) {
     PACKS = []; PACKS.error = location.protocol === "file:" ? "Drill packs load only when the app is served (python3 -m http.server), not opened as a file." : `Couldn't load the drill packs (${e.message}).`;
   }
-  renderDrillsTab();
+  renderAll();
 }
 const escapeHTML = (t) => String(t).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 
@@ -2452,9 +2501,9 @@ function importDrills(text) {
   $("#importGo").onclick = () => practiceDrill(first.id);
 }
 
-function practiceDrill(id) {
+function practiceDrill(id, tier) {
   if (run) stopRun();
-  selectEx(id);
+  selectEx(id, tier);
   document.querySelector('.tabs button[data-tab="practice"]').click();
 }
 
@@ -2482,6 +2531,8 @@ const curStreak = () => (DB.plan ? PlanIO.streak(DB.plan, DB.planLog, dayKey()) 
 
 // During a plan's scale step, Next up stays on the step's part of the setup
 function nextRec() {
+  const p = packOf(DB.selected);
+  if (p) return packRec(p);
   const st = activeStep();
   return st && st.scale && st.part !== "auto" && !isPath() && Scales.cfgKey(st.scale) === CFG_KEY ? recommendStep(st) : recommend();
 }
@@ -2797,7 +2848,7 @@ $("#packList").onclick = (e) => {
   const p = b && row && PACKS.find((x) => x.id === row.dataset.pack);
   if (!p) return;
   if (b.dataset.act === "add") importDrills(JSON.stringify({ drills: p.drills.filter((d) => !DB.custom.some((c) => c.title === d.title)) }));
-  if (b.dataset.act === "play") practiceDrill(DrillIO.toExercise(DB.custom.find((c) => c.title === p.drills[0].title)).id);
+  if (b.dataset.act === "play") { const n = packRec(p); practiceDrill(n.id, n.tier); }
 };
 $("#reportList").onclick = (e) => {
   const b = e.target.closest("button"), row = e.target.closest(".drow");

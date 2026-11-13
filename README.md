@@ -61,6 +61,8 @@ A drill whose notes have lengths (`beats`) is a rhythm drill. It's for practisin
 
 **Drill packs** (My drills tab) add ready-made drills. *The Two Grenadiers · bars 10–21* works up from the dotted quarter + 8th and half notes on the open A string to bars 10–12, 12–14, 14–16, 16–18, 18–20 and the whole passage. *Theme from “Witches' Dance” · bars 21–41* (D major, 2/4) covers triplet 8ths, slurred dotted 8th + 16th pairs, the minor section's low fingers and the switch from dotted pairs to triplets in bar 37, with six scale drills (S1–S6) for the accidentals.
 
+On the Practice page (Path or Free practice) the pack of the selected drill sits at the top of the list, its drills in order with their medals, like a stage of the Path. Nothing is locked: pick any drill. **Next up** follows the pack: a miss stays on the drill, a pass moves on to the next drill in the pack still short of 🥇, so each lap through the pack aims one medal higher. A drill picked by hand is where it carries on from; ▶ Practice on My drills carries on where the pack was left. Other packs and imported drills are at the bottom of the list.
+
 Packs are JSON files in `packs/`. A pack is a drill import file (see the format on the My drills tab) with an `id`, `title` and `blurb` added:
 
 ```json

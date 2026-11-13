@@ -305,7 +305,19 @@ How to read landings:
 - In tempo runs, shifted notes arriving later than the others means the shift starts too late. Missed notes plus a low score mean the tempo is too fast; accuracy should come before speed.
 `;
 
-  const api = { FORMAT, REPORT_FORMAT, FORMAT_DOC, parseNote, noteText, midiText, parseImport, validateDrill, toExercise, fromSequence, slug, extractJSON };
+  // A drill pack's next drill. Nothing is locked: a miss stays on the drill, a pass moves on to the next drill in the
+  // pack's order that's still short of 🥇 (so each lap through the pack aims one medal higher), and a drill picked by
+  // hand is where it carries on from. ids: the pack's drill ids in order; best: id → best medal (0–3); selected: the
+  // drill selected now; last: the pack's last run { id, score, tier } or null.
+  function packNext(ids, best, selected, last, pass) {
+    const b = (id) => best[id] || 0;
+    if (last && last.id === selected && last.score < pass) return { id: selected, tier: last.tier, again: true };
+    const i = Math.max(0, ids.indexOf(selected)), from = last && last.id === selected ? i + 1 : i;
+    for (let k = 0; k < ids.length; k++) { const id = ids[(from + k) % ids.length]; if (b(id) < 3) return { id, tier: b(id) + 1 }; }
+    return { id: ids[i], tier: 3, done: true };
+  }
+
+  const api = { FORMAT, REPORT_FORMAT, FORMAT_DOC, parseNote, noteText, midiText, parseImport, validateDrill, toExercise, fromSequence, slug, extractJSON, packNext };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else root.DrillIO = api;
 })(this);

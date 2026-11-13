@@ -61,6 +61,19 @@ for (const type of Object.keys(S.SCALE_TYPES)) for (const tonic of S.SCALE_TYPES
       roundTrips++;
     }
   }
+
+// Drill packs: nothing locked; a miss stays, a pass moves on to the next drill short of 🥇, each lap a medal higher
+{
+  const ids = ["a", "b", "c"], P = 0.85, nx = (best, sel, last) => D.packNext(ids, best, sel, last, P);
+  const eq = (name, got, want) => check(name, JSON.stringify(got) === JSON.stringify(want), got);
+  eq("pack: fresh starts at the selected drill", nx({}, "b", null), { id: "b", tier: 1 });
+  eq("pack: miss stays", nx({}, "a", { id: "a", score: 0.5, tier: 1 }), { id: "a", tier: 1, again: true });
+  eq("pack: pass moves on", nx({ a: 1 }, "a", { id: "a", score: 0.9, tier: 1 }), { id: "b", tier: 1 });
+  eq("pack: lap two aims higher", nx({ a: 1, b: 1, c: 1 }, "c", { id: "c", score: 0.9, tier: 1 }), { id: "a", tier: 2 });
+  eq("pack: skips gold drills", nx({ a: 3, b: 3, c: 2 }, "a", { id: "a", score: 0.9, tier: 3 }), { id: "c", tier: 3 });
+  eq("pack: picked by hand carries on from there", nx({ a: 1 }, "c", { id: "a", score: 0.9, tier: 1 }), { id: "c", tier: 1 });
+  eq("pack: all gold", nx({ a: 3, b: 3, c: 3 }, "b", { id: "b", score: 0.9, tier: 3 }), { id: "b", tier: 3, done: true });
+}
 console.log(`round-tripped ${roundTrips} built-in drills`);
 console.log(fails ? `${fails} failures` : "all pass");
 process.exit(fails ? 1 : 0);
