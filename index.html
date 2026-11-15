@@ -323,6 +323,17 @@ main { max-width: 1280px; margin: 0 auto; padding: 1rem; }
 .ehead { display: flex; justify-content: space-between; align-items: baseline; gap: .5rem; flex-wrap: wrap; margin-bottom: .6rem; }
 .ehead b { font-size: 1.05rem; }
 .msg.ear { font-size: 1.05rem; }
+.elive { margin-top: .5rem; font: .9rem ui-monospace, Menlo, monospace; }
+.elive i { display: inline-block; width: 7rem; height: .5rem; background: var(--panel-2); border-radius: 3px; overflow: hidden; vertical-align: middle; margin-left: .4rem; }
+.elive i b { display: block; height: 100%; background: var(--good); }
+.etile.big { min-width: 7rem; padding: .6rem .7rem; }
+.etile.big b { font-size: 1.1rem; }
+.etile.right { background: color-mix(in srgb, var(--good) 20%, var(--panel)); border-color: var(--good); }
+.elib { font-size: .82rem; }
+.elib .lrow { display: flex; gap: .35rem; align-items: center; padding: .2rem 0; border-top: 1px solid var(--line); }
+.elib .lrow span { flex: 1; min-width: 0; }
+.elib .lrow button { border: 1px solid var(--line); background: var(--panel-2); border-radius: 7px; padding: .1rem .4rem; font-size: .76rem; }
+.elib summary { cursor: pointer; margin-top: .5rem; color: var(--muted); }
 .eartiles { display: grid; gap: .5rem; margin: .9rem 0 .2rem; }
 .erow { display: flex; flex-wrap: wrap; gap: .3rem; align-items: stretch; }
 .erow .elab { width: 1.2rem; align-self: center; color: var(--muted); font-size: .9rem; }
@@ -509,11 +520,18 @@ main { max-width: 1280px; margin: 0 auto; padding: 1rem; }
   <!-- EAR -->
   <section id="tab-ear" class="tab">
     <aside class="side">
-      <div class="card"><h3>G major · find the wrong note</h3><div id="earStages"></div></div>
       <div class="card">
+        <div class="seg" id="earModeSeg" role="group" aria-label="Ear quiz"><button data-v="pitch">Flat or sharp</button><button data-v="string">Which string</button></div>
+        <h3 id="earStagesTitle"></h3>
+        <div id="earStages"></div>
+        <div class="seg" id="earKindSeg" role="group" aria-label="Question" style="margin:.7rem 0 0"><button data-v="compare">Compare two</button><button data-v="name">Name the string</button></div>
+      </div>
+      <div class="card"><h3>Your violin</h3><div id="earLib"></div></div>
+      <div class="card" id="earSoundCard">
         <h3>Sound</h3>
+        <div class="seg" id="earSrcSeg" role="group" aria-label="Sound source"><button data-v="synth">Synth</button><button data-v="violin">My violin</button></div>
         <div class="seg" id="earSpeedSeg" role="group" aria-label="Note length"><button data-v="0.75">Slow</button><button data-v="0.5">Medium</button><button data-v="0.35">Fast</button></div>
-        <label class="toggle"><input type="checkbox" id="earVib"><span><b>Vibrato</b><small>Narrow vibrato around the note. Small errors are easier to hear without it.</small></span></label>
+        <label class="toggle" id="earVibRow"><input type="checkbox" id="earVib"><span><b>Vibrato</b><small>Synth only. Narrow vibrato around the note; small errors are easier to hear without it.</small></span></label>
       </div>
       <div class="card"><h3>What you hear, what you miss</h3><div id="earStats"></div></div>
     </aside>
@@ -521,14 +539,21 @@ main { max-width: 1280px; margin: 0 auto; padding: 1rem; }
       <div class="card">
         <div class="ehead"><b id="earTitle"></b><span class="muted" id="earLevel"></span></div>
         <div class="msg ear" id="earMsg"></div>
+        <div class="elive muted" id="earLive" hidden></div>
         <div class="eartiles" id="earTiles"></div>
         <div class="row eacts" id="earActs"></div>
       </div>
-      <div class="card">
+      <div class="card" id="earHowPitch">
         <h3>How it works</h3>
         <p class="small">The scale plays up and back down. Most times one note is out of tune; about 1 in 4 times none is. Tap the note that was off, then say whether it was flat or sharp, or answer <b>All in tune</b>. The first note is the reference and is always in tune.</p>
         <p class="small">Two right in a row and the next wrong note is closer to in tune (50 → 40 → 30 → 25 → 20 → 15 → 12 → 10 → 8 → 6 → 5¢); one wrong and it goes back a step. That settles where you're right about 70% of the time, so expect to miss some. Medals match the playing targets: 🥉 25¢, 🥈 15¢, 🥇 10¢. Get 🥈 before moving to the next stage.</p>
-        <p class="small muted">In tune here means equal temperament from A4 = <span id="earA4"></span> Hz (Settings), the same reference the practice scoring uses. Played against a drone, a leading tone (F♯) often sounds best a little higher than that.</p>
+        <p class="small muted">In tune here means equal temperament from A4 = <span class="earA4"></span> Hz (Settings), the same reference the practice scoring uses. Played against a drone, a leading tone (F♯) often sounds best a little higher than that. With <b>My violin</b>, your recordings are tuned to exactly that before the wrong note is put in.</p>
+      </div>
+      <div class="card" id="earHowString">
+        <h3>How it works</h3>
+        <p class="small">First record your violin: each note that can be played on more than one string, on each of those strings. Play and hold each note when asked; the app keeps about a second of it and moves on. Then the quiz plays your recordings back.</p>
+        <p class="small"><b>Compare two:</b> the same note on two strings; which was on the lower string (G lowest, E highest)? <b>Name the string:</b> one note; which string was it on? Compare until 🥉 (8 of the last 10), then name the string: 🥈 14 of the last 20, 🥇 18 of the last 20. Guessing gets those about 1 time in 20.</p>
+        <p class="small muted">Every recording is tuned to the exact note and played at the same loudness, so the only difference left is the string's sound. Only the string can be heard: the same note on one string in two positions is the same length of string. Recordings stay on this device; they aren't synced.</p>
       </div>
     </div>
   </section>
@@ -743,8 +768,8 @@ function applyRange() {
 
 // ---------- Storage ----------
 const STORE_KEY = "fingerboard-coach.v1";
-const defaults = () => ({ ear: { stages: {}, hist: [] }, xp: 0, notes: {}, ex: {}, days: {}, sessions: [], selected: "p3-A", cfg: { ...DEFAULT_CFG }, custom: [], customMeta: {}, runs: {}, log: [], path: { states: {}, session: null }, goals: {}, plan: null, planLog: {},
-  settings: { view: "path", mode: "lock", tier: 1, drone: false, hear: false, hide: false, ears: false, chime: true, a4: 440, bpm: 60, per: 1, ladder: true, latencyMs: null, voiceMic: false, handsFree: true, clicks: 2, earStage: null, earDur: 0.5, earVib: false } });
+const defaults = () => ({ ear: { stages: {}, hist: [], strings: {} }, xp: 0, notes: {}, ex: {}, days: {}, sessions: [], selected: "p3-A", cfg: { ...DEFAULT_CFG }, custom: [], customMeta: {}, runs: {}, log: [], path: { states: {}, session: null }, goals: {}, plan: null, planLog: {},
+  settings: { view: "path", mode: "lock", tier: 1, drone: false, hear: false, hide: false, ears: false, chime: true, a4: 440, bpm: 60, per: 1, ladder: true, latencyMs: null, voiceMic: false, handsFree: true, clicks: 2, earMode: "pitch", earStage: null, earDur: 0.5, earVib: false, earSrc: "synth", earStrStage: null, earStrKind: null } });
 function loadDB() {
   const d = defaults();
   try {
@@ -2755,9 +2780,35 @@ function importPlan(text) {
 }
 
 // ---------- Ear training ----------
-// Plays the scale with a synthesized bowed tone. Uses the mic's AudioContext when it's open; otherwise its own,
-// which is closed before the mic opens (iOS: the mic must come before the context, see startAudio).
-let earCtx = null, earBus = null, earPlaying = null, earQ = null;
+// Sound: a synthesized bowed tone, or recordings of your own violin (kept in IndexedDB on this device, not synced).
+// Uses the mic's AudioContext when it's open; otherwise its own, closed before the mic opens (iOS: mic first, see startAudio).
+let earCtx = null, earBus = null, earPlaying = null, earQ = null, earSQ = null, earRec = null, earTapCtx = null;
+const earBufs = new Map();
+
+const EarLib = (() => {
+  const map = new Map();
+  let db = null, opening = null;
+  const open = () => opening || (opening = new Promise((res) => {
+    try {
+      const r = indexedDB.open("fingerboard-coach-audio", 1);
+      r.onupgradeneeded = () => r.result.createObjectStore("notes", { keyPath: "id" });
+      r.onerror = () => res();
+      r.onsuccess = () => {
+        db = r.result;
+        const all = db.transaction("notes").objectStore("notes").getAll();
+        all.onsuccess = () => { for (const x of all.result) map.set(x.id, x); res(); };
+        all.onerror = () => res();
+      };
+    } catch (e) { res(); }
+  }));
+  const store = (mode) => db.transaction("notes", mode).objectStore("notes");
+  return {
+    open, get: (id) => map.get(id), has: (id) => map.has(id), saved: () => !!db,
+    put(rec) { map.set(rec.id, rec); try { if (db) store("readwrite").put(rec); } catch (e) {} },
+    del(id) { map.delete(id); earBufs.delete(id); try { if (db) store("readwrite").delete(id); } catch (e) {} },
+  };
+})();
+
 function earAudio() {
   if (!ctx && !earCtx) {
     // Without the mic, ask for media playback so the ringer switch doesn't mute it (W3C Audio Session; WebKit)
@@ -2782,7 +2833,7 @@ function earAudio() {
 async function closeEarAudio() {
   stopEarPlay();
   try { if (navigator.audioSession) navigator.audioSession.type = "auto"; } catch (e) {} // "playback" would end the mic track
-  if (earCtx) { const c = earCtx; earCtx = null; earBus = null; try { await c.close(); } catch (e) {} }
+  if (earCtx) { const c = earCtx; earCtx = null; earBus = null; earBufs.clear(); try { await c.close(); } catch (e) {} }
 }
 function bowedNote(c, midi, cents, at, dur, vib) {
   const f = midiFreq(midi) * Math.pow(2, cents / 1200);
@@ -2800,18 +2851,38 @@ function bowedNote(c, midi, cents, at, dur, vib) {
   o.start(at); o.stop(end + 0.05);
   return nodes;
 }
-// items: [{ i, cents }] (i = tile index), played one after another; gaps (i = null) are rests
+// A recording, retuned to the exact note (plus `cents`) and played at a common loudness
+function recNote(c, rec, midi, cents, at, dur) {
+  let b = earBufs.get(rec.id);
+  if (!b || b.ctx !== c || b.t !== rec.t) {
+    const buf = c.createBuffer(1, rec.pcm.length, rec.rate), d = buf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = rec.pcm[i] / 32768;
+    earBufs.set(rec.id, (b = { ctx: c, t: rec.t, buf }));
+  }
+  const rate = (midiFreq(midi) * Math.pow(2, cents / 1200)) / rec.freq;
+  const len = Math.max(0.1, Math.min(dur - 0.03, b.buf.duration / rate));
+  const src = c.createBufferSource(), g = c.createGain(), vol = Math.min(8, 0.1 / Math.max(rec.rms, 1e-4));
+  src.buffer = b.buf; src.playbackRate.value = rate;
+  g.gain.setValueAtTime(vol, at); g.gain.setValueAtTime(vol, at + len - 0.08); g.gain.linearRampToValueAtTime(0, at + len);
+  src.connect(g).connect(c.destination); src.start(at); src.stop(at + len + 0.02);
+  return [src];
+}
+// items: { midi, string, cents, mark, dur, rec } one after another; null is a rest. `mark` highlights that tile.
 function earPlay(items, done) {
   stopEarPlay();
-  const c = earAudio(), dur = DB.settings.earDur, t0 = c.currentTime + 0.12;
-  const nodes = [], timers = [];
-  items.forEach((it, k) => {
-    if (it.i === null) return;
-    nodes.push(...bowedNote(c, earNotes()[it.i].midi, it.cents, t0 + k * dur, dur, DB.settings.earVib));
-    timers.push(setTimeout(() => earMark(it.i), 120 + k * dur * 1000));
-  });
-  const ms = 120 + items.length * dur * 1000;
-  timers.push(setTimeout(() => { earPlaying = null; earMark(null); done && done(); }, ms));
+  const c = earAudio(), nodes = [], timers = [];
+  let t = c.currentTime + 0.12;
+  for (const it of items) {
+    const d = (it && it.dur) || DB.settings.earDur;
+    if (it) {
+      const rec = it.rec && EarLib.get(Ear.spotId(it));
+      nodes.push(...(rec ? recNote(c, rec, it.midi, it.cents || 0, t, d) : bowedNote(c, it.midi, it.cents || 0, t, d, DB.settings.earVib)));
+      if (it.mark !== undefined) timers.push(setTimeout(() => earMark(it.mark), (t - c.currentTime) * 1000));
+    }
+    t += d;
+  }
+  const ms = (t - c.currentTime) * 1000;
+  timers.push(setTimeout(() => { earPlaying = null; earMark(null); if (done) done(); }, ms));
   if (ctx) suppressUntil = performance.now() + ms + 200; // the mic shouldn't score the speaker
   earPlaying = { nodes, timers };
 }
@@ -2821,29 +2892,41 @@ function stopEarPlay() {
   earPlaying.nodes.forEach((o) => { try { o.stop(); } catch (e) {} });
   earPlaying = null; earMark(null);
 }
-function earMark(i) { document.querySelectorAll("#earTiles .etile").forEach((t) => t.classList.toggle("now", +t.dataset.i === i)); }
+function earMark(i) { document.querySelectorAll("#earTiles .etile").forEach((t) => t.classList.toggle("now", i !== null && t.dataset.i === String(i))); }
 
+const earName = (n) => `${n.label}${n.oct}`;
+const earFing = (n) => (n.pos ? `${n.finger === "4x" ? "4th finger extended" : ord(+n.finger) + " finger"}, ${ord(n.pos)} position` : "open");
+const earSpot = (n) => (n.pos ? `${n.string} string, ${earFing(n)}` : `open ${n.string}`);
+const earOffText = (q) => `${Math.abs(q.cents)}¢ ${q.dir < 0 ? "flat" : "sharp"}`;
+const earMode = () => DB.settings.earMode || "pitch";
 const earStage = () => Ear.stageById(DB.settings.earStage || Ear.nextStage(DB.ear).id);
 const earNotes = () => Ear.notes(earStage());
-const earName = (n) => `${n.label}${n.oct}`;
-const earSpot = (n) => (n.pos ? `${n.string} string, ${n.finger === "4x" ? "4th finger extended" : ord(+n.finger) + " finger"}, ${ord(n.pos)} position` : `open ${n.string}`);
-const earOffText = (q) => `${Math.abs(q.cents)}¢ ${q.dir < 0 ? "flat" : "sharp"}`;
-function earNew() {
-  earQ = { q: Ear.question(earStage(), Ear.stateOf(DB.ear, earStage().id)), pick: null, res: null, phase: "new" };
+const earStrStage = () => Ear.stringStageById(DB.settings.earStrStage || (Ear.STRING_STAGES.find((s) => Ear.strMedal(Ear.strState(DB.ear, s.id)) < 2) || Ear.STRING_STAGES[2]).id);
+const earStrKind = () => DB.settings.earStrKind || Ear.strMode(Ear.strState(DB.ear, earStrStage().id));
+// The recordings the current quiz needs: the scale's notes, or every spot of the string stage
+function earNeeded() {
+  if (earMode() === "string") return Ear.stringSpots(earStrStage());
+  const seen = new Map();
+  for (const n of earNotes()) seen.set(Ear.spotId(n), { ...n, id: Ear.spotId(n) });
+  return [...seen.values()].sort((a, b) => Scales.STRING_ORDER.indexOf(a.string) - Scales.STRING_ORDER.indexOf(b.string) || a.midi - b.midi);
 }
+const earUsesViolin = () => DB.settings.earSrc === "violin" && earNotes().every((n) => EarLib.has(Ear.spotId(n)));
+
+// ----- Flat or sharp -----
+const earScale = (cents) => earNotes().map((n, i) => ({ midi: n.midi, string: n.string, cents: cents[i], mark: i, rec: earUsesViolin() }));
+function earNew() { earQ = { q: Ear.question(earStage(), Ear.stateOf(DB.ear, earStage().id)), pick: null, res: null, phase: "new" }; }
 function earPlayQuestion() {
   if (!earQ || earQ.phase === "done") earNew();
-  const det = Ear.detune(earQ.q, earNotes().length);
   if (earQ.phase === "new") earQ.phase = "listen";
-  earPlay(det.map((cents, i) => ({ i, cents })), () => { if (earQ.phase === "listen") { earQ.phase = "answer"; renderEar(); } });
+  earPlay(earScale(Ear.detune(earQ.q, earNotes().length)), () => { if (earQ && earQ.phase === "listen") { earQ.phase = "answer"; renderEar(); } });
   renderEar();
 }
 // The wrong note with the two before it, as played, a rest, then in tune
 function earPlaySpot() {
-  const { off, dir, cents } = earQ.q, from = Math.max(0, off - 2), seq = [];
-  for (let i = from; i <= off; i++) seq.push({ i, cents: i === off ? dir * cents : 0 });
-  seq.push({ i: null }, { i: null });
-  for (let i = from; i <= off; i++) seq.push({ i, cents: 0 });
+  const { off, dir, cents } = earQ.q, ns = earNotes(), from = Math.max(0, off - 2), seq = [], v = earUsesViolin();
+  for (let i = from; i <= off; i++) seq.push({ midi: ns[i].midi, string: ns[i].string, mark: i, rec: v, cents: i === off ? dir * cents : 0 });
+  seq.push(null, null);
+  for (let i = from; i <= off; i++) seq.push({ midi: ns[i].midi, string: ns[i].string, mark: i, rec: v, cents: 0 });
   earPlay(seq);
 }
 function earAnswer(a) {
@@ -2867,81 +2950,273 @@ function earResultText() {
     "wrong-note": () => `✗ Not ${earName(pick)}: ${what}.`,
     "wrong-note-dir": () => `✗ Not ${earName(pick)}: ${what}.`,
   }[res.kind]();
-  const next = ch.finer ? ` Next wrong note: ${Ear.LADDER[Ear.stateOf(DB.ear, q.stage).lvl]}¢.` : ch.coarser ? ` Easing off to ${Ear.LADDER[Ear.stateOf(DB.ear, q.stage).lvl]}¢.` : "";
-  return t + next + (ch.medal ? ` ${ch.medal.icon} You can hear ${ch.medal.cents}¢!` : "");
+  const lvl = Ear.LADDER[Ear.stateOf(DB.ear, q.stage).lvl];
+  return t + (ch.finer ? ` Next wrong note: ${lvl}¢.` : ch.coarser ? ` Easing off to ${lvl}¢.` : "") + (ch.medal ? ` ${ch.medal.icon} You can hear ${ch.medal.cents}¢!` : "");
 }
-
-function renderEar() {
-  if (!window.Ear || !$("#earStages")) return;
+function renderEarPitch(B, on) {
   const stage = earStage();
   if (!earQ || earQ.q.stage !== stage.id) { stopEarPlay(); earNew(); }
-  const st = Ear.stateOf(DB.ear, stage.id), ns = earNotes();
-  const medalsHTML = (best) => `<span class="medals">${Ear.MEDALS.map((m) => `<span class="${best !== null && best <= m.cents ? "on" : ""}">${m.icon}</span>`).join("")}</span>`;
-  $("#earStages").innerHTML = Ear.STAGES.map((s) => {
-    const x = DB.ear.stages[s.id], th = Ear.threshold(x);
-    const info = x ? ` · now ${Ear.LADDER[x.lvl]}¢${th ? `, you hear ≈${th}¢` : ""}` : "";
-    return `<button class="estage${s.id === stage.id ? " sel" : ""}" data-id="${s.id}"><span class="enm">${s.title}<small>${s.sub}${info}</small></span>${medalsHTML(x ? x.best : null)}</button>`;
-  }).join("");
-  document.querySelectorAll("#earStages .estage").forEach((b) => (b.onclick = () => { DB.settings.earStage = b.dataset.id; save(); earQ = null; renderEar(); }));
-
+  const st = Ear.stateOf(DB.ear, stage.id), ns = earNotes(), th = Ear.threshold(st);
   $("#earTitle").textContent = `G major · ${stage.title}`;
-  const th = Ear.threshold(st);
-  $("#earLevel").textContent = `Wrong note off by ${earQ.q.cents}¢` + (th ? ` · you hear ≈${th}¢` : "") + (st.n ? ` · ${st.ok}/${st.n} right` : "");
-  $("#earA4").textContent = DB.settings.a4;
-
+  $("#earLevel").textContent = `Wrong note off by ${earQ.q.cents}¢` + (th ? ` · you hear ≈${th}¢` : "") + (st.n ? ` · ${st.ok}/${st.n} right` : "") + (earUsesViolin() ? " · your violin" : "");
   const { phase, q, pick } = earQ, done = phase === "done";
   const top = ns.reduce((b, n, i) => (n.midi > ns[b].midi ? i : b), 0);
   const tile = (n, i) => {
-    const cls = ["etile", i === 0 ? "ref" : "", pick === i ? "pick" : "", done && i === q.off ? "off" : "", done && earQ.ans.off === i ? "pick" : ""].join(" ");
-    const fing = n.pos ? `${n.finger} · ${ord(n.pos)}` : "open";
+    const cls = ["etile", i === 0 ? "ref" : "", pick === i || (done && earQ.ans.off === i) ? "pick" : "", done && i === q.off ? "off" : ""].join(" ");
     const tag = done && i === q.off ? `<span class="ec">${q.dir < 0 ? "−" : "+"}${q.cents}¢</span>` : "";
-    return `<button class="${cls}" data-i="${i}" ${i === 0 || phase === "new" || done ? "disabled" : ""} title="${earName(n)}: ${earSpot(n)}"><b>${n.label}<sub>${n.oct}</sub></b><small>${n.string} ${fing}</small>${tag}</button>`;
+    return `<button class="${cls}" data-i="${i}" ${i === 0 || phase === "new" || done ? "disabled" : ""} title="${earName(n)}: ${earSpot(n)}"><b>${n.label}<sub>${n.oct}</sub></b><small>${n.string} ${n.pos ? `${n.finger} · ${ord(n.pos)}` : "open"}</small>${tag}</button>`;
   };
   const row = (lab, a, b) => `<div class="erow"><span class="elab">${lab}</span>${ns.slice(a, b).map((n, k) => tile(n, a + k)).join("")}</div>`;
   $("#earTiles").innerHTML = row("⇡", 0, top + 1) + row("⇣", top + 1, ns.length);
   document.querySelectorAll("#earTiles .etile").forEach((b) => (b.onclick = () => { earQ.pick = +b.dataset.i; renderEar(); }));
-
   const msg = $("#earMsg");
   msg.className = "msg ear" + (done ? (earQ.res.ok ? " good" : " bad") : "");
   msg.textContent = done ? earResultText()
     : phase === "new" ? `Press Play. G major plays up and back down; listen for a note that's off by ${q.cents}¢, or none.`
     : pick === null ? "Tap the note that was off, or All in tune." : `${earName(ns[pick])}: flat or sharp?`;
-
-  const B = (id, label, cls = "btn ghost", dis = false) => `<button class="${cls}" id="${id}"${dis ? " disabled" : ""}>${label}</button>`;
   $("#earActs").innerHTML = phase === "new" ? B("earGo", "▶ Play", "btn")
     : !done ? B("earFlat", "♭ Flat", "btn", pick === null) + B("earSharp", "♯ Sharp", "btn", pick === null) + B("earClean", "✓ All in tune") + B("earAgain", earPlaying ? "■ Stop" : "↻ Play again")
     : B("earNext", "Next ▶", "btn") + B("earPlayed", "▶ As played") + B("earFixed", "▶ In tune") + (q.off !== null ? B("earSpotBtn", "▶ That spot: played, then in tune") : "");
-  const on = (id, f) => { const b = document.getElementById(id); if (b) b.onclick = f; };
   on("earGo", earPlayQuestion);
   on("earNext", () => { earNew(); earPlayQuestion(); });
-  on("earAgain", () => {
-    if (earPlaying) stopEarPlay();
-    else earPlay(Ear.detune(q, ns.length).map((cents, i) => ({ i, cents })), renderEar);
-    renderEar();
-  });
+  on("earAgain", () => { if (earPlaying) stopEarPlay(); else earPlay(earScale(Ear.detune(q, ns.length)), renderEar); renderEar(); });
   on("earFlat", () => earAnswer({ off: pick, dir: -1 }));
   on("earSharp", () => earAnswer({ off: pick, dir: 1 }));
   on("earClean", () => earAnswer({ off: null, dir: 0 }));
-  on("earPlayed", () => earPlay(Ear.detune(q, ns.length).map((cents, i) => ({ i, cents }))));
-  on("earFixed", () => earPlay(ns.map((_, i) => ({ i, cents: 0 }))));
+  on("earPlayed", () => earPlay(earScale(Ear.detune(q, ns.length))));
+  on("earFixed", () => earPlay(earScale(ns.map(() => 0))));
   on("earSpotBtn", earPlaySpot);
 
   // Per scale degree: how often you caught it flat and sharp
   const firstOf = {};
   ns.forEach((n) => { if (!(n.deg in firstOf)) firstOf[n.deg] = n; });
-  const cell = (s) => (s && s[1] ? `<span class="${s[0] / s[1] < 0.6 ? "weak" : ""}">${s[0]}/${s[1]}</span>` : "<span class='muted'>–</span>");
-  const rows = Ear.DEGREES.map((d, k) => `<tr><td>${firstOf[k].label} <span class="muted">${d}</span></td><td>${cell((st.deg[k] || {}).f)}</td><td>${cell((st.deg[k] || {}).s)}</td></tr>`).join("");
+  const rows = Ear.DEGREES.map((d, k) => `<tr><td>${firstOf[k].label} <span class="muted">${d}</span></td><td>${earCell((st.deg[k] || {}).f)}</td><td>${earCell((st.deg[k] || {}).s)}</td></tr>`).join("");
   $("#earStats").innerHTML = st.n
-    ? `<table class="estats"><tr><th>Note</th><th>♭ caught</th><th>♯ caught</th></tr>${rows}<tr><td>All in tune</td><td colspan="2">${cell(st.deg.clean)}</td></tr></table><p class="muted small" style="margin-top:.5rem">${stage.title}. Red: under 60%. Notes you miss come up more often.</p>`
+    ? `<table class="estats"><tr><th>Note</th><th>♭ caught</th><th>♯ caught</th></tr>${rows}<tr><td>All in tune</td><td colspan="2">${earCell(st.deg.clean)}</td></tr></table><p class="muted small" style="margin-top:.5rem">${stage.title}. Red: under 60%. Notes you miss come up more often.</p>`
     : `<p class="muted small">After a few answers this shows which notes you catch flat and sharp in ${stage.title.toLowerCase()}.</p>`;
 }
-document.querySelectorAll("#earSpeedSeg button").forEach((b) => (b.onclick = () => { DB.settings.earDur = +b.dataset.v; save(); syncEarSettings(); }));
-$("#earVib").onchange = (e) => { DB.settings.earVib = e.target.checked; save(); };
-function syncEarSettings() {
+const earCell = (s) => (s && s[1] ? `<span class="${s[0] / s[1] < 0.6 ? "weak" : ""}">${s[0]}/${s[1]}</span>` : "<span class='muted'>–</span>");
+
+// ----- Which string -----
+const EAR_STR_DUR = 1.1;
+function earStrNew() {
+  const stage = earStrStage(), kind = earStrKind();
+  earSQ = { stage: stage.id, kind, q: Ear.strQuestion(stage, Ear.strState(DB.ear, stage.id), kind, (id) => EarLib.has(id)), phase: "new" };
+}
+const earStrItems = (q) => q.play.flatMap((x, k) => [k ? null : undefined, { ...x, rec: true, dur: EAR_STR_DUR, mark: q.mode === "compare" ? k : undefined }]).filter((x) => x !== undefined);
+function earStrPlay() {
+  if (!earSQ.q) return;
+  if (earSQ.phase === "new") earSQ.phase = "answer";
+  earPlay(earStrItems(earSQ.q), renderEar);
+  renderEar();
+}
+function earStrAnswer(a) {
+  if (!earSQ || !earSQ.q || earSQ.phase !== "answer") return;
+  stopEarPlay();
+  const ok = Ear.strGrade(earSQ.q, a), ch = Ear.strRecord(DB.ear, earSQ.q, ok);
+  earSQ = { ...earSQ, ans: a, ok, ch, phase: "done" };
+  save();
+  renderEar();
+}
+function renderEarString(B, on) {
+  const stage = earStrStage(), st = Ear.strState(DB.ear, stage.id);
+  if (!earSQ || earSQ.stage !== stage.id || earSQ.kind !== earStrKind() || (!earSQ.q && earSQ.phase === "new")) { stopEarPlay(); earStrNew(); }
+  const { q, phase } = earSQ, done = phase === "done", kind = earSQ.kind;
+  const sum = (a) => a.reduce((x, y) => x + y, 0), last = kind === "compare" ? st.cmp.slice(-10) : st.nm.slice(-20);
+  $("#earTitle").textContent = `Which string · ${stage.title}`;
+  $("#earLevel").textContent = (kind === "compare" ? "Compare two strings" : "Name the string") + (last.length ? ` · last ${last.length}: ${sum(last)} right` : "");
+  const msg = $("#earMsg");
+  msg.className = "msg ear" + (done ? (earSQ.ok ? " good" : " bad") : "");
+  if (!q) {
+    const miss = earNeeded().filter((x) => !EarLib.has(x.id)).length;
+    msg.textContent = `Record your violin first: each note on each string it can be played on (${miss} to go, about ${Math.ceil(miss * 4 / 60)} min). Have the violin ready, then press Record.`;
+    $("#earTiles").innerHTML = "";
+    $("#earActs").innerHTML = B("earRecGo", `● Record ${miss} notes`, "btn");
+    on("earRecGo", () => earRecStart(earNeeded().filter((x) => !EarLib.has(x.id))));
+  } else {
+    const note = earName(q), [a, b] = q.play;
+    const lowIdx = Ear.strAnswer(q);
+    if (kind === "compare") {
+      msg.textContent = done
+        ? `${earSQ.ok ? "✓ Yes" : `✗ The ${lowIdx ? "second" : "first"} one was on the lower string`}. 1st: ${earSpot(a)}. 2nd: ${earSpot(b)}.`
+        : phase === "new" ? `Two ${note}s on different strings. Press Play.` : `Which ${note} was on the lower string (G lowest, E highest)?`;
+      const t = (x, k) => `<button class="etile big${done && k === lowIdx ? " right" : ""}${done && k === earSQ.ans && !earSQ.ok ? " off" : ""}" data-i="${k}" ${phase !== "answer" ? "disabled" : ""}><b>${k ? "2nd" : "1st"}</b><small>${done ? earSpot(x) : note}</small></button>`;
+      $("#earTiles").innerHTML = `<div class="erow">${t(a, 0)}${t(b, 1)}</div>`;
+    } else {
+      const ans = q.play[0];
+      msg.textContent = done
+        ? (earSQ.ok ? `✓ Yes: ${earSpot(ans)}.` : `✗ It was ${earSpot(ans)}, not the ${earSQ.ans} string.`)
+        : phase === "new" ? `One ${note}. Press Play.` : `Which string was this ${note} on?`;
+      const t = (x) => `<button class="etile big${done && x.string === ans.string ? " right" : ""}${done && x.string === earSQ.ans && !earSQ.ok ? " off" : ""}" data-i="${x.string}" ${phase !== "answer" ? "disabled" : ""}><b>${x.string} string</b><small>${earFing(x)}</small></button>`;
+      $("#earTiles").innerHTML = `<div class="erow">${q.options.map(t).join("")}</div>`;
+    }
+    if (done && earSQ.ch.medal) msg.textContent += ` ${earSQ.ch.medal.icon}!`;
+    document.querySelectorAll("#earTiles .etile").forEach((el) => (el.onclick = () => earStrAnswer(kind === "compare" ? +el.dataset.i : el.dataset.i)));
+    $("#earActs").innerHTML = phase === "new" ? B("earGo", "▶ Play", "btn")
+      : !done ? B("earAgain", earPlaying ? "■ Stop" : "↻ Play again")
+      : B("earNext", "Next ▶", "btn") + B("earAgain", "↻ Play again") + B("earEach", `▶ ${note} on each string, low to high`);
+    on("earGo", earStrPlay);
+    on("earNext", () => { earStrNew(); earStrPlay(); });
+    on("earAgain", () => { if (earPlaying) stopEarPlay(); else earPlay(earStrItems(q), renderEar); renderEar(); });
+    // Each string in turn, highlighting its answer tile (compare: the tile that played it)
+    on("earEach", () => earPlay(q.options.flatMap((x, k) => [k ? null : undefined, { ...x, rec: true, dur: EAR_STR_DUR, mark: kind === "compare" ? q.play.indexOf(x) : x.string }]).filter((x) => x !== undefined)));
+  }
+  const notes = Ear.stringNotes(stage);
+  const rows = notes.map((n) => `<tr><td>${earName(n)}</td><td class="muted">${n.spots.map((x) => (x.pos ? x.string : "open " + x.string)).join(" · ")}</td><td>${earCell(st.notes[n.midi])}</td></tr>`).join("");
+  $("#earStats").innerHTML = st.n
+    ? `<table class="estats"><tr><th>Note</th><th>Strings</th><th>Right</th></tr>${rows}</table><p class="muted small" style="margin-top:.5rem">Compare: ${sum(st.cmp.slice(-10))}/${st.cmp.slice(-10).length} of the last 10 · Name: ${sum(st.nm.slice(-20))}/${st.nm.slice(-20).length} of the last 20. Notes you miss come up more often.</p>`
+    : `<p class="muted small">After a few answers this shows which notes you place on the right string.</p>`;
+}
+
+// ----- Recording your violin: play and hold each note; ~1.2 s of it is kept once it's steady on the note -----
+const EAR_REC_S = 1.2;
+async function earRecStart(list) {
+  if (!list.length) return;
+  stopEarPlay();
+  if (!(await startAudio())) return;
+  if (!ctx.audioWorklet || !window.AudioWorkletNode) { $("#earMsg").textContent = "This browser can't record here (no AudioWorklet). Use a recent Safari or Chrome."; return; }
+  try { if (earTapCtx !== ctx) { await ctx.audioWorklet.addModule("ear-tap.js"); earTapCtx = ctx; } }
+  catch (e) { $("#earMsg").textContent = `Couldn't start the recorder (${e.message}). Reload and try again.`; return; }
+  const node = new AudioWorkletNode(ctx, "fc-tap", { numberOfInputs: 1, numberOfOutputs: 1, outputChannelCount: [1] });
+  const mute = ctx.createGain(); mute.gain.value = 0;
+  inputNode.connect(node); node.connect(mute).connect(ctx.destination); // Safari only runs nodes that lead to the speakers
+  const drone = DB.settings.drone; // the drone would end up in the recordings
+  if (drone) { DB.settings.drone = false; applyDrone(); }
+  earRec = { list, k: 0, node, rate: ctx.sampleRate, chunks: [], run: [], armed: true, quiet: 0, drone, last: null };
+  node.port.onmessage = (e) => earRecChunk(e.data);
+  try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {}); } catch (e) {}
+  renderEar();
+}
+function earRecStop() {
+  const r = earRec;
+  if (!r) return;
+  earRec = null;
+  r.node.port.onmessage = null;
+  try { inputNode.disconnect(r.node); } catch (e) {}
+  try { r.node.disconnect(); } catch (e) {}
+  if (r.drone) { DB.settings.drone = true; applyDrone(); }
+  earSQ = null;
+  renderEar();
+}
+function earRecChunk(x) {
+  const r = earRec;
+  if (!r) return;
+  const sp = r.list[r.k], f0 = midiFreq(sp.midi), dt = x.length / r.rate;
+  r.chunks.push(x);
+  if (r.chunks.length > 120) r.chunks.shift();
+  const p = PitchDetector.detectPitch(x, r.rate, { minFreq: f0 / 1.3, maxFreq: f0 * 1.3, minRms: 0.003, minClarity: 0.8 });
+  const c = p.freq ? 1200 * Math.log2(p.freq / f0) : null, hit = c !== null && Math.abs(c) <= 70;
+  if (!r.armed) { // first a moment without the note, so the last one ringing on (or a repeat) isn't taken
+    r.quiet = hit ? 0 : r.quiet + dt;
+    if (r.quiet >= 0.3) { r.armed = true; r.run = []; }
+  } else if (hit) {
+    r.run.push(p.freq);
+    if (r.run.length * dt >= EAR_REC_S) return earCapture(sp, dt);
+  } else r.run = [];
+  const live = $("#earLive");
+  if (!r.armed) live.textContent = "Let the last note stop…";
+  else if (c === null) live.textContent = "Listening for the note…";
+  else if (!hit) live.textContent = `Hearing ${c > 0 ? "above" : "below"} ${earName(sp)}: is that the right note?`;
+  else live.innerHTML = `${earName(sp)} ${c >= 0 ? "+" : "−"}${Math.abs(Math.round(c))}¢ · hold it <i><b style="width:${Math.min(100, (r.run.length * dt * 100) / EAR_REC_S)}%"></b></i>`;
+}
+function earCapture(sp, dt) {
+  const r = earRec, pre = Math.round(0.12 / dt); // keep the start of the note too: the bow's attack is part of the string's sound
+  const parts = r.chunks.slice(-(r.run.length + pre)), n = parts.reduce((a, p) => a + p.length, 0), x = new Float32Array(n);
+  let o = 0;
+  for (const p of parts) { x.set(p, o); o += p.length; }
+  const stable = n - r.run.length * parts[0].length;
+  let ss = 0;
+  for (let i = stable; i < n; i++) ss += x[i] * x[i];
+  const rms = Math.sqrt(ss / (n - stable)), fade = Math.round(r.rate * 0.08), pcm = new Int16Array(n);
+  for (let i = 0; i < n; i++) {
+    const g = Math.min(1, i / 256, (n - 1 - i) / fade);
+    pcm[i] = Math.max(-32768, Math.min(32767, Math.round(x[i] * g * 32767)));
+  }
+  const freq = Math.pow(2, r.run.reduce((a, f) => a + Math.log2(f), 0) / r.run.length);
+  EarLib.put({ id: sp.id, midi: sp.midi, string: sp.string, rate: r.rate, freq, rms, pcm, t: Date.now() });
+  r.last = { sp, cents: Math.round(1200 * Math.log2(freq / midiFreq(sp.midi))) };
+  chime();
+  r.k++; r.armed = false; r.quiet = 0; r.run = [];
+  if (r.k >= r.list.length) { earRecStop(); $("#earMsg").textContent = `✓ Recorded ${r.list.length} note${r.list.length > 1 ? "s" : ""}.`; }
+  else renderEar();
+}
+function renderEarRec(B, on) {
+  const r = earRec, sp = r.list[r.k];
+  $("#earTitle").textContent = "Recording your violin";
+  $("#earLevel").textContent = `${r.k + 1} of ${r.list.length}`;
+  const msg = $("#earMsg");
+  msg.className = "msg ear";
+  msg.textContent = `Play ${earName(sp)} on the ${earSpot(sp).replace(/^open (.)$/, "open $1 string").replace(/^(.) string, /, "$1 string: ")} and hold it.`;
+  $("#earLive").hidden = false;
+  $("#earLive").textContent = "Listening for the note…";
+  const next = r.list.slice(r.k + 1, r.k + 6).map((x) => `${earName(x)} ${x.string}`).join(" · ");
+  $("#earTiles").innerHTML = `<p class="muted small">${r.last ? `✓ ${earName(r.last.sp)} on ${r.last.sp.string} (${r.last.cents >= 0 ? "+" : "−"}${Math.abs(r.last.cents)}¢, tuned exactly on playback). ` : ""}${next ? `Next: ${next}` : "Last one."}</p>`
+    + (DB.settings.voiceMic ? `<p class="muted small">iPad mic mode is on: Safari's voice processing changes the sound a little.</p>` : "");
+  $("#earActs").innerHTML = B("earSkip", "Skip") + B("earRecEnd", "■ Stop");
+  on("earSkip", () => { r.k++; r.armed = false; r.run = []; if (r.k >= r.list.length) earRecStop(); else renderEar(); });
+  on("earRecEnd", earRecStop);
+}
+
+// ----- Side cards -----
+function renderEarLib(B, on) {
+  const need = earNeeded(), have = need.filter((x) => EarLib.has(x.id)), miss = need.filter((x) => !EarLib.has(x.id));
+  const what = earMode() === "string" ? earStrStage().title.toLowerCase() : `the scale, ${earStage().title.toLowerCase()}`;
+  const rows = need.map((x) => `<div class="lrow"><span>${earName(x)} · ${earSpot(x)}</span>${EarLib.has(x.id) ? `<button data-play="${x.id}">▶</button><button data-del="${x.id}" title="Delete">✕</button>` : `<button data-rec="${x.id}">●</button>`}</div>`).join("");
+  $("#earLib").innerHTML = `<div class="elib"><p class="small">${have.length} of ${need.length} recorded for ${what}.${EarLib.saved() ? "" : " <b>This browser isn't saving recordings</b> (private browsing?): they last until you reload."}</p>
+    <div class="row" style="margin-top:0">${miss.length ? B("earRecMiss", `● Record ${miss.length}`, "btn") : ""}${have.length ? B("earRecAll", "↻ Re-record all") : ""}</div>
+    <details${miss.length && have.length ? " open" : ""}><summary>Each note</summary>${rows}</details></div>`;
+  on("earRecMiss", () => earRecStart(miss));
+  on("earRecAll", () => earRecStart(need));
+  document.querySelectorAll("#earLib [data-play]").forEach((b) => (b.onclick = () => { const x = need.find((y) => y.id === b.dataset.play); earPlay([{ ...x, rec: true, dur: EAR_STR_DUR }]); }));
+  document.querySelectorAll("#earLib [data-rec]").forEach((b) => (b.onclick = () => earRecStart(need.filter((y) => y.id === b.dataset.rec))));
+  document.querySelectorAll("#earLib [data-del]").forEach((b) => (b.onclick = () => { EarLib.del(b.dataset.del); earSQ = null; renderEar(); }));
+}
+function renderEar() {
+  if (!window.Ear || !$("#earStages")) return;
+  const B = (id, label, cls = "btn ghost", dis = false) => `<button class="${cls}" id="${id}"${dis ? " disabled" : ""}>${label}</button>`;
+  const on = (id, f) => { const b = document.getElementById(id); if (b) b.onclick = f; };
+  const mode = earMode(), medals = (n) => `<span class="medals">${Ear.MEDALS.map((m, k) => `<span class="${k < n ? "on" : ""}">${m.icon}</span>`).join("")}</span>`;
+  document.querySelectorAll("#earModeSeg button").forEach((b) => b.classList.toggle("on", b.dataset.v === mode));
+  $("#earKindSeg").hidden = mode !== "string";
+  document.querySelectorAll("#earKindSeg button").forEach((b) => b.classList.toggle("on", b.dataset.v === earStrKind()));
+  $("#earSoundCard").hidden = mode !== "pitch";
+  $("#earHowPitch").hidden = mode !== "pitch";
+  $("#earHowString").hidden = mode !== "string";
+  document.querySelectorAll(".earA4").forEach((e) => (e.textContent = DB.settings.a4));
+  document.querySelectorAll("#earSrcSeg button").forEach((b) => b.classList.toggle("on", b.dataset.v === (DB.settings.earSrc || "synth")));
   document.querySelectorAll("#earSpeedSeg button").forEach((b) => b.classList.toggle("on", +b.dataset.v === DB.settings.earDur));
   $("#earVib").checked = DB.settings.earVib;
+  $("#earVibRow").hidden = earUsesViolin();
+  if (mode === "pitch") {
+    const cur = earStage();
+    $("#earStagesTitle").textContent = "G major · find the wrong note";
+    $("#earStages").innerHTML = Ear.STAGES.map((s) => {
+      const x = DB.ear.stages[s.id], th = Ear.threshold(x), m = x && Ear.medalOf(x.best);
+      const info = x && x.n ? ` · now ${Ear.LADDER[x.lvl]}¢${th ? `, you hear ≈${th}¢` : ""}` : "";
+      return `<button class="estage${s.id === cur.id ? " sel" : ""}" data-id="${s.id}"><span class="enm">${s.title}<small>${s.sub}${info}</small></span>${medals(m ? Ear.MEDALS.indexOf(m) + 1 : 0)}</button>`;
+    }).join("");
+    document.querySelectorAll("#earStages .estage").forEach((b) => (b.onclick = () => { if (earRec) return; DB.settings.earStage = b.dataset.id; save(); earQ = null; renderEar(); }));
+  } else {
+    const cur = earStrStage();
+    $("#earStagesTitle").textContent = "Same note, which string?";
+    $("#earStages").innerHTML = Ear.STRING_STAGES.map((s) => {
+      const sp = Ear.stringSpots(s), have = sp.filter((x) => EarLib.has(x.id)).length;
+      return `<button class="estage${s.id === cur.id ? " sel" : ""}" data-id="${s.id}"><span class="enm">${s.title}<small>${s.sub} · ${have}/${sp.length} recorded</small></span>${medals(Ear.strMedal(Ear.strState(DB.ear, s.id)))}</button>`;
+    }).join("");
+    document.querySelectorAll("#earStages .estage").forEach((b) => (b.onclick = () => { if (earRec) return; DB.settings.earStrStage = b.dataset.id; save(); earSQ = null; renderEar(); }));
+  }
+  renderEarLib(B, on);
+  $("#earLive").hidden = !earRec;
+  if (earRec) renderEarRec(B, on);
+  else if (mode === "pitch") renderEarPitch(B, on);
+  else renderEarString(B, on);
 }
-syncEarSettings();
+document.querySelectorAll("#earModeSeg button").forEach((b) => (b.onclick = () => { if (earRec) return; stopEarPlay(); DB.settings.earMode = b.dataset.v; save(); renderEar(); }));
+document.querySelectorAll("#earKindSeg button").forEach((b) => (b.onclick = () => { stopEarPlay(); DB.settings.earStrKind = b.dataset.v; save(); earSQ = null; renderEar(); }));
+document.querySelectorAll("#earSrcSeg button").forEach((b) => (b.onclick = () => { DB.settings.earSrc = b.dataset.v; save(); renderEar(); }));
+document.querySelectorAll("#earSpeedSeg button").forEach((b) => (b.onclick = () => { DB.settings.earDur = +b.dataset.v; save(); renderEar(); }));
+$("#earVib").onchange = (e) => { DB.settings.earVib = e.target.checked; save(); };
+EarLib.open().then(() => renderEar());
 
 function renderAll() {
   renderConfig();
@@ -2957,7 +3232,7 @@ document.querySelectorAll(".tabs button").forEach((b) => (b.onclick = () => {
   document.querySelectorAll(".tabs button").forEach((x) => x.classList.toggle("active", x === b));
   document.querySelectorAll(".tab").forEach((t) => t.classList.toggle("active", t.id === "tab-" + b.dataset.tab));
   if (b.dataset.tab === "progress") renderProgress();
-  if (b.dataset.tab === "ear") renderEar(); else stopEarPlay();
+  if (b.dataset.tab === "ear") renderEar(); else { stopEarPlay(); earRecStop(); }
 }));
 $("#startBtn").onclick = async () => { if (await startAudio()) startRun(); };
 $("#stopBtn").onclick = stopRun;

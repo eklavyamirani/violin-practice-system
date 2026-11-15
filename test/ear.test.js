@@ -75,5 +75,36 @@ eq("threshold", E.threshold({ revs: [50, 20, 25, 15, 20, 12, 15] }), 18);
 for (let k = 0; k < 40; k++) ask(true);
 eq("ladder floor", E.LADDER[e2.stages[id].lvl], 5);
 
+// Which string: notes on more than one string, from recordings
+const [w1, w3, w5] = E.STRING_STAGES;
+eq("1st: open or 4th finger", E.stringNotes(w1).map((n) => n.label + n.oct + ":" + n.spots.map((x) => x.string + x.finger).join("/")), ["D4:G4/D0", "A4:D4/A0", "E5:A4/E0"]);
+eq("spot counts", E.STRING_STAGES.map((s) => [E.stringNotes(s).length, E.stringSpots(s).length]), [[3, 6], [9, 18], [13, 28]]);
+eq("A4 on three strings by 5th", E.stringNotes(w5).find((n) => n.midi === 69).spots.map((x) => `${x.string}${x.finger}@${x.pos}`), ["G4@5", "D4@1", "A0@null"]);
+eq("record string by string", E.stringSpots(w3).slice(0, 4).map((x) => x.id), ["62G", "64G", "66G", "62D"]);
+eq("no recordings, no question", E.strQuestion(w3, E.strState({ stages: {}, hist: [] }, w3.id), "compare", () => false), null);
+const only = new Set(["62G", "62D", "64G"]); // E4 has one string recorded: left out
+const ews = { stages: {}, hist: [] }, sst = E.strState(ews, w3.id);
+for (let k = 0; k < 50; k++) {
+  const qq = E.strQuestion(w3, sst, k % 2 ? "compare" : "name", (id) => only.has(id));
+  if (qq.midi !== 62 || qq.options.length !== 2 || (qq.mode === "compare" && qq.play[0].string === qq.play[1].string)) { fails++; console.log("FAIL str question", JSON.stringify(qq)); break; }
+}
+const cq = { mode: "compare", stage: w3.id, midi: 62, play: [{ string: "D" }, { string: "G" }] };
+eq("compare: second was lower", [E.strAnswer(cq), E.strGrade(cq, 1), E.strGrade(cq, 0)], [1, true, false]);
+eq("name", E.strGrade({ mode: "name", play: [{ string: "A" }] }, "A"), true);
+eq("compare first", E.strMode(sst), "compare");
+let m = null;
+for (let k = 0; k < 8; k++) m = E.strRecord(ews, cq, true).medal || m;
+eq("bronze needs 10 tries", [m, E.strMode(sst)], [null, "compare"]);
+E.strRecord(ews, cq, false); m = E.strRecord(ews, cq, true).medal;
+eq("bronze at 9/10, then name the string", [m && m.icon, E.strMode(sst)], ["🥉", "name"]);
+const nq = { mode: "name", stage: w3.id, midi: 62, play: [{ string: "D" }] };
+for (let k = 0; k < 6; k++) E.strRecord(ews, nq, false);
+for (let k = 0; k < 14; k++) m = E.strRecord(ews, nq, true).medal || m;
+eq("silver at 14/20", m.icon, "🥈");
+for (let k = 0; k < 4; k++) m = E.strRecord(ews, nq, true).medal || m;
+eq("gold at 18/20", m.icon, "🥇");
+eq("medal sticks", (E.strRecord(ews, nq, false), E.strRecord(ews, nq, false), E.strRecord(ews, nq, false), E.strMedal(sst)), 3);
+eq("per note stats", sst.notes[62][1], 37);
+
 console.log(fails ? `${fails} failed` : "ear: all passed");
 process.exit(fails ? 1 : 0);
