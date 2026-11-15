@@ -94,6 +94,19 @@ Record yourself playing a whole piece; you don't need to enter the music. The ap
 
 Calibrate timing once in the metronome panel of this tab. It listens across all four strings, so it has its own calibration, separate from Tempo mode's.
 
+## Ear tab
+
+Relative pitch: G major plays up and back down with a synthesized bowed tone, usually with one note out of tune. Tap the note that was off and say whether it was ♭ flat or ♯ sharp, or answer **All in tune** (about 1 in 4 scales have nothing wrong). The first note is the reference and is never off.
+
+- **Stages**, built up like the Path: 1st position one octave (G3–G4), 1st position two octaves (G3–G5), two octaves through 3rd (G3–G5, shifting on D), three octaves through 5th (G3–G6). Each note's tile shows its string, finger and position, so you hear where on the fingerboard it is. Nothing is locked; the stage selected by default is the first one without 🥈.
+- **How far off:** a 2-down/1-up staircase (Levitt 1971). 2 right in a row → the next wrong note is closer to in tune (50 → 40 → 30 → 25 → 20 → 15 → 12 → 10 → 8 → 6 → 5¢); 1 wrong → back a step. It settles where you're right about 71% of the time. "You hear ≈ X¢" is the mean of the last 6 turning points, once there are 4.
+- **Medals** use the playing targets: 🥉 25¢, 🥈 15¢, 🥇 10¢, earned at the level where you got 2 in a row right.
+- **After each answer:** ▶ As played, ▶ In tune, and ▶ That spot (the wrong note and the two before it, as played and then in tune).
+- **What you miss:** per scale degree, how often you caught it flat and sharp, and how often you said "all in tune" correctly. Degrees and directions you miss come up more often.
+- In tune is equal temperament from your A4 (Settings). Note length (Slow / Medium / Fast) and a narrow vibrato (±12¢) are on the Sound card. With the mic off the tab uses its own audio, closed before the mic opens.
+
+The tone is a synthesized approximation of a violin, not a recording, so it can't tell strings apart by timbre.
+
 ## Custom drills with Claude
 
 The **My drills** tab lets you import drills written for you, for example by Claude after you describe a specific problem. It also exports reports so Claude can see how you did.
@@ -161,6 +174,7 @@ Then open http://localhost:8765 and allow microphone access. Chrome and Safari b
 - `node test/plan.test.js` checks practice plan import (keys, strings, parts, errors), the session rotation, the calendar and the streak.
 - `node test/sync.test.js` checks the sync merge (both devices' progress kept, settings per device).
 - `node test/scales.test.js` checks scale spelling and generated fingerings for every key and scale type across a range of string and position choices.
+- `node test/ear.test.js` checks the Ear tab: the stages' notes, questions (never the reference note, about a quarter in tune, weighted towards misses), grading, the cents ladder and medals.
 - `node test/curriculum.test.js` checks the Path graph (every skill can be fingered, prerequisites come first, keys need the positions claimed), its drills in both directions, the run metrics, and how skills progress.
 
 ## Files
@@ -171,5 +185,6 @@ Then open http://localhost:8765 and allow microphone access. Chrome and Safari b
 - `plan.js`: practice plan format (documentation, validation), session rotation, calendar, streak and report days
 - `drills.js`: custom drill format (documentation, validation, import/export)
 - `curriculum.js`: Path mode (skill graph, drills per skill and direction, run metrics and pass criteria, tempo, mastery and review, what to practise next)
+- `ear.js`: Ear tab (stages, questions, grading, the adaptive cents ladder, medals)
 - `scales.js`: scale spelling, position fingerings (including open strings), finger patterns and scale-run routing through the chosen positions
 - `pitch.js`: McLeod pitch detector; the app narrows its frequency range to the current drill's notes so it doesn't jump octaves
