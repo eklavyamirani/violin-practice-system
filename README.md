@@ -94,6 +94,38 @@ Record yourself playing a whole piece; you don't need to enter the music. The ap
 
 Calibrate timing once in the metronome panel of this tab. It listens across all four strings, so it has its own calibration, separate from Tempo mode's.
 
+## Ear tab
+
+Two quizzes, by ear: **Flat or sharp** (relative pitch) and **Which string** (the same note on different strings), using recordings of your own violin.
+
+### Flat or sharp
+
+Relative pitch: G major plays up and back down, usually with one note out of tune. Tap the note that was off and say whether it was ♭ flat or ♯ sharp, or answer **All in tune** (about 1 in 4 scales have nothing wrong). The first note is the reference and is never off.
+
+- **Stages**, built up like the Path: 1st position one octave (G3–G4), 1st position two octaves (G3–G5), two octaves through 3rd (G3–G5, shifting on D), three octaves through 5th (G3–G6). Each note's tile shows its string, finger and position, so you hear where on the fingerboard it is. Nothing is locked; the stage selected by default is the first one without 🥈.
+- **How far off:** a 2-down/1-up staircase (Levitt 1971). 2 right in a row → the next wrong note is closer to in tune (50 → 40 → 30 → 25 → 20 → 15 → 12 → 10 → 8 → 6 → 5¢); 1 wrong → back a step. It settles where you're right about 71% of the time. "You hear ≈ X¢" is the mean of the last 6 turning points, once there are 4.
+- **Medals** use the playing targets: 🥉 25¢, 🥈 15¢, 🥇 10¢, earned at the level where you got 2 in a row right.
+- **After each answer:** ▶ As played, ▶ In tune, and ▶ That spot (the wrong note and the two before it, as played and then in tune).
+- **What you miss:** per scale degree, how often you caught it flat and sharp, and how often you said "all in tune" correctly. Degrees and directions you miss come up more often.
+- In tune is equal temperament from your A4 (Settings). Note length (Slow / Medium / Fast) is on the Sound card.
+- **Sound:** a synthesized bowed tone (with optional ±12¢ vibrato), or **My violin** once every note of the stage is recorded (see below). Recordings are retuned to the exact note first, then the wrong note is put in.
+
+### Which string
+
+The same note sounds different on each string (an open string rings; the G string is darker than the A). Only the string can be heard: the same note on one string in two positions uses the same length of string, so the quiz asks for the string, and shows the fingering.
+
+- **Stages:** 1st position, open or 4th finger (D4, A4, E5: 6 recordings); through 3rd (9 notes, 18 recordings); through 5th (13 notes, 28). A4 and E5 can be played on three strings by 5th position.
+- **Compare two:** the same note on two strings: which was on the lower string? 🥉 at 8 of the last 10. **Name the string:** one note: which string? 🥈 at 14 of the last 20, 🥇 at 18 of the last 20. Guessing gets 8/10 or 14/20 about 5% of the time. Compare is picked until 🥉, then Name; you can pick either.
+- After each answer, ▶ plays the note on each string, low to high. Notes you miss come up more often.
+
+### Recording your violin
+
+The **Your violin** card lists the recordings the current stage needs (both quizzes). **● Record** goes through them string by string, low to high: play and hold the note shown. Once it has been steady within ±70¢ of the note for 1.2 s, the app keeps that plus the start of the note (the bow's attack), chimes and moves on. Before each next note it waits for a moment without the last one. You can re-record or delete a single note in the list.
+
+- Each recording is played back retuned to the exact note (from its measured average pitch) and at a common loudness, so pitch and volume don't give the string away.
+- The drone is switched off while recording. With iPad mic mode on, Safari's voice processing changes the sound a little.
+- Recordings stay in this browser (IndexedDB, about 100 KB each). They aren't synced or in the progress file, and Reset all progress keeps them.
+
 ## Custom drills with Claude
 
 The **My drills** tab lets you import drills written for you, for example by Claude after you describe a specific problem. It also exports reports so Claude can see how you did.
@@ -161,6 +193,7 @@ Then open http://localhost:8765 and allow microphone access. Chrome and Safari b
 - `node test/plan.test.js` checks practice plan import (keys, strings, parts, errors), the session rotation, the calendar and the streak.
 - `node test/sync.test.js` checks the sync merge (both devices' progress kept, settings per device).
 - `node test/scales.test.js` checks scale spelling and generated fingerings for every key and scale type across a range of string and position choices.
+- `node test/ear.test.js` checks the Ear tab: the stages' notes, questions (never the reference note, about a quarter in tune, weighted towards misses), grading, the cents ladder and medals; which notes go on which strings, which-string questions from partial recordings, and their medals.
 - `node test/curriculum.test.js` checks the Path graph (every skill can be fingered, prerequisites come first, keys need the positions claimed), its drills in both directions, the run metrics, and how skills progress.
 
 ## Files
@@ -171,5 +204,7 @@ Then open http://localhost:8765 and allow microphone access. Chrome and Safari b
 - `plan.js`: practice plan format (documentation, validation), session rotation, calendar, streak and report days
 - `drills.js`: custom drill format (documentation, validation, import/export)
 - `curriculum.js`: Path mode (skill graph, drills per skill and direction, run metrics and pass criteria, tempo, mastery and review, what to practise next)
+- `ear.js`: Ear tab (stages, questions, grading, the adaptive cents ladder, medals; which-string notes, questions and medals)
+- `ear-tap.js`: AudioWorklet that passes the mic's samples to the Ear tab's recorder
 - `scales.js`: scale spelling, position fingerings (including open strings), finger patterns and scale-run routing through the chosen positions
 - `pitch.js`: McLeod pitch detector; the app narrows its frequency range to the current drill's notes so it doesn't jump octaves
