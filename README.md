@@ -47,7 +47,7 @@ Use the **Scale** card to pick a key (12 per scale type), a scale type (major, n
 - If 3 or more of a passed run's misses (or 2 or more after three misses in a row) land in one build-up drill's notes, that drill comes next: shift landings go to the shift pairs, the rest to the string and position. Then it's back to the scale.
 - Before you've tried the scale, the build-up drills come in order, carrying on from the one you just did.
 - Note Hunt only comes up when you pick it, or once everything is done.
-- **Move on:** when Next up stays on the drill you just played (a medal earned and the next one to go for, or a miss), the results also offer **Move on** to the next other drill with a step to make, by button or by playing its first note. Next up brings the skipped drill back later. After a pass, if both drills start on the same note, playing it moves on; after a miss it goes again.
+- **Move on:** when Next up stays on the drill you just played (a medal earned and the next one to go for, or a miss), the results also offer **Move on** to the next other drill with a step to make, by button or by playing its first note. Next up brings the skipped drill back later. If both drills start on the same note, one of them gets an open string instead (see Hands-free start).
 - After a medal, **↻ Again** goes for the next medal on the same drill (its button says which). **Hide fingering** and **Ears first** only take away help; they don't change medals, so they're suggested once a drill is done (🥈 for a build-up drill, 🥇 otherwise).
 
 ## Rhythm drills
@@ -75,7 +75,7 @@ To add one, save it as `packs/<id>.json` and add the file name to `packs/index.j
 
 ## Hands-free start
 
-So you don't have to put the violin down between runs: play and hold a drill's first note (about ¾ s) to start it. On the results, the drill's own first note goes again and the next drill's (or the **Move on** drill's) first note moves on; the notes to play are shown at the top of the results. It waits for a moment without any start note first, so the last note of a run ringing on doesn't restart it. The first note you hold counts as the run's first landing (in Tempo mode it starts the count-in). Turn it off with **Hands-free start** in Settings.
+So you don't have to put the violin down between runs: play and hold a drill's first note (about ¾ s) to start it. On the results, every button that starts a drill has its own note: the drill's own first note goes again and the next drill's (or the **Move on** drill's) first note moves on. When two of them start on the same note, the next drill keeps it (after a miss, going again does) and the other one gets an open string that none of them start on ("or play open D to go again"); the notes to play are shown at the top of the results. It waits for a moment without any start note first, so the last note of a run ringing on doesn't restart it. The first note you hold counts as the run's first landing (in Tempo mode it starts the count-in). Turn it off with **Hands-free start** in Settings.
 
 ## Tempo mode
 

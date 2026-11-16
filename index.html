@@ -1408,7 +1408,19 @@ function hfCand(ex, label, go) {
   const seq = ex.hunt ? buildHunt() : ex.notes;
   return { it: seq[0], label, go: () => go(seq) };
 }
-// What playing a note would start right now: Again / Next on the results, else the selected drill
+// Every choice on the results gets its own note: its drill's first note, or, when a choice before it already starts on
+// that note, an open string none of them start on (open strings are easy to find without looking)
+const HF_OPEN = [["A", 69], ["D", 62], ["G", 55], ["E", 76]].map(([s, midi]) => ({ midi, label: s, string: s, open: true }));
+function hfAssign(order) {
+  const firsts = new Set(order.map((c) => c.it.midi)), taken = new Set();
+  return order.map((c) => {
+    const it = taken.has(c.it.midi) ? HF_OPEN.find((o) => !firsts.has(o.midi) && !taken.has(o.midi)) : c.it;
+    if (!it) return null;
+    taken.add(it.midi);
+    return it === c.it ? c : { ...c, it };
+  }).filter(Boolean);
+}
+// What playing a note would start right now: Again / Next / Move on on the results, else the selected drill
 function hfCands() {
   if (!DB.settings.handsFree || run || calib || tcal || piece || hearing || !$("#tab-practice").classList.contains("active")) return null;
   if (!$("#results").hidden) return hfResults;
@@ -1433,7 +1445,7 @@ function handsFreeStep(dt, stable) {
 }
 function renderHandsFree() {
   const list = hf.list, inResults = !$("#results").hidden;
-  const html = list ? `<i></i><span>🎻 Or just play ${list.map((c) => `<b>${c.it.label}${c.it.oct}</b> on ${c.it.string} to ${c.label}`).join(", or ")}.</span>` : "";
+  const html = list ? `<i></i><span>🎻 Or just play ${list.map((c) => `${c.it.open ? `open <b>${c.it.string}</b>` : `<b>${c.it.label}${c.it.oct}</b> on ${c.it.string}`} to ${c.label}`).join(", or ")}.</span>` : "";
   for (const [el, show] of [[$("#hfIdle"), !inResults], [$("#hfRes"), inResults]]) if (el) { el.hidden = !(list && show); el.innerHTML = html; }
 }
 
@@ -2120,11 +2132,11 @@ function showResults(o) {
   const goMove = (seq) => { applyRec(moveOn); startRun(seq); };
   if (nb) nb.onclick = () => goNext();
   if (mb) mb.onclick = () => goMove();
-  // One drill per first note: Next wins; then after a pass moving on wins, after a miss going again does
+  // Each choice gets its own note (hfAssign). Who keeps a shared first note: Next; then after a pass Move on, after a miss Again
   const again = hfCand(r.ex, `go again${path || r.tempo ? "" : ` for ${TIERS[DB.settings.tier].icon}`}`, startRun);
   const fwd = [nb && hfCand(exById(path ? `n:${next.nodeId}@${next.dir}` : next.id), "go on to the next one", goNext), mb && hfCand(exById(moveOn.id), "move on to the next drill", goMove)];
   const order = (passed ? [...fwd, again] : [fwd[0], again, fwd[1]]).filter(Boolean);
-  hfResults = order.filter((c, i) => order.findIndex((d) => d.it.midi === c.it.midi) === i);
+  hfResults = hfAssign(order);
   setMsg(passed ? `Nice work. Press Space to go again${moveOn ? ", or move on" : ", or take the next drill"}.` : "Look over the coach's notes, then try again.");
   $("#runstats").innerHTML = "";
 }
