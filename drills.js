@@ -309,11 +309,12 @@ How to read landings:
   // pack's order that's still short of 🥇 (so each lap through the pack aims one medal higher), and a drill picked by
   // hand is where it carries on from. ids: the pack's drill ids in order; best: id → best medal (0–3); selected: the
   // drill selected now; last: the pack's last run { id, score, tier } or null.
-  function packNext(ids, best, selected, last, pass) {
+  // `skip`: a drill to move on from (the results' Move on), so the next one short of 🥇 after it, even after a miss
+  function packNext(ids, best, selected, last, pass, skip) {
     const b = (id) => best[id] || 0;
-    if (last && last.id === selected && last.score < pass) return { id: selected, tier: last.tier, again: true };
-    const i = Math.max(0, ids.indexOf(selected)), from = last && last.id === selected ? i + 1 : i;
-    for (let k = 0; k < ids.length; k++) { const id = ids[(from + k) % ids.length]; if (b(id) < 3) return { id, tier: b(id) + 1 }; }
+    if (!skip && last && last.id === selected && last.score < pass) return { id: selected, tier: last.tier, again: true };
+    const i = Math.max(0, ids.indexOf(selected)), from = skip ? ids.indexOf(skip) + 1 : last && last.id === selected ? i + 1 : i;
+    for (let k = 0; k < ids.length; k++) { const id = ids[(from + k) % ids.length]; if (id !== skip && b(id) < 3) return { id, tier: b(id) + 1 }; }
     return { id: ids[i], tier: 3, done: true };
   }
 

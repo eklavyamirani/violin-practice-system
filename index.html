@@ -640,7 +640,7 @@ main { max-width: 1280px; margin: 0 auto; padding: 1rem; }
       <div class="card"><h2>Instant, specific feedback</h2><p>You improve fastest when you know right away how far off you were and which way. Hearing "something's off" isn't enough.</p><p class="in">The needle shows cents sharp or flat. The fingerboard shows roughly how many millimetres to move and in which direction. You also get a warning when you play a wrong note, like F natural instead of F♯.</p></div>
       <div class="card"><h2>Scoring the first landing</h2><p>Real playing gives you no time to fix a note. What counts is where your finger lands before you adjust it.</p><p class="in">Each note is scored from the first steady ¼ second you play. In Lock-in mode you then correct the note and hold it in tune, so the last thing you practise is the right spot.</p></div>
       <div class="card"><h2>Tightening the target step by step</h2><p>Mastery learning: pass one level (85% or more) before you tighten the target.</p><p class="in">🥉 ±25¢ → 🥈 ±15¢ → 🥇 ±10¢ for each drill. The app suggests the next level for you.</p></div>
-      <div class="card"><h2>Removing the help over time</h2><p>Studies of the "guidance hypothesis" show that constant feedback can make you depend on it. Removing it gradually makes the skill stick.</p><p class="in">Once you have a medal, turn on <b>Hide fingering</b> (practise remembering where the note is) and <b>Ears first</b> (you only see the needle after you land).</p></div>
+      <div class="card"><h2>Removing the help over time</h2><p>Studies of the "guidance hypothesis" show that constant feedback can make you depend on it. Removing it gradually makes the skill stick.</p><p class="in">Once a drill is done (🥈 for a build-up drill, 🥇 otherwise), turn on <b>Hide fingering</b> (practise remembering where the note is) and <b>Ears first</b> (you only see the needle after you land).</p></div>
       <div class="card"><h2>Record yourself and listen back</h2><p>While you play, your attention is on playing. Listening to a recording afterwards lets you hear what you missed at the time.</p><p class="in">The <b>Piece</b> tab records a whole performance and marks the moments worth hearing again. It also finds notes that are consistently sharp or flat, and places where your tempo drifted. Turn those into drills, then record the piece again to see the difference.</p></div>
       <div class="card"><h2>Accuracy first, then speed</h2><p>Speed comes from making small, steady increases once the notes are already clean. Pushing the tempo while notes are still out of tune just practises the mistakes.</p><p class="in"><b>Tempo</b> mode plays a metronome. A note only counts if it's in tune <i>and</i> on the beat. The <b>tempo ladder</b> goes up 6% after 3 passed runs in a row, not after one lucky run, and backs off 8% after 2 misses. The coach points out when shifts are making you late.</p></div>
       <div class="card"><h2>A path, not a menu</h2><p>Each skill builds on the ones before it: finger pattern, then position frame, then shift pair, then the full scale. Keys come in the order their positions need: G, A and B♭ fit two octaves in 1st position, C and D need 3rd, E and F need 5th.</p><p class="in"><b>Path</b> unlocks a skill once its groundwork is mastered. Mastery means clean runs up <i>and</i> from the top, at the target tempo, with a clean first try on 2 different days. A good session only shows what you can do today; the first try on another day shows what you've kept. Mastered skills come back for review at growing intervals.</p></div>
@@ -2039,6 +2039,18 @@ function updateBoardTarget() {
     <text x="${x + (cur.string === BOARD.strings[0] ? -26 : 26)}" y="${y + 5}" text-anchor="middle" font-size="14" font-weight="800" fill="var(--accent)">${fingerLabel(cur).replace(" (stretched)", "x")}</text>`;
 }
 
+// Free practice and packs: what a pass means for where this drill goes next. Each drill climbs 🥉 → 🥈 → 🥇 on its own;
+// a build-up drill is done at 🥈, a scale drill at 🥇 (then 🥇 in Tempo), a pack drill at 🥇. Hide fingering and Ears
+// first only take help away; they don't change medals, so they're suggested once a drill is done.
+function medalTip(r, passed, medal, next, moveOn) {
+  if (!passed || r.tempo) return null;
+  const best = (exRec(r.ex.id) || {}).best || 0, goal = r.ex.role === "build" ? 2 : 3, ladder = "Each drill climbs 🥉 ±25¢ → 🥈 ±15¢ → 🥇 ±10¢";
+  const done = r.ex.role === "build" ? "a build-up drill is done at 🥈" : r.ex.role === "key" ? `the scale drills are done at 🥇, then 🥇 in Tempo at ${goalText(r.ex)}` : "a drill is done at 🥇";
+  const move = moveOn ? ` Or <b>Move on</b> to ${escapeHTML(moveLabel(moveOn))}; this one comes back later.` : "";
+  if (best < goal) return `<b>${medal ? `${TIERS[r.tier].icon} earned.` : "Passed."} What next:</b> ${ladder}; ${done}. ${next.id === r.ex.id ? `<b>↻ Again</b> goes for ${TIERS[next.tier].icon} (Next up stays here until then).` : `Next up moves on and brings this one back for ${TIERS[best + 1].icon}.`}${move}`;
+  return r.ex.role === "key" ? null : `<b>Done:</b> ${done}. To make it stick, play it again with <b>Hide fingering</b> or <b>Ears first</b> on (Mode card). They take away the help; they don't change medals.`;
+}
+
 // Results modal
 function showResults(o) {
   const { r, res, score, passed, medal, okN, avgAbs, path } = o;
@@ -2056,9 +2068,14 @@ function showResults(o) {
   if (path) tips.unshift(...pathEventTips(path));
   const need = Math.ceil(PASS * res.length) - okN;
   recordRun(r, res, tips, path);
+  const next = path ? pathNext() : nextRec();
+  // Free practice and packs: when Next up is this drill again (a medal higher, or the same after a miss), also offer the next other drill
+  const alt = !path && (!r.ex.custom || next.pack) && next.id === r.ex.id ? nextRec(r.ex.id) : null, moveOn = alt && alt.id !== r.ex.id ? alt : null;
+  const mt = path ? null : medalTip(r, passed, medal, next, moveOn);
+  if (mt) tips.push(mt);
   if (r.ex.role === "key") tips.push(`🎯 ${trackText(r.ex)}${r.ex.rhythm ? "" : `. Change the goal tempo on the Scale card`}.`);
-  if (tips.length === 1 && r.ex.role === "key") tips.unshift(passed ? "A clean run." : "Close! Listen for each note before you place the finger.");
-  if (!tips.length) tips.push(passed ? `A clean run. Next, try it with <b>Hide fingering</b> or <b>Ears first</b> on, or ${path ? "play it the other way round" : "go for the next medal"}.` : "Close! Play it slower. Listen for each note before you place the finger.");
+  if (tips.length === 1 && r.ex.role === "key" && !mt) tips.unshift(passed ? "A clean run." : "Close! Listen for each note before you place the finger.");
+  if (!tips.length) tips.push(passed ? (path ? "A clean run. Next, play it the other way round." : "A clean run.") : "Close! Play it slower. Listen for each note before you place the finger.");
   const secs = ((performance.now() - r.t0) / 1000).toFixed(0);
   const head = path ? pathHead(path, r) : medal ? `<div class="medal-big">${T.icon}</div><div><h2 style="margin:0">${T.name} earned!</h2><div class="muted">${r.ex.group} · ${r.ex.name}</div></div>`
     : passed ? `<div class="medal-big">✓</div><div><h2 style="margin:0">Passed ${T.name}</h2><div class="muted">${r.ex.group} · ${r.ex.name}</div></div>`
@@ -2069,7 +2086,6 @@ function showResults(o) {
   const timingChart = r.tempo && !r.rhythm ? barChart(res.map((x) => x.timing), labels, r.tempo.tolMs, Math.round(r.tempo.slot / 2), "late", "early",
     res.map((x) => colorFor(Math.abs(x.timing || 0), r.tempo.tolMs)), res.map((x) => `${noteName(x.item.midi)} ${x.timing === null ? "missed" : (x.timing > 0 ? "+" : "") + x.timing.toFixed(0) + " ms"}`)) : "";
   const onTimeN = res.filter((x) => x.onTime).length;
-  const next = path ? pathNext() : nextRec();
   const shown = path && path.counted ? path.judged.pct : score;
   $("#resultsBox").innerHTML = `
     <div class="mhead">${head}<div class="score" style="color:${passed ? "var(--good)" : "var(--near)"}">${Math.round(shown * 100)}%</div></div>
@@ -2090,21 +2106,26 @@ function showResults(o) {
     <div class="mbtns">
       <button class="btn ghost" id="rReport" title="A JSON report of this drill and your recent runs, to paste to Claude">📋 Copy report for Claude</button>
       <button class="btn ghost" id="rClose">Close</button>
-      <button class="btn ghost" id="rAgain">↻ Again</button>
+      <button class="btn ${moveOn && !passed ? "" : "ghost"}" id="rAgain">↻ Again${path || r.tempo ? "" : ` for ${TIERS[DB.settings.tier].icon}`}</button>
       ${path ? (next ? `<button class="btn" id="rNext">Next: ${escapeHTML(C.nodeName(C.BY_ID[next.nodeId]))} ${next.dir === "desc_asc" ? "⇣⇡" : "⇡⇣"}</button>` : "")
         : (!r.ex.custom || next.pack) && !recIsCurrent(next) ? `<button class="btn" id="rNext">Next: ${escapeHTML(recLabel(next))}</button>` : ""}
+      ${moveOn ? `<button class="btn ${passed ? "" : "ghost"}" id="rMove" title="Next up keeps this drill until it reaches its medal. This skips ahead; it comes back later.">Move on: ${escapeHTML(moveLabel(moveOn))}</button>` : ""}
     </div>`;
   $("#results").hidden = false;
   $("#rClose").onclick = () => { $("#results").hidden = true; renderIdle(); buildPath(); buildBoard(); };
   $("#rAgain").onclick = () => startRun();
   $("#rReport").onclick = (e) => copyText(JSON.stringify(buildReport(recKey(r.ex.id)), null, 2), e.target);
-  const nb = $("#rNext");
+  const nb = $("#rNext"), mb = $("#rMove");
   const goNext = (seq) => { if (path) selectEx(`n:${next.nodeId}@${next.dir}`); else applyRec(next); startRun(seq); };
+  const goMove = (seq) => { applyRec(moveOn); startRun(seq); };
   if (nb) nb.onclick = () => goNext();
-  hfResults = [hfCand(r.ex, "go again", startRun)];
-  if (nb) hfResults.unshift(hfCand(exById(path ? `n:${next.nodeId}@${next.dir}` : next.id), "go on to the next one", goNext));
-  if (hfResults.length > 1 && hfResults[0].it.midi === hfResults[1].it.midi) hfResults.pop(); // same first note: it moves on
-  setMsg(passed ? "Nice work. Press Space to go again, or take the next drill." : "Look over the coach's notes, then try again.");
+  if (mb) mb.onclick = () => goMove();
+  // One drill per first note: Next wins; then after a pass moving on wins, after a miss going again does
+  const again = hfCand(r.ex, `go again${path || r.tempo ? "" : ` for ${TIERS[DB.settings.tier].icon}`}`, startRun);
+  const fwd = [nb && hfCand(exById(path ? `n:${next.nodeId}@${next.dir}` : next.id), "go on to the next one", goNext), mb && hfCand(exById(moveOn.id), "move on to the next drill", goMove)];
+  const order = (passed ? [...fwd, again] : [fwd[0], again, fwd[1]]).filter(Boolean);
+  hfResults = order.filter((c, i) => order.findIndex((d) => d.it.midi === c.it.midi) === i);
+  setMsg(passed ? `Nice work. Press Space to go again${moveOn ? ", or move on" : ", or take the next drill"}.` : "Look over the coach's notes, then try again.");
   $("#runstats").innerHTML = "";
 }
 
@@ -2205,7 +2226,8 @@ function weakRec(w, lead) {
   const best = (exRec(w.id) || {}).best || 0;
   return { ...(trackStep(w) || { id: w.id, tier: Math.min(3, Math.max(2, best)), mode: "flow" }), why: `${lead} on <b>${w.group} · ${w.name}</b>. Clean it up here, then back to the scale.` };
 }
-function recommend() {
+// `skip`: a drill to move on from (the results' Move on): never recommended, even after a miss on it
+function recommend(skip) {
   const mine = DB.sessions.filter((s) => s.cfg === CFG_KEY), last = mine[0];
   const regular = EXERCISES.filter((e) => !e.hunt && !e.custom);
   const run = regular.find((e) => e.id === "shift" || e.id === "scale");
@@ -2213,18 +2235,18 @@ function recommend() {
   const keys = regular.filter((e) => e.role === "key" && !e.rhythm).concat(run && ((exRec(run.id) || {}).best || 0) >= 3 ? regular.filter((e) => e.rhythm) : []);
   const builds = regular.filter((e) => e.role === "build");
   const lastEx = last && exById(last.ex);
-  const step = (e) => { const st = trackStep(e); return st && { ...st, why: stepWhy(e, st) }; };
+  const step = (e) => { const st = e.id !== skip && trackStep(e); return st && { ...st, why: stepWhy(e, st) }; };
   if (lastEx && !lastEx.custom && !lastEx.hunt) {
     if (last.score < PASS) {
       // Three misses in a row on the scale: work on where it keeps going wrong. Otherwise, same again.
       const n = mine.findIndex((s) => s.ex !== last.ex || s.score >= PASS);
       const w = lastEx.role === "key" && (n < 0 ? mine.length : n) >= 3 && weakSpot(last.miss, 2);
-      if (w) return weakRec(w, "Three misses in a row, most of them");
-      return { id: lastEx.id, tier: last.tier, ...(lastEx.rhythm ? {} : { mode: last.mode }), why: `Not passed yet. Same again, for ${TIERS[last.tier].icon} ±${TIERS[last.tier].tol}¢.` };
+      if (w && w.id !== skip) return weakRec(w, "Three misses in a row, most of them");
+      if (lastEx.id !== skip) return { id: lastEx.id, tier: last.tier, ...(lastEx.rhythm ? {} : { mode: last.mode }), why: `Not passed yet. Same again, for ${TIERS[last.tier].icon} ±${TIERS[last.tier].tol}¢.` };
     }
     if (lastEx.role === "key") {
-      const w = weakSpot(last.miss, 3);
-      if (w) return weakRec(w, "Passed, but 3 or more misses landed");
+      const w = last.score >= PASS && weakSpot(last.miss, 3);
+      if (w && w.id !== skip) return weakRec(w, "Passed, but 3 or more misses landed");
       // Rotate through the scale drills, each moving along its own track
       const i = keys.indexOf(lastEx);
       for (const e of keys.slice(i + 1).concat(keys.slice(0, i + 1))) { const st = step(e); if (st) return st; }
@@ -2246,6 +2268,7 @@ function applyRec(n) {
   if (n.bpm && n.bpm !== s.bpm) { s.bpm = n.bpm; save(); renderAll(); }
 }
 const recIsCurrent = (n) => { const s = DB.settings; return n.id === DB.selected && n.tier === s.tier && (!n.mode || n.mode === s.mode || (n.mode === "flow" && s.mode === "lock")) && (!n.bpm || n.bpm === s.bpm) && (!n.per || n.per === s.per); };
+const moveLabel = (n) => { const ex = exById(n.id); return `${ex.group && !n.pack ? ex.group + " · " : ""}${recLabel(n)}`; };
 const recLabel = (n) => `${exById(n.id).name} ${TIERS[n.tier].icon}${n.mode === "tempo" && n.bpm ? ` ⏱ ♩=${n.bpm}` : ""}`;
 
 function renderNext() {
@@ -2539,11 +2562,11 @@ const packsLoaded = () => (PACKS.error ? [] : PACKS);
 const packIds = (p) => p.drills.map((d) => "c-" + DrillIO.slug(d.title)).filter((id) => EXERCISES.some((e) => e.id === id)); // the drills added
 const packOf = (id) => packsLoaded().find((p) => packIds(p).includes(id)) || null;
 // Next up inside a pack (DrillIO.packNext): same again after a miss, else the next drill in order short of 🥇
-function packRec(p) {
+function packRec(p, skip) {
   const ids = packIds(p), best = Object.fromEntries(ids.map((id) => [id, (exRec(id) || {}).best || 0]));
   const s = DB.sessions.find((x) => ids.includes(x.ex));
   const sel = ids.includes(DB.selected) ? DB.selected : s ? s.ex : ids[0]; // from the Drills tab: carry on where the pack was left
-  const n = DrillIO.packNext(ids, best, sel, s ? { id: s.ex, score: s.score, tier: s.tier } : null, PASS), ex = exById(n.id);
+  const n = DrillIO.packNext(ids, best, sel, s ? { id: s.ex, score: s.score, tier: s.tier } : null, PASS, skip), ex = exById(n.id);
   const why = n.again ? `Not passed yet. Same again, for ${TIERS[n.tier].icon} ±${TIERS[n.tier].tol}¢.`
     : n.done ? "Every drill in the pack has 🥇. Keep it sharp with Hide fingering or Ears first, or play the whole passage on the Piece tab."
     : `${ex.goal ? escapeHTML(ex.goal) + " " : ""}Aim for ${TIERS[n.tier].icon} ±${TIERS[n.tier].tol}¢.`;
@@ -2614,23 +2637,23 @@ const fmtDay = (day) => { const [y, m, d] = day.split("-").map(Number); return n
 const curStreak = () => (DB.plan ? PlanIO.streak(DB.plan, DB.planLog, dayKey()) : streak());
 
 // During a plan's scale step, Next up stays on the step's part of the setup
-function nextRec() {
+function nextRec(skip) {
   const p = packOf(DB.selected);
-  if (p) return packRec(p);
+  if (p) return packRec(p, skip);
   const st = activeStep();
-  return st && st.scale && st.part !== "auto" && !isPath() && Scales.cfgKey(st.scale) === CFG_KEY ? recommendStep(st) : recommend();
+  return st && st.scale && st.part !== "auto" && !isPath() && Scales.cfgKey(st.scale) === CFG_KEY ? recommendStep(st, skip) : recommend(skip);
 }
-function recommendStep(st) {
+function recommendStep(st, skip) {
   const ids = PlanIO.partIds(st), inPart = (id) => ids.includes(id);
-  const n = recommend(), nex = exById(n.id);
+  const n = recommend(skip), nex = exById(n.id);
   if (inPart(n.id)) return n;
   const last = DB.sessions.find((x) => x.cfg === CFG_KEY), lastEx = last && exById(last.ex);
   // A detour to the build-up drill where the scale's misses cluster, until it's cleaned up
   if (["run", "top", "rhythms"].includes(st.part) && nex && nex.role === "build" && lastEx && (inPart(lastEx.id) || lastEx.id === n.id)) return n;
   // Otherwise the step's own drills: same again after a miss, else the next one with a step to make
-  if (lastEx && inPart(lastEx.id) && last.score < PASS) return { id: lastEx.id, tier: last.tier, ...(lastEx.rhythm ? {} : { mode: last.mode }), why: `Not passed yet. Same again, for ${TIERS[last.tier].icon} ±${TIERS[last.tier].tol}¢.` };
+  if (lastEx && inPart(lastEx.id) && last.score < PASS && lastEx.id !== skip) return { id: lastEx.id, tier: last.tier, ...(lastEx.rhythm ? {} : { mode: last.mode }), why: `Not passed yet. Same again, for ${TIERS[last.tier].icon} ±${TIERS[last.tier].tol}¢.` };
   const part = ids.map(exById).filter(Boolean), i = lastEx ? part.indexOf(lastEx) : -1;
-  for (const e of part.slice(i + 1).concat(part.slice(0, i + 1))) { const t = trackStep(e); if (t) return { ...t, why: stepWhy(e, t) }; }
+  for (const e of part.slice(i + 1).concat(part.slice(0, i + 1))) { const t = e.id !== skip && trackStep(e); if (t) return { ...t, why: stepWhy(e, t) }; }
   return { id: part[0].id, tier: 3, why: `Done at ${goalText(part[0])}. Keep it sharp, or raise the goal tempo on the Scale card.` };
 }
 

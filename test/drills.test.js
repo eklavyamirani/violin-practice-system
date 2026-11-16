@@ -73,6 +73,12 @@ for (const type of Object.keys(S.SCALE_TYPES)) for (const tonic of S.SCALE_TYPES
   eq("pack: skips gold drills", nx({ a: 3, b: 3, c: 2 }, "a", { id: "a", score: 0.9, tier: 3 }), { id: "c", tier: 3 });
   eq("pack: picked by hand carries on from there", nx({ a: 1 }, "c", { id: "a", score: 0.9, tier: 1 }), { id: "c", tier: 1 });
   eq("pack: all gold", nx({ a: 3, b: 3, c: 3 }, "b", { id: "b", score: 0.9, tier: 3 }), { id: "b", tier: 3, done: true });
+  // Move on from the results: the next drill short of 🥇 after this one, never this one, even after a miss
+  const mv = (best, sel, last) => D.packNext(ids, best, sel, last, P, sel);
+  eq("pack: move on after a miss", mv({}, "a", { id: "a", score: 0.5, tier: 1 }), { id: "b", tier: 1 });
+  eq("pack: move on wraps round", mv({ a: 1 }, "c", { id: "c", score: 0.9, tier: 1 }), { id: "a", tier: 2 });
+  eq("pack: move on past gold", mv({ b: 3 }, "a", { id: "a", score: 0.9, tier: 1 }), { id: "c", tier: 1 });
+  eq("pack: move on with nothing else short of 🥇", mv({ a: 3, b: 3 }, "c", { id: "c", score: 0.9, tier: 1 }), { id: "c", tier: 3, done: true });
 }
 console.log(`round-tripped ${roundTrips} built-in drills`);
 console.log(fails ? `${fails} failures` : "all pass");

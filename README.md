@@ -47,6 +47,8 @@ Use the **Scale** card to pick a key (12 per scale type), a scale type (major, n
 - If 3 or more of a passed run's misses (or 2 or more after three misses in a row) land in one build-up drill's notes, that drill comes next: shift landings go to the shift pairs, the rest to the string and position. Then it's back to the scale.
 - Before you've tried the scale, the build-up drills come in order, carrying on from the one you just did.
 - Note Hunt only comes up when you pick it, or once everything is done.
+- **Move on:** when Next up stays on the drill you just played (a medal earned and the next one to go for, or a miss), the results also offer **Move on** to the next other drill with a step to make, by button or by playing its first note. Next up brings the skipped drill back later. After a pass, if both drills start on the same note, playing it moves on; after a miss it goes again.
+- After a medal, **↻ Again** goes for the next medal on the same drill (its button says which). **Hide fingering** and **Ears first** only take away help; they don't change medals, so they're suggested once a drill is done (🥈 for a build-up drill, 🥇 otherwise).
 
 ## Rhythm drills
 
@@ -61,7 +63,7 @@ A drill whose notes have lengths (`beats`) is a rhythm drill. It's for practisin
 
 **Drill packs** (My drills tab) add ready-made drills. *The Two Grenadiers · bars 10–21* works up from the dotted quarter + 8th and half notes on the open A string to bars 10–12, 12–14, 14–16, 16–18, 18–20 and the whole passage. *Theme from “Witches' Dance” · bars 21–41* (D major, 2/4) covers triplet 8ths, slurred dotted 8th + 16th pairs, the minor section's low fingers and the switch from dotted pairs to triplets in bar 37, with six scale drills (S1–S6) for the accidentals.
 
-On the Practice page (Path or Free practice) the pack of the selected drill sits at the top of the list, its drills in order with their medals, like a stage of the Path. Nothing is locked: pick any drill. **Next up** follows the pack: a miss stays on the drill, a pass moves on to the next drill in the pack still short of 🥇, so each lap through the pack aims one medal higher. A drill picked by hand is where it carries on from; ▶ Practice on My drills carries on where the pack was left. Other packs and imported drills are at the bottom of the list.
+On the Practice page (Path or Free practice) the pack of the selected drill sits at the top of the list, its drills in order with their medals, like a stage of the Path. Nothing is locked: pick any drill. **Next up** follows the pack: a miss stays on the drill, a pass moves on to the next drill in the pack still short of 🥇, so each lap through the pack aims one medal higher. A drill picked by hand is where it carries on from; ▶ Practice on My drills carries on where the pack was left. Other packs and imported drills are at the bottom of the list. After a miss the results also offer **Move on** to the next drill in the pack short of 🥇.
 
 Packs are JSON files in `packs/`. A pack is a drill import file (see the format on the My drills tab) with an `id`, `title` and `blurb` added:
 
@@ -73,7 +75,7 @@ To add one, save it as `packs/<id>.json` and add the file name to `packs/index.j
 
 ## Hands-free start
 
-So you don't have to put the violin down between runs: play and hold a drill's first note (about ¾ s) to start it. On the results, the drill's own first note goes again and the next drill's first note moves on; the notes to play are shown at the top of the results. It waits for a moment without any start note first, so the last note of a run ringing on doesn't restart it. The first note you hold counts as the run's first landing (in Tempo mode it starts the count-in). Turn it off with **Hands-free start** in Settings.
+So you don't have to put the violin down between runs: play and hold a drill's first note (about ¾ s) to start it. On the results, the drill's own first note goes again and the next drill's (or the **Move on** drill's) first note moves on; the notes to play are shown at the top of the results. It waits for a moment without any start note first, so the last note of a run ringing on doesn't restart it. The first note you hold counts as the run's first landing (in Tempo mode it starts the count-in). Turn it off with **Hands-free start** in Settings.
 
 ## Tempo mode
 
