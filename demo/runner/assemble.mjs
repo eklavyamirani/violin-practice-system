@@ -66,7 +66,7 @@ export async function assemble({ proposal: p, rec, outDir, outFile }) {
   const N = narration(p);
   const spoken = {};
   for (const key of ["problem", "evidence", "reason"]) {
-    spoken[key] = speakToFit(N[key], path.join(work, `voice-${key}.wav`), sec(key) - LEAD - TAIL);
+    spoken[key] = speakToFit(N[key], path.join(work, `voice-${key}.wav`), sec(key) - LEAD - TAIL, { wpm: 185, maxWpm: 225 });
   }
   // Walkthrough captions: each must be spoken before the next one starts
   const voices = rec.captions.filter((c) => c.t < sec("walkthrough")).map((c, i, all) => {

@@ -9,10 +9,12 @@ export const SECTIONS = [
 ];
 export const TOTAL = SECTIONS.reduce((a, s) => a + s.seconds, 0);
 // Narration starts this far into a section and must end this long before it ends
-export const LEAD = 0.3, TAIL = 0.3;
+export const LEAD = 0.2, TAIL = 0.2;
 
 const firstSentence = (t) => { const m = String(t).trim().match(/^.*?[.!?](\s|$)/); return m ? m[0].trim() : String(t).trim(); };
 const strip = (t) => String(t).replace(/\s+/g, " ").trim();
+// The sentence's first clause, as a sentence: "It adds words, and it ..." → "It adds words."
+const firstClause = (t) => firstSentence(t).split(/,\s|;\s|\s[—–-]\s|:\s/)[0].replace(/[.!?]$/, "") + ".";
 
 // What each card section says, longest first: the TTS uses the first one that fits the section
 export function narration(p) {
@@ -20,12 +22,14 @@ export function narration(p) {
   return {
     problem: [`${p.title}. ${strip(p.problem)}`, `${p.title}. ${firstSentence(p.problem)}`, `${p.title}.`],
     evidence: [`Evidence. ${ev.join(" ")}`, `Evidence. ${ev.map(firstSentence).join(" ")}`, `Evidence. ${firstSentence(ev[0])}`, `${ev.length} sources, on screen.`],
-    reason: [`The strongest reason not to build it: ${strip(p.strongest_reason_not_to_build)}`, `Why not: ${firstSentence(p.strongest_reason_not_to_build)}`, "Why not: on screen."],
+    reason: [`The strongest reason not to build it: ${strip(p.strongest_reason_not_to_build)}`, `Why not? ${firstSentence(p.strongest_reason_not_to_build)}`,
+      `Why not? ${firstClause(p.strongest_reason_not_to_build)}`, "Why not: on screen."],
   };
 }
 
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
-const host = (u) => { try { const x = new URL(u); return x.host + x.pathname.replace(/\/$/, ""); } catch (e) { return u; } };
+// Where a source is, short enough to read on a phone: host, path (commit hashes cut to 7) and #anchor
+const host = (u) => { try { const x = new URL(u); return x.host + x.pathname.replace(/\/$/, "").replace(/\b([0-9a-f]{7})[0-9a-f]{33}\b/g, "$1") + x.hash; } catch (e) { return u; } };
 
 const BASE = `
 *{box-sizing:border-box;margin:0}

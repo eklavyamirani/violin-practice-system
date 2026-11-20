@@ -1,8 +1,8 @@
 // Violin demo kit: serve the app in this session with the synthetic progress loaded.
 //
-//   node demo/kit/serve.mjs [--port 8790] [--sim]
+//   node demo/kit/serve.mjs [--port 8790] [--sim]      (or PORT=8790; npm --prefix demo run serve)
 //
-// Prints a URL. Opening it loads the fixture into that browser's storage for this origin and then opens the
+// Prints a URL. Opening it (or the bare origin, /) loads the fixture into that browser's storage for this origin and then opens the
 // app, so a person (or the recorder) sees the lived-in app. It uses its own port so it never overwrites the
 // progress of a copy of the app you use on another port.
 //
@@ -53,6 +53,8 @@ location.replace("/index.html" + ${JSON.stringify(query)});
         res.writeHead(200, { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" });
         res.end(page(q.startsWith("?") || !q ? q : "?" + q));
       },
+      // The bare origin loads the fixture too (index.html itself keeps whatever progress is there)
+      "/": (req, res, u) => { res.writeHead(302, { location: LOAD_PATH + u.search }); res.end(); },
       "/__demo/progress.json": (req, res) => {
         res.writeHead(200, { "content-type": "application/json", "cache-control": "no-store" });
         res.end(JSON.stringify(backup));
@@ -64,7 +66,7 @@ location.replace("/index.html" + ${JSON.stringify(query)});
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const i = process.argv.indexOf("--port");
-  const srv = await start({ port: i > 0 ? +process.argv[i + 1] : 8790 });
+  const srv = await start({ port: i > 0 ? +process.argv[i + 1] : +(process.env.PORT || 8790) });
   const q = process.argv.includes("--sim") ? "?sim" : "";
   console.log(`Violin demo app with synthetic progress: ${srv.loadUrl(q)}`);
   console.log(`(the progress file itself: ${srv.url}__demo/progress.json, for "Load progress file" elsewhere). Ctrl+C stops it.`);
