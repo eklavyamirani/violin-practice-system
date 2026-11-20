@@ -24,6 +24,10 @@ node demo/runner/demo.mjs demo/proposals/watch-out-notes.json
 The video lands in `demo/out/<proposal-id>/<proposal-id>.mp4`. The walkthrough is
 `demo/kit/walkthroughs/<proposal-id>.mjs` unless you pass `--walkthrough <name>`. `--headed` shows the browser.
 
+For a filed proposal, the proposal file comes from the issue: the platform's `scripts/prototype start violin <issue> .`
+writes `demo/proposals/<id>.json` on the prototype branch (eklavyamirani/app-platform `docs/v2/product-scout.md`), and the
+walkthrough is `demo/kit/walkthroughs/<id>.mjs`.
+
 `watch-out-notes` needs its prototype: run it on the branch `claude/proto-watch-out-notes`. On `main`, try
 the template check instead:
 
@@ -37,6 +41,22 @@ ${PORT:-8790}` works too; `.claude/` is not in the repository). It shows about f
 practice ending yesterday: a streak, Path skills mastered and due for review, a practice plan with its days
 ticked off, and a practice log. `/__demo/progress.json` on that server is the same data as a progress file,
 for "Load progress file" in another copy of the app.
+
+### The same data on a prototype's preview
+
+A preview starts with an empty database, so a feature that needs practice history shows nothing there. On a prototype
+branch (never on `main`; the script refuses there):
+
+```bash
+node demo/kit/preview-seed.mjs            # [--end YYYY-MM-DD], default yesterday
+git add deploy/preview-seed deploy/Dockerfile && git commit -m "Prototype only: demo progress for the preview (/__demo/load.html)"
+```
+
+It writes the fixture as `deploy/preview-seed/progress.json`, copies the loader `demo/kit/preview-seed/load.html` next to
+it and adds one `COPY` line to `deploy/Dockerfile`, so the prototype's image serves both under `/__demo/`. On the preview,
+`/__demo/load.html` loads the made-up progress into that browser after one tap (this device's settings stay, like "Load
+progress file"). It refuses on any address that is not a preview (`<app>-pr-<n>.`) or local, so it can't touch real
+progress even if it were deployed elsewhere. Prototypes are never merged, so none of this reaches a release.
 
 A run takes about 1.5 to 2 minutes: about 45 s of recording, the rest is the fixture (first run of the day)
 and encoding.

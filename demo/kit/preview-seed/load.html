@@ -1,0 +1,53 @@
+<!doctype html>
+<!-- Prototype previews only (demo/kit/preview-seed.mjs copies this into a prototype branch as
+     deploy/preview-seed/load.html, served at /__demo/load.html). It replaces this browser's practice
+     progress for this preview's address with the demo kit's made-up progress (progress.json next to it),
+     so a feature that needs practice history has something to show. It refuses on any address that is
+     not a preview (<app>-pr-<n>.<domain>) or a local one, so it can never touch real progress. -->
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Demo progress</title>
+<style>
+  body { font: 16px/1.5 system-ui, sans-serif; max-width: 34rem; margin: 2rem auto; padding: 0 1rem; color: #222; background: #fff; }
+  button { font: inherit; padding: .7rem 1.1rem; border-radius: .6rem; border: 0; background: #2d6cdf; color: #fff; }
+  button[disabled] { background: #999; }
+  .muted { color: #666; font-size: .9rem; }
+</style>
+<h1>Demo progress</h1>
+<p id="what">This loads about four weeks of made-up practice into this preview, so features that need a
+  practice history have something to show. It replaces any progress you made in this preview in this browser.</p>
+<p><button id="go" disabled>Load demo progress and open the app</button></p>
+<p><a href="/index.html">Open the app without it</a></p>
+<p class="muted" id="msg">Checking…</p>
+<script>
+(function () {
+  "use strict";
+  var KEY = "fingerboard-coach.v1"; // index.html STORE_KEY
+  // Same as demo/kit/serve.mjs DEMO_SETTINGS; used only when this browser has no settings here yet.
+  var DEMO_SETTINGS = { view: "path", mode: "flow", handsFree: true, chime: true };
+  var msg = document.getElementById("msg"), go = document.getElementById("go");
+  var host = location.hostname;
+  var preview = /^[a-z0-9-]+-pr-[0-9]+\./.test(host) || host === "localhost" || host === "127.0.0.1" || /\.localhost$/.test(host);
+  if (!preview) { msg.textContent = "Refused: " + host + " is not a preview. Demo progress is only for prototype previews."; return; }
+  fetch("progress.json", { cache: "no-store" })
+    .then(function (r) { if (!r.ok) throw new Error("progress.json answered " + r.status); return r.json(); })
+    .then(function (backup) {
+      if (!backup || typeof backup.progress !== "object") throw new Error("progress.json is not a progress file");
+      msg.textContent = "Made-up practice " + (backup.demo && backup.demo.first ? "from " + backup.demo.first + " " : "") +
+        (backup.demo && backup.demo.end ? "to " + backup.demo.end : "") + ". Nothing personal.";
+      go.disabled = false;
+      go.onclick = function () {
+        var old = null;
+        try { old = JSON.parse(localStorage.getItem(KEY) || "null"); } catch (e) { old = null; }
+        // Like the app's own "Load progress file": the progress is replaced, this device's settings and
+        // selected drill stay. The app migrates and fills in the rest when it opens.
+        var db = Object.assign({}, backup.progress, { settings: (old && old.settings) || DEMO_SETTINGS, selected: old ? old.selected : undefined });
+        localStorage.setItem(KEY, JSON.stringify(db));
+        location.replace("/index.html");
+      };
+    })
+    .catch(function (e) { msg.textContent = "No demo progress in this build (" + e.message + ")."; });
+})();
+</script>
+</html>
