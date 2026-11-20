@@ -28,6 +28,14 @@ Full drafts: [proposals.json](proposals.json).
 - **Failed or skipped:** violinist.com (connection reset), Reddit (blocked), metacast.app (403), a Lund thesis PDF (text not extractable), App Store and Google Play (terms).
 - About 12 web searches, 10 Stack Exchange API calls and 6 GitHub searches.
 
-## Triage
+## Triage (owner, in the session, 2026-11-19)
 
-Recorded in `scout/decisions.md`.
+| # | Decision | Issue |
+|---|---|---|
+| 1 | approved | #17 |
+| 2 | approved | #18 |
+| 3 | approved | #19 |
+| 4 | parked | not filed |
+| 5 | rejected | not filed |
+
+The owner gave no reasons, so the history says "no reason given". Recorded in `scout/decisions.md`.
