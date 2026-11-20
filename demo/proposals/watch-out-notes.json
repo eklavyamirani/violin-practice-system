@@ -1,0 +1,34 @@
+{
+  "id": "watch-out-notes",
+  "app": "violin",
+  "created_at": "2026-11-19T21:00:00Z",
+  "ttl": "P14D",
+  "title": "Watch-out notes before you start",
+  "problem": "The app remembers where every note has been landing, but shows it only on the Progress tab. Before a run, the practice page shows plain note names, so a habit like a sharp second finger only comes up again after the run is over.",
+  "evidence": [
+    {
+      "source_url": "https://github.com/eklavyamirani/violin-practice-system/blob/8facc7fb5646c289a3f66dfa127a25f0c6068015/index.html#L622-L625",
+      "quote_or_summary": "The Progress tab's note map averages each note's last 20 landings and says: \"Consistent bars one side = a habit to fix.\""
+    },
+    {
+      "source_url": "https://github.com/eklavyamirani/violin-practice-system/blob/8facc7fb5646c289a3f66dfa127a25f0c6068015/index.html#L1967-L1979",
+      "quote_or_summary": "Before a run, the practice page's note strip draws each note as a plain chip with its name and octave, and no history."
+    },
+    {
+      "source_url": "https://github.com/eklavyamirani/violin-practice-system/blob/8facc7fb5646c289a3f66dfa127a25f0c6068015/index.html#L1554-L1565",
+      "quote_or_summary": "The coach's notes look for habits only in the run just played, once it is over."
+    }
+  ],
+  "hypothesis": "If the practice page names the note in this drill you have been landing off lately, and which way to move, you fix it on the first try instead of after a missed run.",
+  "acceptance_criteria": [
+    "Before a run, when a note in the selected drill has averaged 6 cents or more off, on the same side, over its recent landings, a Watch line under the note strip names it, the amount and which way to move.",
+    "That note's chip is marked sharp or flat.",
+    "Nothing shows for a drill with no consistent miss, and nothing changes during a run.",
+    "The line updates after every run."
+  ],
+  "success_signal": "Fewer first-try misses on flagged notes over the next two weeks, in the practice log.",
+  "effort_estimate": "S",
+  "strongest_reason_not_to_build": "It adds words to the practice screen, and a warning before you play can make you tense and over-correct. The Progress tab already shows the same history.",
+  "status": "prototype",
+  "decision_reason": null
+}
