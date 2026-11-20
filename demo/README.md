@@ -32,7 +32,8 @@ node demo/runner/demo.mjs demo/test/proposals/out-of-tune-check.json --walkthrou
 ```
 
 To just look at the lived-in app (eklavyamirani/app-platform#75): `node demo/kit/serve.mjs` and open the URL
-it prints, or start the `demo` configuration in `.claude/launch.json`. It shows about four weeks of made-up
+it prints (in the desktop app, a local `.claude/launch.json` entry running `node demo/kit/serve.mjs --port
+${PORT:-8790}` works too; `.claude/` is not in the repository). It shows about four weeks of made-up
 practice ending yesterday: a streak, Path skills mastered and due for review, a practice plan with its days
 ticked off, and a practice log. `/__demo/progress.json` on that server is the same data as a progress file,
 for "Load progress file" in another copy of the app.
