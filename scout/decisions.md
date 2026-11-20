@@ -18,3 +18,5 @@ One line per decision, appended by the session where the owner decided (see [REA
 - 2026-11-19 · violin-2026-11-19-3 · #19 · approved · An eyes-off pass to finish a drill — no reason given
 - 2026-11-19 · violin-2026-11-19-4 · draft · parked · Long tones with a tone meter — "For tone meter, I don't fully understand it or the need."
 - 2026-11-19 · violin-2026-11-19-5 · draft · rejected · Lesson card: the teacher's assignments in, a since-last-lesson sheet out — "Lesson card is too much. I will let my claude session manage my lessons and drills for now."
+- 2026-11-19 · watch-out-notes · #27 · approved · Watch-out notes before you start — no reason given (approved for a prototype; written by the demo kit, not a scout run, and filed on 2026-11-20 once prototype #24 existed)
+- 2026-11-19 · watch-out-notes · #27 · prototyped · Watch-out notes before you start — "I like the demo. We should deploy it to a preview deployment."
