@@ -1,8 +1,9 @@
 # Demo kit contract
 
 What an app provides so the generic demo runner (`demo/runner`) can record it. Written from the first
-working kit, violin's (`demo/kit`); violin conforms to it. Everything here runs in the development session,
-against the app running there, with no personal data and no sign-in to the platform.
+working kit, violin's (`demo/kit`), and widened for server-backed apps from the second, workout's
+(eklavyamirani/workout-app#46); both conform to it. Everything here runs in the development session, against
+the app running there, with no personal data and no real account or credential.
 
 ## 1. Where it lives
 
@@ -13,7 +14,7 @@ demo/
     walkthroughs/      required: one <name>.mjs per demo, normally named after the proposal's id
     fixture/           the app's demo data and how it is made
     audio/             scripted inputs, if the app listens to anything
-    serve.mjs          how the app is started with the demo data (also runnable by hand)
+    serve.mjs          how the app is started with the demo data (also runnable by hand; a stop command if needed)
   proposals/           proposal records, one JSON file each
 ```
 
@@ -26,10 +27,10 @@ The runner finds the kit with `--kit <dir>` (default `demo/kit`) and the walkthr
 export default {
   app: "violin",                         // must equal the proposal's "app"
   viewport: { width: 390, height: 693 }, // CSS px, 9:16; recorded at 2× into 720×1280
-  start: async ({ browser }) => ({       // serve the app with demo data; `browser` may be used to build it
+  start: async ({ browser }) => ({       // start the app with demo data; `browser` may be used to build it
     url,                                 //   the app's origin
     loadUrl: (query) => "...",           //   a URL that loads the demo data, then opens the app (+ query)
-    close: async () => {},
+    close: async () => {},               //   stops everything `start` started
   }),
   ready: async (page) => {},             // resolves when the app has loaded the demo data
 };
@@ -37,18 +38,29 @@ export default {
 
 Rules:
 
-- **Start in-process.** `start` serves the app from the calling Node process (no background shell job, no
-  container), on a port of its own (0 = any free port), so it never touches the progress a developer keeps
-  on their usual port.
-- **Load demo data through the app's own storage**, from a page the kit serves (violin: `/__demo/load` writes
-  the fixture into `localStorage` and redirects to `index.html`). A person opening the kit's bare origin gets
-  the same thing.
+- **Start from the session, isolated, and leave nothing behind.** `start` serves the app from the calling Node
+  process where it can (violin: an in-process static server). A server-backed app may also start its
+  database and API with the app's own local-development tooling (workout: Docker Compose with the app's
+  migrations), as long as everything is isolated to that session (its own ports, project name and data,
+  never the developer's usual ones) and bound to loopback only. `close()` must leave nothing running: no
+  process, container, port or data. A kit that starts anything outside the calling process also has a stop
+  command for leftovers after a crash (workout: `serve.mjs --stop`).
+- **Load demo data through the app's own data path.** For a local-first app that is the browser's storage,
+  written from a page the kit serves (violin: `/__demo/load` writes the fixture into `localStorage` and
+  redirects to `index.html`). For a server-backed app it is the server's own seed, ideally the same fixture
+  its previews use (workout: the API's `--seed fixture`). The URL the kit prints when run by hand loads the
+  data, so a person gets the same thing the recorder does.
+- **Sign-in, if the app needs one, is a stand-in inside the kit.** A kit may run a stand-in sign-in service
+  that only that session's API trusts, with a key made per run, issuing tokens only for the fixture's
+  users (workout: a stand-in OpenID provider). Never a real account or credential, and no sign-in bypass
+  in the app.
 - **Demo data is synthetic** and repeatable: the same day gives the same data. Make it with the app's own
   code where possible rather than writing its data model by hand (violin drives `finishRun()` in a headless
-  copy of the app with a fake clock and seeded randomness). Dates are relative to today, so streaks and due
-  reviews look current.
-- **Don't change the app for the demo** unless there is no other way. Violin needed no change: everything is
-  served or injected by the kit.
+  copy of the app with a fake clock and seeded randomness), or reuse a seed that the app's own tests already
+  cover. Dates relative to today are preferred, so streaks and due items look current; a preview fixture
+  with fixed dates is fine when the walkthrough doesn't depend on recent dates.
+- **Don't change the app for the demo** unless there is no other way. Neither violin nor workout needed a
+  change to app code: everything is served, seeded or injected by the kit.
 
 ## 3. A walkthrough (`walkthroughs/<name>.mjs`)
 
@@ -94,7 +106,13 @@ Rules:
 ## 5. Checklist for a new app
 
 1. `demo/kit/kit.mjs` with `app`, `viewport`, `start`, `ready`.
-2. A fixture made with the app's own code, repeatable, current dates, no personal data.
+2. Demo data from the app's own code or a seed its tests cover, repeatable, no personal data, current dates
+   where the walkthrough needs them.
 3. One walkthrough, and a proposal file for it.
 4. `node demo/runner/demo.mjs demo/proposals/<id>.json` produces a 60.0 s mp4, and
    `node demo/test/same-structure.mjs` agrees with another app's or proposal's report.
+5. `close()` (and the stop command, if the kit needs one) leaves nothing running.
+6. The kit's README lists what it needs on the machine (violin: Node and the runner's `npm --prefix demo
+   ci`; workout: also Docker) and how long its first and later starts take (violin: about 10 seconds to make
+   the fixture on the first start of a day, then it is cached; workout: about 12 minutes for the first API
+   image build, then 7 to 13 seconds).
