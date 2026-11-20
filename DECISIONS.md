@@ -22,6 +22,12 @@ request of its own. Format:
 
 ---
 
+## 2026-11-20 · The demo kit contract covers server-backed apps
+- Decided by: the workout demo kit session's findings (eklavyamirani/workout-app#46), accepted by the orchestrating session on the owner's behalf
+- Decision: `demo/CONTRACT.md` now lets a kit start a database and API with the app's own local-development tooling (isolated per session, on loopback, nothing left running after `close()`, a stop command for leftovers), load data through the app's own data path (browser storage, or the server's seed, ideally the preview fixture), and run a stand-in sign-in service that only that session's API trusts, for fixture users only. A seed the app's tests already cover counts as the app's own code; fixed preview dates are fine when the walkthrough doesn't need recent ones. Each kit lists what it needs on the machine and how long its first and later starts take. Violin's kit is unchanged and still conforms.
+- Rejected: keeping the violin-shaped wording (in-process only, browser storage, no sign-in at all) — it would make every server-backed app's kit a contract violation, although workout's kit keeps the same guarantees (isolated, nothing left running, no real credential, no change to app code).
+- Revisit if: a kit needs something on the platform or a real account to record, or the runner moves to its own repository (planned when a third app needs it or it next changes for both apps; until then each app keeps a copy with a drift check).
+
 ## 2026-11-20 · A prototype's preview gets the demo kit's made-up practice history on one tap
 - Decided by: the prototype-flow session, on the owner's behalf (app-platform record 0066; reversible)
 - Decision: `node demo/kit/preview-seed.mjs` puts the fixture and a loader page into a prototype branch's image, served at `/__demo/load.html`; the page loads it into the browser after one tap and refuses on any address that is not a preview or local. The script refuses on `main`.

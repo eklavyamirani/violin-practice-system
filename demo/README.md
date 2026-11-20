@@ -58,8 +58,9 @@ it and adds one `COPY` line to `deploy/Dockerfile`, so the prototype's image ser
 progress file"). It refuses on any address that is not a preview (`<app>-pr-<n>.`) or local, so it can't touch real
 progress even if it were deployed elsewhere. Prototypes are never merged, so none of this reaches a release.
 
-A run takes about 1.5 to 2 minutes: about 45 s of recording, the rest is the fixture (first run of the day)
-and encoding.
+A run takes about 1.5 to 2 minutes: about 45 s of recording, the rest is the fixture (about 10 s, on the
+first run of the day; later starts that day reuse it from `demo/.cache/`) and encoding. The kit needs
+nothing on the machine beyond Node and `npm --prefix demo ci` (Setup below).
 
 ## Setup (eklavyamirani/app-platform#79)
 
