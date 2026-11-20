@@ -22,6 +22,18 @@ request of its own. Format:
 
 ---
 
+## 2026-11-20 · A prototype's preview gets the demo kit's made-up practice history on one tap
+- Decided by: the prototype-flow session, on the owner's behalf (app-platform record 0066; reversible)
+- Decision: `node demo/kit/preview-seed.mjs` puts the fixture and a loader page into a prototype branch's image, served at `/__demo/load.html`; the page loads it into the browser after one tap and refuses on any address that is not a preview or local. The script refuses on `main`.
+- Rejected: seeding the preview's database — progress is stored per signed-in person, so a seed would need the owner's identity in this public repository. Having the owner download production progress and load it in the preview — three taps across two sites on a phone, every round (it still works as an alternative). Shipping the loader on `main` — a release would carry a page that overwrites progress, with only the address check in the way.
+- Revisit if: a preview needs data a browser can't hold (server-side features), or the made-up history misleads the owner about a feature.
+
+## 2026-11-20 · The prototype cleanup job runs every 30 minutes and also cleans up discarded prototypes
+- Decided by: the prototype-flow session, on the owner's behalf (app-platform record 0066; reversible)
+- Decision: the job runs at :11 and :41, so a live preview is recorded as a deployment on its pull request within half an hour, long before its three-day expiry. A prototype pull request labelled `prototype: discarded` whose preview is gone is cleaned up even without a recorded deployment.
+- Rejected: dispatching the job by hand after each preview goes live — what the first run needed, a manual step every round. A token from the platform repository to notify this one — a long-lived cross-repository credential. Running the job on the `labeled` pull request event — a write-capable job triggered from pull requests on a public repository, for a gain of minutes.
+- Revisit if: scheduled runs here start costing money, or the job closes a pull request the owner did not discard.
+
 ## 2026-11-19 · The watch-out notes prototype goes to a preview before any promote decision
 - Decided by: the owner ("I like the demo. We should deploy it to a preview deployment.")
 - Decision: the prototype (PR #24, label `prototype`) is deployed as a preview that expires after three days, so the owner can try it by hand. Promote, iterate or discard is decided after that.

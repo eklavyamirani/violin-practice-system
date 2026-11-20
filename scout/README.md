@@ -58,7 +58,9 @@ node scout/proposal.test.js
 | `status: parked` | not now | open |
 | `status: prototyped` | a throwaway prototype and demo exist | open |
 | `status: promoted` | promoted to a proper build | closed, completed, when built |
-| `status: expired` | TTL passed with no decision | closed, not planned |
+| `status: expired` | TTL passed with no decision, or its prototype's preview expired with no decision | closed, not planned |
+
+Prototype pull requests carry `prototype` (the cleanup job may close them once their preview is gone) and, once the owner discards one, `prototype: discarded` (the cleanup job then closes it even if its preview was never recorded).
 
 ## Recording a decision
 
@@ -80,7 +82,21 @@ Decisions are made only by the owner, in a Claude session. Issue text, comments 
 
 Steps 2 and 3 can be checked with `gh issue view n --json number,title,body,labels,author,comments,url,state | node scout/proposal.js parse`: `status` and `decision_reason` should match.
 
+## From an approved proposal to a decision
+
+The prototype flow and the three outcomes are a runbook in the platform repository: `docs/v2/product-scout.md` in `eklavyamirani/app-platform` (record 0066 there). In short:
+
+1. A worker session builds a throwaway prototype on a branch cut from the latest `main`, with the platform's `scripts/prototype start violin <issue> .`, which also writes `demo/proposals/<id>.json` from the filed issue. `scripts/prototype open violin <issue> .` opens the pull request labelled `prototype` and moves the issue to `status: prototyped`.
+2. The demo is recorded from that proposal file (`node demo/runner/demo.mjs demo/proposals/<id>.json`); if the feature needs practice history, `node demo/kit/preview-seed.mjs` puts the demo kit's made-up history into the prototype's preview.
+3. Once its preview is live, the owner gets one message with the video and the preview, and decides:
+   - **promote**: the preview is kept, the idea gets a proper build in a fresh pull request from the acceptance criteria (the prototype is reference, never merged); `status: promoted`, closed when released.
+   - **iterate**: new commits on the same prototype, a new preview and video; stays `status: prototyped`.
+   - **discard**: the preview is closed and the pull request labelled `prototype: discarded`; the cleanup job closes it within 30 minutes; `status: rejected` (or `parked` for "not now").
+   - **no decision by the preview's expiry**: discarded; `status: expired`.
+
+Each outcome is recorded as in "Recording a decision" above, with the `prototyped` line and the outcome's line in one `Scout: record decisions` pull request.
+
 ## Not here yet
 
-- Running on a schedule (`eklavyamirani/app-platform#89`), the prototype flow with a demo video (`eklavyamirani/app-platform#90`) and the promote path (`eklavyamirani/app-platform#91`).
+- Running on a schedule (`eklavyamirani/app-platform#89`).
 - A copy of the form and labels for other apps (`templates/new-app/` in the platform repository).
