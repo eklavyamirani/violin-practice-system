@@ -169,6 +169,10 @@ main { max-width: 1280px; margin: 0 auto; padding: 1rem; }
 .chip.ok { background: var(--good); color: #fff; }
 .chip.near { background: var(--near); color: #1d1300; }
 .chip.bad { background: var(--bad); color: #fff; }
+.chip.watch { border: 2px dashed var(--bad); }
+.chip.watch .wm { font-size: .75em; color: var(--bad); margin-left: 1px; }
+.watchout { grid-column: 1 / -1; margin: .1rem 0 0; font-size: .86rem; color: var(--ink); background: var(--panel-2); border-left: 3px solid var(--bad); border-radius: 8px; padding: .45rem .6rem; }
+.watchout[hidden] { display: none; }
 .shiftmark { font-size: .72rem; color: var(--accent); font-weight: 700; padding: 0 2px; }
 @keyframes pulse { 50% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 25%, transparent); } }
 
@@ -452,6 +456,7 @@ main { max-width: 1280px; margin: 0 auto; padding: 1rem; }
         <button class="btn" id="startBtn">▶ Start</button>
       </div>
       <div class="path" id="path"></div>
+      <p class="watchout" id="watchOut" hidden></p>
 
       <div class="focus">
         <div class="card target">
@@ -1965,6 +1970,7 @@ function moveHead(beats) {
 
 // Path chips
 function buildPath() {
+  $("#watchOut").hidden = true; // shown again below for a plain note strip
   if ((run ? run.ex : exById(DB.selected)).rhythm) return buildLanes();
   const seq = run ? run.seq : (exById(DB.selected).hunt ? [] : exById(DB.selected).notes);
   const el = $("#path");
@@ -1975,6 +1981,33 @@ function buildPath() {
     if (dir) el.insertAdjacentHTML("beforeend", `<span class="shiftmark">${dir === "down" ? "⇣" : "⇡"}${ord(it.pos)}</span>`);
     el.insertAdjacentHTML("beforeend", `<span class="chip" data-i="${i}">${noteHTML(it.midi)}</span>`);
   });
+  renderWatchOut(seq);
+}
+// Before a run: the note in this drill that has been landing off on the same side lately, from the per-spot
+// history the Progress tab's note map shows (prototype: Product Scout "watch-out-notes")
+const WATCH_CENTS = 6, WATCH_SIDE = 0.7, WATCH_MIN = 8;
+function watchOutNote(seq) {
+  let best = null;
+  for (const it of new Map(seq.filter((x) => x.pos && x.finger !== "0").map((x) => [x.key, x])).values()) {
+    const s = DB.notes[it.key], st = noteStats(it.key);
+    if (!st || s.recent.length < WATCH_MIN || Math.abs(st.avg) < WATCH_CENTS) continue;
+    const side = s.recent.filter((c) => Math.sign(c) === Math.sign(st.avg)).length / s.recent.length;
+    if (side >= WATCH_SIDE && (!best || Math.abs(st.avg) > Math.abs(best.avg))) best = { it, avg: st.avg, n: s.recent.length };
+  }
+  return best;
+}
+function renderWatchOut(seq) {
+  const el = $("#watchOut"), w = !run && seq.length ? watchOutNote(seq) : null;
+  document.querySelectorAll("#path .chip").forEach((c) => {
+    const on = w && seq[+c.dataset.i] && seq[+c.dataset.i].key === w.it.key;
+    c.classList.toggle("watch", !!on);
+    if (on && !c.querySelector(".wm")) c.insertAdjacentHTML("beforeend", `<span class="wm">${w.avg > 0 ? "↑" : "↓"}</span>`);
+  });
+  if (!el) return;
+  el.hidden = !w;
+  if (!w) return;
+  const sharp = w.avg > 0;
+  el.innerHTML = `👀 <b>Watch ${noteHTML(w.it.midi)}</b> (${w.it.string} string, finger ${fingerLabel(w.it)}): your last ${w.n} landings averaged <b>${sharp ? "+" : ""}${w.avg.toFixed(0)}¢ ${sharp ? "sharp" : "flat"}</b>. Aim a hair ${sharp ? "lower, toward the scroll" : "higher, toward the bridge"}.`;
 }
 function updatePath() {
   if (!run) return;
