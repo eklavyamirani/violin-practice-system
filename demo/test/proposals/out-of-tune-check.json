@@ -1,0 +1,24 @@
+{
+  "id": "out-of-tune-check",
+  "app": "violin",
+  "created_at": "2026-11-19T00:00:00Z",
+  "ttl": "P14D",
+  "title": "Template check: the app hears an out-of-tune passage",
+  "problem": "Not a real idea. This record exists to check that a second proposal produces the same sections and timings as the first, and that the demo kit's scripted audio makes the app react to an out-of-tune passage the same way every time.",
+  "evidence": [
+    {
+      "source_url": "https://github.com/eklavyamirani/violin-practice-system/blob/main/README.md",
+      "quote_or_summary": "The README describes the app as listening through the microphone and saying, note by note, whether each note was played right."
+    }
+  ],
+  "hypothesis": "Scripted microphone input with a high second finger makes the results flag both F sharps as sharp.",
+  "acceptance_criteria": [
+    "The video is 60 seconds with sections of 5, 40, 10 and 5 seconds.",
+    "The results in the walkthrough show the F sharps landing sharp."
+  ],
+  "success_signal": "The same structure and timings as every other demo.",
+  "effort_estimate": "S",
+  "strongest_reason_not_to_build": "Nothing to build: it is a test of the demo template itself.",
+  "status": "test",
+  "decision_reason": null
+}
