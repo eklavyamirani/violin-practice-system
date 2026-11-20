@@ -95,7 +95,7 @@ The prototype flow and the three outcomes are a runbook in the platform reposito
 3. Once its preview is live, the owner gets one message with the video and the preview, and decides:
    - **promote**: the preview is kept, the idea gets a proper build in a fresh pull request from the acceptance criteria (the prototype is reference, never merged); `status: promoted`, closed when released.
    - **iterate**: new commits on the same prototype, a new preview and video; stays `status: prototyped`.
-   - **discard**: the preview is closed and the pull request labelled `prototype: discarded`; the cleanup job closes it within 30 minutes; `status: rejected` (or `parked` for "not now").
+   - **discard**: the preview is closed and the pull request labelled `prototype: discarded`; once the preview is gone, the session starts the cleanup job (`gh workflow run preview-cleanup.yml --ref main`), which closes it; `status: rejected` (or `parked` for "not now").
    - **no decision by the preview's expiry**: discarded; `status: expired`.
 
 Each outcome is recorded as in "Recording a decision" above, with the `prototyped` line and the outcome's line in one `Scout: record decisions` pull request.
