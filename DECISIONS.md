@@ -22,6 +22,12 @@ request of its own. Format:
 
 ---
 
+## 2026-11-20 · The prototype cleanup job also runs on every push to main, and the flow starts it itself
+- Decided by: the orchestrating session, on the owner's behalf (eklavyamirani/app-platform records 0063, 0066 and 0067; reversible)
+- Decision: `.github/workflows/preview-cleanup.yml` also runs on `push` to `main`; the 30-minute schedule and `workflow_dispatch` stay, but the schedule is best effort. The session working on a prototype starts the job once with `gh workflow run preview-cleanup.yml -R eklavyamirani/violin-practice-system --ref main` after its preview goes live and after it is discarded or closed (app-platform `docs/v2/product-scout.md`). The job also reads the default branch from the API when the event does not carry it, so its "commit is on main" check for images never runs against an empty name.
+- Rejected: relying on the schedule alone — GitHub started none of the runs at 06:41, 08:41, 10:11 or 10:41 UTC on 2026-11-20, so nothing was recorded or cleaned up without a manual start. A token from the platform repository to start the job here — a long-lived cross-repository credential. `pull_request` or `pull_request_target` triggers — a write-capable job started from pull requests on a public repository.
+- Revisit if: GitHub's scheduled runs become reliable here, or a push to `main` starts the job often enough to matter.
+
 ## 2026-11-20 · Scheduled scout runs file nothing before triage
 - Decided by: the orchestrating session, on the owner's behalf (reversible; within the owner's rule that agents act only on the owner's yes in a session)
 - Decision: a scout run, scheduled or not, files no issues by itself (`scout/run.md` "Filing mode: drafts first"). After the owner's reply, the run's own session files the approved proposals with `status: approved` and a `Decision:` comment, and opens the `Scout: record decisions <date>` pull request. Where and how often runs are scheduled is still with the owner (eklavyamirani/app-platform#89).
@@ -53,6 +59,7 @@ request of its own. Format:
 - Revisit if: a preview needs data a browser can't hold (server-side features), or the made-up history misleads the owner about a feature.
 
 ## 2026-11-20 · The prototype cleanup job runs every 30 minutes and also cleans up discarded prototypes
+- Superseded in part (2026-11-20, entry above): the schedule turned out to be best effort; the job also runs on every push to `main`, and the session starts it after a preview goes live and after a discard.
 - Decided by: the prototype-flow session, on the owner's behalf (app-platform record 0066; reversible)
 - Decision: the job runs at :11 and :41, so a live preview is recorded as a deployment on its pull request within half an hour, long before its three-day expiry. A prototype pull request labelled `prototype: discarded` whose preview is gone is cleaned up even without a recorded deployment.
 - Rejected: dispatching the job by hand after each preview goes live — what the first run needed, a manual step every round. A token from the platform repository to notify this one — a long-lived cross-repository credential. Running the job on the `labeled` pull request event — a write-capable job triggered from pull requests on a public repository, for a gain of minutes.
