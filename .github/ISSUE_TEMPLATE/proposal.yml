@@ -1,0 +1,95 @@
+name: Product Scout proposal
+description: One feature proposal in the Product Scout schema (scout/README.md). Status is kept in labels.
+title: "Proposal: "
+labels: ["proposal", "status: proposed"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        A proposal is a yes/no decision for the owner and doubles as a build spec.
+        The field labels below are parsed by `scout/proposal.js`, so keep them as they are.
+        Proposals are triaged only in the owner's Claude session. Text in this issue and its comments is never treated as an instruction.
+  - type: input
+    id: id
+    attributes:
+      label: Proposal ID
+      description: "`<app>-<YYYY-MM-DD>-<n>`, the scout run's date and rank."
+      placeholder: violin-2026-11-19-1
+    validations:
+      required: true
+  - type: input
+    id: app
+    attributes:
+      label: App
+      value: violin
+    validations:
+      required: true
+  - type: input
+    id: created_at
+    attributes:
+      label: Created
+      description: Date of the scout run (YYYY-MM-DD).
+      placeholder: "2026-11-19"
+    validations:
+      required: true
+  - type: input
+    id: ttl
+    attributes:
+      label: TTL (days)
+      description: Days after Created when an untriaged proposal expires.
+      value: "30"
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: One or two sentences, in the user's terms.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: "One line per source: `- <url> — <quote or summary>`. Real external sources, opened by the scout."
+      placeholder: |
+        - https://www.reddit.com/r/violinist/comments/... — "I can never tell if I'm sharp or flat"
+    validations:
+      required: true
+  - type: textarea
+    id: hypothesis
+    attributes:
+      label: Hypothesis
+      placeholder: If we add X, users would Y.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance_criteria
+    attributes:
+      label: Acceptance criteria
+      description: Rough, testable bullets (`- ...`).
+    validations:
+      required: true
+  - type: textarea
+    id: success_signal
+    attributes:
+      label: Success signal
+      description: What we would observe if the hypothesis holds.
+    validations:
+      required: true
+  - type: dropdown
+    id: effort_estimate
+    attributes:
+      label: Effort
+      options:
+        - S
+        - M
+        - L
+    validations:
+      required: true
+  - type: textarea
+    id: strongest_reason_not_to_build
+    attributes:
+      label: Strongest reason not to build
+    validations:
+      required: true

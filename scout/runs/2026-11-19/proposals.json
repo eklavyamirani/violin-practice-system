@@ -1,0 +1,140 @@
+{
+  "run": "2026-11-19",
+  "app": "violin",
+  "brief": "scout/brief.md as confirmed by the owner on 2026-11-19",
+  "decisions_read": "scout/decisions.md (empty: first run)",
+  "proposals": [
+    {
+      "id": "violin-2026-11-19-1",
+      "app": "violin",
+      "created_at": "2026-11-19",
+      "ttl": 30,
+      "rank": 1,
+      "title": "Keep piece recordings so you can hear progress over weeks",
+      "problem": "The Piece tab keeps the last 10 analyses but drops the audio when you leave the page, so you can't listen back to last month's performance of a piece or play it to your teacher.",
+      "evidence": [
+        { "source_url": "https://github.com/eklavyamirani/violin-practice-system/blob/8facc7f/README.md#L94", "quote_or_summary": "The app today: \"The analysis is kept (the last 10 performances), but the audio only lasts until you leave the page.\"" },
+        { "source_url": "https://music.stackexchange.com/questions/110147", "quote_or_summary": "Adult learner in their second year judges their progress by comparing \"my own recordings\" with YouTube covers of the same Suzuki pieces." },
+        { "source_url": "https://music.stackexchange.com/a/110149", "quote_or_summary": "Second-year adult learner: \"I love going back\" to pieces from a year ago; they play them \"a lot better\" now." },
+        { "source_url": "https://music.stackexchange.com/questions/42887", "quote_or_summary": "Player of six years records themselves for the first time: it \"revealed a lot of problems\", including bowing problems they didn't know they had." },
+        { "source_url": "https://www.robknopper.com/blog/2015/4/26/squeeze-every-drop-out-of-your-lesson-by-recording-it", "quote_or_summary": "Teacher's blog on recording lessons: what you hear is \"more valuable than a single listen.\"" }
+      ],
+      "hypothesis": "If we keep each piece recording's audio on the device next to its analysis, the owner would listen back to compare weeks and bring recordings to lessons, and would hear tone and bowing problems the pitch analysis doesn't score.",
+      "acceptance_criteria": [
+        "The audio of the last 10 performances is kept in IndexedDB on this device (compressed), next to their analyses, and survives a reload",
+        "Moments to check ▶ buttons work on a kept performance after a reload",
+        "Two performances of the same piece can be played one after the other",
+        "Each recording can be deleted; the space used is shown",
+        "Recordings are not synced and not in the progress file, like the Ear tab's recordings",
+        "Works in Safari on iPad and iPhone and in Chrome on Mac (MediaRecorder format checked per browser)"
+      ],
+      "success_signal": "Over three weeks the owner replays an older performance at least once a week, and uses one in a lesson.",
+      "effort_estimate": "S",
+      "strongest_reason_not_to_build": "The phone's voice-memo app already keeps every recording forever, and browser storage can be cleared by the browser or the user, so recordings kept only in the app could vanish when they matter most."
+    },
+    {
+      "id": "violin-2026-11-19-2",
+      "app": "violin",
+      "created_at": "2026-11-19",
+      "ttl": 30,
+      "rank": 2,
+      "title": "Score against the drone and pure open strings, not only equal temperament",
+      "problem": "With the tonic drone on, a major third that rings pure with the drone is 14¢ below equal temperament and a major sixth 16¢ below, so the app scores the note the drone taught you as out of tune. Open strings tuned in pure fifths are also 2–4¢ off the app's reference.",
+      "evidence": [
+        { "source_url": "https://github.com/eklavyamirani/violin-practice-system/blob/8facc7f/README.md#L112", "quote_or_summary": "The app today: \"In tune is equal temperament from your A4\", while the Mode card offers a tonic drone to \"Hear intervals against the tonic\" (index.html line 435)." },
+        { "source_url": "https://music.stackexchange.com/questions/113812", "quote_or_summary": "Learner tunes open strings to pure fifths, \"a little wider than the equal fifth\", and asks how to reconcile that with equal temperament." },
+        { "source_url": "https://music.stackexchange.com/a/95908", "quote_or_summary": "\"tuners are calibrated to recognise notes that belong in 12tet\"; violins, trombones and voices stray from it." },
+        { "source_url": "https://intonia.com/ViolinistForum/ViolinistForum.shtml", "quote_or_summary": "An intonation-visualisation app's analysis of violinists' recordings: \"The traces look better in Pythagorean temperament than with equal temperament.\"" },
+        { "source_url": "https://github.com/thetwom/Tuner/issues/33", "quote_or_summary": "Users of an open-source tuner ask for custom tunings including just intonation; the maintainer wonders if more than 2–3 people need it." },
+        { "source_url": "https://music.stackexchange.com/a/17759", "quote_or_summary": "Counter-evidence: \"Violinists usually tune their open strings in just fifths\", but the answer recommends equal temperament for a learner who will play with piano." }
+      ],
+      "hypothesis": "If we add a reference setting that scores open strings against pure fifths from A4 and, with the drone on, scores notes against pure intervals to the tonic, the owner would stop getting misses for notes that ring with the drone, and drone practice and the score would agree.",
+      "acceptance_criteria": [
+        "A Reference setting: Equal temperament (default, no change) or Pure (open strings in pure fifths from A4; with the drone on, pure intervals to the tonic)",
+        "Live cents, scoring, medals, Path metrics and the Ear tab's 'in tune' all use the chosen reference",
+        "Synthetic tones at the pure targets (e.g. B4 13.7¢ below ET over a G drone) pass 🥇 under Pure and miss under ET, in a test",
+        "Reports for Claude state which reference was used",
+        "The README says what each reference means and when to use equal temperament (playing with piano)"
+      ],
+      "success_signal": "In the owner's drone-on runs under Pure, misses on the 3rd and 6th degrees drop, and the owner reports the drone and the score agree; the teacher doesn't hear flat thirds with piano.",
+      "effort_estimate": "M",
+      "strongest_reason_not_to_build": "There is no single right violin intonation, and the Q&A answers recommend equal temperament for learners who will play with piano (as in the Suzuki pieces); a second reference adds false precision and could train thirds that clash with the accompaniment."
+    },
+    {
+      "id": "violin-2026-11-19-3",
+      "app": "violin",
+      "created_at": "2026-11-19",
+      "ttl": 30,
+      "rank": 3,
+      "title": "An eyes-off pass to finish a drill",
+      "problem": "Every medal can be earned while watching the needle, and Hide fingering and Ears first don't change medals, so the app never checks that a drill holds up by ear alone, the way it must in a lesson.",
+      "evidence": [
+        { "source_url": "https://github.com/eklavyamirani/violin-practice-system/blob/8facc7f/README.md#L51", "quote_or_summary": "The app today: Hide fingering and Ears first \"only take away help; they don't change medals\"." },
+        { "source_url": "https://music.stackexchange.com/questions/434", "quote_or_summary": "Question with 19 votes: is practising with a tuner a bad habit, since you are \"using visual feedback when instead you should be hearing\"?" },
+        { "source_url": "https://music.stackexchange.com/a/143027", "quote_or_summary": "Answer: relying on live visual feedback \"shifts attention away from listening\"; better to \"separate production from evaluation\" and check after playing." },
+        { "source_url": "https://music.stackexchange.com/a/2963", "quote_or_summary": "Answer: use a tuner's drone but \"not using the visual feedback\", keeping pitches in tune by ear." }
+      ],
+      "hypothesis": "If a drill's last medal also needs one pass with the needle and cents hidden for the whole run (results shown after), the owner would build intonation that holds without the screen and carries into lessons.",
+      "acceptance_criteria": [
+        "A no-screen run hides the needle, cents and coach hints for the whole run and shows the full results after",
+        "A drill's done medal (🥇 for scale drills, 🥈 for build-up drills, Path mastery) shows an ear mark once it has one no-screen pass at the same level and tempo",
+        "Next up offers the no-screen pass once the medal is earned; medals already earned are kept",
+        "Tests cover the gate and that existing medals don't regress"
+      ],
+      "success_signal": "After three weeks the owner's no-screen pass rate is within 10 points of their with-screen pass rate at the same tempo.",
+      "effort_estimate": "S",
+      "strongest_reason_not_to_build": "It reverses a deliberate choice made in #15 (help toggles don't change medals) and adds a gate to every drill, slowing the Path, when Ears first and the Ear tab already let the owner do this by choice."
+    },
+    {
+      "id": "violin-2026-11-19-4",
+      "app": "violin",
+      "created_at": "2026-11-19",
+      "ttl": 30,
+      "rank": 4,
+      "title": "Long tones with a tone meter",
+      "problem": "The app scores pitch and timing only; scratchy or uneven tone, which teachers and family hear and the player often doesn't, gets no feedback between lessons.",
+      "evidence": [
+        { "source_url": "https://music.stackexchange.com/questions/79459", "quote_or_summary": "Two-year player: family says the violin sounds scratchy, \"but I don't hear it when I'm playing it\"." },
+        { "source_url": "https://music.stackexchange.com/a/80986", "quote_or_summary": "Answer: scratchiness in learners is usually technique, too much bow pressure or too little bow movement." },
+        { "source_url": "https://music.stackexchange.com/a/42905", "quote_or_summary": "Answer: practise long tones, a full slow bow per open string, working towards 30–45 seconds per bow with a consistent tone." },
+        { "source_url": "https://www.frontiersin.org/journals/psychology/articles/10.3389/fpsyg.2021.648479/full", "quote_or_summary": "Randomised trial with 57 beginners: \"sound quality feedback has the potential of becoming an important aid in violin learning\"." },
+        { "source_url": "https://arxiv.org/abs/2505.04446", "quote_or_summary": "Bowing study: tone depends on \"parameters of bowing motion, such as pressure, position, and speed\"." }
+      ],
+      "hypothesis": "If we add an open-string long-tone drill that measures seconds per bow, loudness evenness through the stroke and a noise (scratch) indicator, the owner would practise tone between lessons with a measurable target.",
+      "acceptance_criteria": [
+        "A long-tone drill on each open string, started hands-free like other drills",
+        "Measures seconds per bow (from bow-change dips), loudness evenness through each bow and a harmonic-to-noise figure, with stated starting-default targets",
+        "Tests with synthetic bowed tones with added noise and loudness wobble rank them in the right order",
+        "Results and trends appear in Copy report for Claude and the practice log"
+      ],
+      "success_signal": "Seconds per bow and evenness improve over three weeks, and the owner's teacher comments that tone improved.",
+      "effort_estimate": "M",
+      "strongest_reason_not_to_build": "A scratch measure from a laptop or phone mic is unvalidated: room noise and the iPad's voice-processed mic can look like scratch, and a wrong tone score is worse than none when a teacher hears the tone every week."
+    },
+    {
+      "id": "violin-2026-11-19-5",
+      "app": "violin",
+      "created_at": "2026-11-19",
+      "ttl": 30,
+      "rank": 5,
+      "title": "Lesson card: the teacher's assignments in, a since-last-lesson sheet out",
+      "problem": "Weekly lessons are hard to absorb, and between them the app knows what was practised and where it went wrong, but nothing records the teacher's assignment or turns the practice data into what to show and ask at the next lesson.",
+      "evidence": [
+        { "source_url": "https://www.robknopper.com/blog/2015/4/26/squeeze-every-drop-out-of-your-lesson-by-recording-it", "quote_or_summary": "\"lessons are chaotic and it's difficult to absorb every possible piece of information.\"" },
+        { "source_url": "https://music.stackexchange.com/questions/434", "quote_or_summary": "A beginner can end up \"practicing and learning a piece at home incorrectly without knowing\" until the next lesson." },
+        { "source_url": "https://music.stackexchange.com/questions/110147", "quote_or_summary": "Adult learner unsure what their teacher expects and whether to ask for more critical feedback on each piece." },
+        { "source_url": "https://github.com/eklavyamirani/violin-practice-system/blob/8facc7f/README.md#L144", "quote_or_summary": "The app today: the practice log already holds every run for 90 days and can be copied for Claude, but nothing is shaped for the teacher." }
+      ],
+      "hypothesis": "If we add a Lesson card where the owner notes the teacher's assignments after a lesson, and which builds a one-page since-last-lesson sheet (minutes per assignment, medals, the three worst spots, questions to ask), the owner would get more out of each lesson.",
+      "acceptance_criteria": [
+        "Enter a lesson date and assignments as text, optionally linked to drills, packs or pieces",
+        "Since-last-lesson sheet: minutes per assignment, medals earned, the three worst spots from the practice log, piece analyses, and a list of questions",
+        "Readable on the phone at the lesson; a Copy for Claude variant",
+        "Lessons and the sheet sync like the plan"
+      ],
+      "success_signal": "The owner opens the sheet at four lessons in a row.",
+      "effort_estimate": "M",
+      "strongest_reason_not_to_build": "The owner can already paste the practice log into Claude and ask for exactly this sheet at no build cost, and a teacher may not want app data in the lesson."
+    }
+  ]
+}
