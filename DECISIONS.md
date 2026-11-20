@@ -22,6 +22,12 @@ request of its own. Format:
 
 ---
 
+## 2026-11-20 · The demo runner's upload host has a default in this repository
+- Decided by: the orchestrating session, on the owner's behalf (reversible)
+- Decision: `demo/runner/publish.mjs` keeps a default upload host, so a session only needs the token to publish a demo. `DEMO_UPLOAD_HOST` overrides it. The token is never in the repository; it comes from the environment or a file on the recording machine.
+- Rejected: taking the host only from the environment — the name was already public in the pull request that added it, the platform's domain is already named in this repository's cleanup job, and the host accepts nothing without the token. Keeping the publish step out of this public repository — every app's recorder would then need a private companion to finish a demo.
+- Revisit if: requests from strangers to the upload host become noise for the owner, who is told about every request to it.
+
 ## 2026-11-20 · The demo kit contract covers server-backed apps
 - Decided by: the workout demo kit session's findings (eklavyamirani/workout-app#46), accepted by the orchestrating session on the owner's behalf
 - Decision: `demo/CONTRACT.md` now lets a kit start a database and API with the app's own local-development tooling (isolated per session, on loopback, nothing left running after `close()`, a stop command for leftovers), load data through the app's own data path (browser storage, or the server's seed, ideally the preview fixture), and run a stand-in sign-in service that only that session's API trusts, for fixture users only. A seed the app's tests already cover counts as the app's own code; fixed preview dates are fine when the walkthrough doesn't need recent ones. Each kit lists what it needs on the machine and how long its first and later starts take. Violin's kit is unchanged and still conforms.
