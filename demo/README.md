@@ -24,6 +24,30 @@ node demo/runner/demo.mjs demo/proposals/watch-out-notes.json
 The video lands in `demo/out/<proposal-id>/<proposal-id>.mp4`. The walkthrough is
 `demo/kit/walkthroughs/<proposal-id>.mjs` unless you pass `--walkthrough <name>`. `--headed` shows the browser.
 
+### Upload to Downloads (eklavyamirani/app-platform#82)
+
+With an upload token in the environment, the same command then uploads the video to the platform's Downloads
+app and prints the link to send the owner (it opens after their normal sign-in):
+
+```bash
+DEMO_UPLOAD_TOKEN_FILE=<file holding the token> node demo/runner/demo.mjs demo/proposals/<id>.json \
+  --preview <the prototype's preview URL> --proposal-link <the proposal issue URL>
+```
+
+- The token comes from `DEMO_UPLOAD_TOKEN`, or from the file named in `DEMO_UPLOAD_TOKEN_FILE`. The owner
+  issues it. It goes to curl as a header on stdin, so it is never in a process argument, the URL, the
+  output or `<id>.demo.json`. Never paste it into a commit, an issue or a message.
+- The video goes to `demos/<app>/<proposal-id>/<UTC time>-<proposal-id>.mp4`, with `<UTC time>-links.txt`
+  next to it holding `--preview`, `--proposal-link` and `--note`. Uploads never overwrite, so every run
+  makes a new pair.
+- Upload only the demo you mean to send the owner. For test runs, leave the token unset or pass
+  `--no-upload`, which skips the upload even when a token is set. The runner sends each file once and never
+  retries; it prints the UTC time and HTTP status of each request.
+- No token: the video is still recorded, and the last line says `Not uploaded: no upload token …` with the
+  video's path, for the session to send by hand. A refused upload (expired token, a name the route
+  rejects, too many requests) says why, and the command exits with code 1.
+- `DEMO_UPLOAD_HOST` changes the upload host (for a local cluster, with `DEMO_UPLOAD_CACERT` for its CA).
+
 For a filed proposal, the proposal file comes from the issue: the platform's `scripts/prototype start violin <issue> .`
 writes `demo/proposals/<id>.json` on the prototype branch (eklavyamirani/app-platform `docs/v2/product-scout.md`), and the
 walkthrough is `demo/kit/walkthroughs/<id>.mjs`.
@@ -107,7 +131,7 @@ demo/
     template.mjs   the fixed sections, their narration candidates and the cards
     tts.mjs        say / piper / espeak-ng, and fitting speech into a section
     assemble.mjs   ffmpeg: cards + walkthrough + narration → mp4, and the timing report
-    publish.mjs    stub: where the Downloads upload goes
+    publish.mjs    uploads the mp4 and a links file to Downloads (curl, token on stdin)
     media.mjs      finds ffmpeg/ffprobe
   kit/           violin-specific (the demo kit; see CONTRACT.md)
     kit.mjs        what the runner imports
@@ -116,7 +140,7 @@ demo/
     audio/         violin-like scripted playing of the app's own drills
     walkthroughs/  one script per proposal
   proposals/     proposal records
-  test/          template tests, the two-proposal structure check, the scripted-audio check
+  test/          template and publish tests, the two-proposal structure check, the scripted-audio check
 ```
 
 - **Recording.** Playwright records the page's screencast. Headless Chromium screencasts at CSS-pixel size,
@@ -133,14 +157,16 @@ demo/
   `inject`: an init script answers the page's `getUserMedia({ audio })` with a stream that plays the scripted
   WAV from its first sample through Web Audio. The app gets a MediaStream as from a real mic and its code is
   unchanged. The same WAV is mixed quietly under the walkthrough's narration, so you hear what the app heard.
-- **Publish (eklavyamirani/app-platform#82, stub).** `publish.mjs` computes the upload path `demos/<app>/<proposal-id>/<file>` and
-  returns a message. The `upload()` function is the seam for the Downloads upload helper; until it exists the
-  file stays in the session and the session sends it to the owner.
+- **Publish (eklavyamirani/app-platform#82).** `publish.mjs` makes the same requests as the platform's
+  `scripts/demo-upload` helper: a create-only POST of the video, then of the links file, each with the token
+  in a header that curl reads from stdin. It returns the owner's link, which `demo.mjs` prints and stores in
+  `<id>.demo.json` with each request's time and status (never the token).
 
 ## Checks
 
 ```bash
 node demo/test/template.test.mjs          # timings, proposal schema, narration fallbacks (no browser)
+node demo/test/publish.test.mjs           # upload: no token, refused, accepted, token kept out of args (local stand-in server)
 node demo/test/scripted-audio.mjs 3       # the app hears the scripted audio the same way 3 times
 node demo/test/same-structure.mjs demo/out/*/*.demo.json   # after two demos: same sections and timing
 ```
