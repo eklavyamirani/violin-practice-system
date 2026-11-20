@@ -147,7 +147,7 @@ function validateDraft(p) {
   if (!Array.isArray(p.acceptance_criteria) || !p.acceptance_criteria.length) errs.push(`${p.id}: no acceptance criteria`);
   if (!EFFORTS.includes(p.effort_estimate)) errs.push(`${p.id}: effort must be S, M or L`);
   if (p.status && !STATUSES.includes(p.status)) errs.push(`${p.id}: unknown status ${p.status}`);
-  if (!/^If we /.test(p.hypothesis || "")) errs.push(`${p.id}: hypothesis should read "If we add X, users would Y"`);
+  if (!/^If /.test(p.hypothesis || "")) errs.push(`${p.id}: hypothesis should read "If we add X, users would Y"`);
   return errs;
 }
 
