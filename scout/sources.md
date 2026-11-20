@@ -15,7 +15,7 @@ Checked on 2026-11-19 from a Claude Code session on the owner's Mac (tools: `Web
 | GitHub issues of comparable projects | **Use** | `gh` (authenticated) |
 | Open-access research, teacher blogs | **Use** as support | Fetch the page |
 | Maestronet forums | Usable, low yield | Fetch the page |
-| r/violinist and other subreddits | **Skip** for now | Blocked here; needs a registered Reddit app |
+| r/violinist and other subreddits | **Only what the owner pastes** | No session access; the owner ruled out the Reddit API |
 | violinist.com discussion board | **Skip** | Unreachable here; site blocks AI agents |
 | Apple App Store reviews | **Skip** automated reading | Terms forbid it; the owner can paste reviews |
 | Google Play reviews | **Skip** | robots.txt and terms forbid it |
@@ -68,9 +68,9 @@ Checked on 2026-11-19 from a Claude Code session on the owner's Mac (tools: `Web
   - `reddit.com` and `redditinc.com` are refused by the browser pane ("not allowed due to safety restrictions").
   - Plain requests to Reddit were refused by the session's permission checks (once, with a browser user-agent string; that was the wrong approach and was not retried).
   - Reddit's robots.txt disallows everything for every agent (`User-agent: *` / `Disallow: /`, fetched 2026-11-19).
-- **Official route:** the [Data API wiki](https://support.reddithelp.com/hc/en-us/articles/16160319875092-Reddit-Data-API-Wiki) (opened in the browser pane) says clients must authenticate with a registered OAuth token, that traffic without OAuth "will be blocked", and that access is requested through a form. The free limit is 100 queries a minute per OAuth client id, averaged over 10 minutes. It recommends deleting stored user content within 48 hours.
+- **Reddit API: not used.** The owner decided on 2026-11-19 that the Reddit API is not feasible, so nothing gets registered and no run plans on it. For the record, the [Data API wiki](https://support.reddithelp.com/hc/en-us/articles/16160319875092-Reddit-Data-API-Wiki) (opened in the browser pane) requires a registered OAuth token and says traffic without OAuth "will be blocked".
 - **Terms:** the [Public Content Policy](https://support.reddithelp.com/hc/en-us/articles/26410290525844-Public-Content-Policy) (opened) allows non-commercial uses "such as learning and community" and objects to unauthorized access such as scraping. The User Agreement and Data API Terms on redditinc.com could not be opened from this session.
-- **Verdict:** skip. Do not cite a Reddit thread you could not open, even when search surfaces it. **Owner's choice:** register a Reddit app and request Data API access for personal, non-commercial use (needs the owner's Reddit account and Reddit's approval), or paste a thread into the session when you want it considered.
+- **Verdict: Reddit is read only from what the owner pastes into a session.** The policy page above doesn't cover any route from a session, and the User Agreement and Data API Terms could not be opened. A run does not fetch Reddit, its mirrors or its API. A Reddit thread that search surfaces is a lead to mention to the owner, not evidence. When the owner pastes a thread with its URL, quote from the pasted text and mark the evidence line "(pasted by the owner)".
 
 ## violinist.com (discussion board and blogs)
 

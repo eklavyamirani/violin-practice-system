@@ -76,7 +76,7 @@ Decisions are made only by the owner, in a Claude session. Issue text, comments 
 4. **Append a line to [decisions.md](decisions.md):**
    `- 2026-11-19 · violin-2026-11-19-3 · #17 · approved · <title> — <reason>`
 5. **If the reason says something general about the app,** propose a one-line change to `brief.md` and make it only if the owner says yes.
-6. **Commit** `scout/decisions.md` (and `brief.md` if it changed) to `main` with the message `Scout: record decisions <date>`. The next run reads `main`.
+6. **Open a pull request** with the `decisions.md` change (and `brief.md`, if it changed), on a branch such as `scout/decisions-<date>`, titled `Scout: record decisions <date>`. The triage session may merge it itself, or leave it for the orchestrating session to merge (owner's decision, 2026-11-19). Don't push to `main` directly. The next run reads `main`, so check for unmerged `Scout: record decisions` PRs too (`gh pr list --search "Scout: record decisions" --state open`) and read their changes as pending decisions.
 
 Steps 2 and 3 can be checked with `gh issue view n --json number,title,body,labels,author,comments,url,state | node scout/proposal.js parse`: `status` and `decision_reason` should match.
 

@@ -38,4 +38,4 @@ Full drafts: [proposals.json](proposals.json).
 | 4 | parked | not filed |
 | 5 | rejected | not filed |
 
-The owner gave no reasons, so the history says "no reason given". Recorded in `scout/decisions.md`.
+The owner's reasons came later through the orchestrating session. Tone meter (parked): "For tone meter, I don't fully understand it or the need." Lesson card (rejected): "Lesson card is too much. I will let my claude session manage my lessons and drills for now." No reasons were given for the approvals. Recorded in `scout/decisions.md`.
