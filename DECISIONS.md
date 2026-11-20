@@ -22,6 +22,18 @@ request of its own. Format:
 
 ---
 
+## 2026-11-20 · Scheduled scout runs file nothing before triage
+- Decided by: the orchestrating session, on the owner's behalf (reversible; within the owner's rule that agents act only on the owner's yes in a session)
+- Decision: a scout run, scheduled or not, files no issues by itself (`scout/run.md` "Filing mode: drafts first"). After the owner's reply, the run's own session files the approved proposals with `status: approved` and a `Decision:` comment, and opens the `Scout: record decisions <date>` pull request. Where and how often runs are scheduled is still with the owner (eklavyamirani/app-platform#89).
+- Rejected: filing every draft as `status: proposed` before triage — public issues for ideas the owner has not seen, and noise for the TTL to expire.
+- Revisit if: the owner asks to see proposals as issues before triage (switch the filing mode line in `scout/run.md`).
+
+## 2026-11-20 · A draft that looks like a rejected or parked idea must say what it revisits
+- Decided by: the orchestrating session, on the owner's behalf (reversible)
+- Decision: drafts carry `revisits` (`null`, or the decision id and what changed). `node scout/proposal.js validate` fails a draft whose title roughly matches a rejected or parked title in `scout/decisions.md` unless `revisits` names that decision, and `node scout/proposal.js triage` renders the owner's message with a "Previously:" line for every proposal.
+- Rejected: the prompt alone (`scout/run.md` asking the scout to read the history) — nothing checked it, so nothing stopped a repeat. Exact title matching — a reworded repeat would pass. Judging similarity by problem text or an AI check — heavier, and the owner sees every revisit in the message anyway.
+- Revisit if: the rough title match lets a repeat through, or flags so many different ideas that `revisits` becomes boilerplate.
+
 ## 2026-11-20 · The demo runner's upload host has a default in this repository
 - Decided by: the orchestrating session, on the owner's behalf (reversible)
 - Decision: `demo/runner/publish.mjs` keeps a default upload host, so a session only needs the token to publish a demo. `DEMO_UPLOAD_HOST` overrides it. The token is never in the repository; it comes from the environment or a file on the recording machine.

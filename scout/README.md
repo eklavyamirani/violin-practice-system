@@ -28,6 +28,7 @@ A scout session researches what learners struggle with and proposes up to five c
 | `success_signal` | Success signal | |
 | `effort_estimate` | Effort | S, M or L |
 | `strongest_reason_not_to_build` | Strongest reason not to build | |
+| `revisits` | (draft only, not filed) | `null`, or `{id, what_changed}` naming a decision in `decisions.md`; shown as "Previously:" in triage |
 | `status` | a `status: …` label | exactly one |
 | `decision_reason` | latest owner comment `Decision: <status> — <reason>` | only from accounts in `OWNERS` |
 
@@ -42,7 +43,10 @@ gh issue list --label proposal --state all --limit 200 \
 node scout/proposal.js render draft.json | gh issue create --title "$(node scout/proposal.js title draft.json)" \
   --body-file - --label proposal --label "status: approved"
 
+# check drafts, including against decisions.md: a look-alike of a rejected or parked idea needs revisits
 node scout/proposal.js validate scout/runs/2026-11-19/proposals.json
+# the triage message for the owner, with a "Previously:" line per proposal
+node scout/proposal.js triage scout/runs/2026-11-19/proposals.json
 node scout/proposal.test.js
 ```
 

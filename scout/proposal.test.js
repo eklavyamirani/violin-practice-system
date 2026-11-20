@@ -62,5 +62,32 @@ check("evidence shapes", JSON.stringify(ev.evidence) === JSON.stringify([
 ]), ev.evidence);
 check("evidence without url warns", ev.warnings.includes("an evidence line has no URL"));
 
+// Decision history and the duplicate guard: a draft that looks like a rejected or
+// parked idea must say which decision it revisits and what changed.
+const history = P.parseDecisions([
+  "## Log", "",
+  "- 2026-11-19 · violin-2026-11-19-4 · draft · approved · Long tones with a tone meter — first",
+  "- 2026-11-19 · violin-2026-11-19-4 · draft · parked · Long tones with a tone meter — \"For tone meter, I don't fully understand it or the need.\"",
+  "- 2026-11-19 · violin-2026-11-19-5 · draft · rejected · Lesson card: the teacher's assignments in, a since-last-lesson sheet out — too much",
+  "- 2026-11-19 · violin-2026-11-19-1 · #17 · approved · Keep piece recordings so you can hear progress over weeks — no reason given",
+  "not a decision line",
+].join("\r\n"));
+check("decisions parsed, later line wins", history.length === 3 && history[0].status === "parked" && history[0].reason.startsWith("\"For tone meter"), history);
+check("similar titles", P.similarTitles("Tone meter for long tones", "Long tones with a tone meter") && !P.similarTitles("Shifting drills for third position", "Long tones with a tone meter"));
+const tone = { ...draft, id: "violin-2026-12-01-1", title: "Tone meter for long tones" };
+check("look-alike of a parked idea fails", P.validateDraft(tone, history).some((e) => /looks like parked violin-2026-11-19-4/.test(e)), P.validateDraft(tone, history));
+const toneBack = { ...tone, revisits: { id: "violin-2026-11-19-4", what_changed: "A one-line explanation of the need, with two learner reports." } };
+check("revisits clears it", P.validateDraft(toneBack, history).length === 0, P.validateDraft(toneBack, history));
+check("revisits without what_changed fails", P.validateDraft({ ...tone, revisits: { id: "violin-2026-11-19-4" } }, history).some((e) => /revisits needs/.test(e)));
+check("revisits an unknown id fails", P.validateDraft({ ...draft, revisits: { id: "violin-1999-01-01-1", what_changed: "x" } }, history).some((e) => /not in decisions/.test(e)));
+check("look-alike of an approved idea passes", P.validateDraft({ ...draft, title: "Keep recordings of pieces to hear progress" }, history).length === 0);
+check("the triaged draft itself is not a revisit", P.validateDraft({ ...draft, id: "violin-2026-11-19-4", title: "Long tones with a tone meter" }, history).length === 0);
+check("no history, no guard", P.validateDraft(tone).length === 0);
+
+const msg = P.renderTriage({ run: "2026-12-01", app: "violin", proposals: [{ ...toneBack, rank: 2 }, { ...draft, rank: 1, revisits: null }] }, history);
+check("triage ranks and numbers", /\n1\. Say which way to move the finger \(S\)\n/.test(msg) && /\n2\. Tone meter for long tones \(S\)\n/.test(msg), msg);
+check("triage previously lines", /Previously: none\n/.test(msg) && /Previously: parked 2026-11-19 \(violin-2026-11-19-4\): "For tone meter[^\n]*What changed: A one-line/.test(msg), msg);
+check("triage empty run", /0 proposals\. Nothing worth proposing/.test(P.renderTriage({ run: "2026-12-01", app: "violin", proposals: [] }, history)));
+
 console.log(fails ? `${fails} failure(s)` : "proposal: all checks pass");
 process.exit(fails ? 1 : 0);
