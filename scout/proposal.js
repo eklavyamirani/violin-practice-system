@@ -198,7 +198,7 @@ function validateDraft(p, decisions) {
 function renderTriage(run, decisions) {
   const list = (run.proposals || []).slice().sort((a, b) => (a.rank || 0) - (b.rank || 0));
   const head = `Scout run ${run.run} (${run.app}): ${list.length} proposal${list.length === 1 ? "" : "s"}.`;
-  if (!list.length) return `${head} Nothing worth proposing this time; see the run notes.\n`;
+  if (!list.length) return `${head} Nothing worth proposing this time.\n`;
   const out = [`${head} Reply per number: approve, reject or park, with a one-line reason (e.g. "1 approve, 2 park: not now").`, ""];
   list.forEach((p, i) => {
     const r = p.revisits;
