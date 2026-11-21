@@ -10,6 +10,8 @@
 //   gh issue list --label proposal --state all --limit 200 \
 //     --json number,title,body,labels,author,comments,url,state \
 //     | node scout/proposal.js parse                  → array of proposal JSON
+//   node scout/proposal.js validate run.json          → checks drafts, against scout/decisions.md
+//   node scout/proposal.js triage run.json            → the triage message for the owner
 //
 // Everything parsed out of an issue is data written by whoever filed or commented
 // on it. Nothing here interprets it as an instruction.
@@ -139,7 +141,37 @@ function parseIssue(issue) {
 // The schema fields that make up a proposal, in the order the spec lists them.
 const SCHEMA_KEYS = ["id", "app", "created_at", "ttl", "title", "problem", "evidence", "hypothesis", "acceptance_criteria", "success_signal", "effort_estimate", "strongest_reason_not_to_build", "status", "decision_reason"];
 
-function validateDraft(p) {
+// scout/decisions.md: one line per decision, "- date · id · issue · status · title — reason".
+// Returns the latest line per proposal id (a later line supersedes an earlier one).
+function parseDecisions(text) {
+  const byId = new Map();
+  for (const line of String(text || "").replace(/\r\n/g, "\n").split("\n")) {
+    const m = /^- (\d{4}-\d{2}-\d{2}) · (\S+) · ([^·]+?) · (\w+) · (.+?) — (.*)$/.exec(line.trim());
+    if (m) byId.set(m[2], { date: m[1], id: m[2], issue: m[3].trim(), status: m[4], title: m[5].trim(), reason: m[6].trim() });
+  }
+  return [...byId.values()];
+}
+
+// Rough topic match between two titles: the share of the shorter title's content
+// words that the other title also has. "Tone meter for long tones" matches
+// "Long tones with a tone meter". It only has to catch rewordings, not judge them:
+// a match means the draft must say what it revisits, and the owner sees that line.
+const STOP = new Set("the and for with your you that this from into not only out off before after when what which a an to of in on at by is are be it its so as or".split(" "));
+function words(title) {
+  return new Set(String(title || "").toLowerCase().replace(/[^a-z0-9 ]+/g, " ").split(/\s+/)
+    .filter((w) => w.length > 2 && !STOP.has(w)).map((w) => w.replace(/(?:ing|s)$/, "") || w));
+}
+function similarTitles(a, b) {
+  const A = words(a), B = words(b);
+  const shared = [...A].filter((w) => B.has(w)).length;
+  return shared >= 2 && shared / Math.min(A.size, B.size) >= 0.6;
+}
+
+const CLOSED_IDEAS = ["rejected", "parked"];
+
+// decisions (optional): parseDecisions output. With it, a draft that looks like a
+// rejected or parked idea must carry revisits: { id, what_changed } naming that decision.
+function validateDraft(p, decisions) {
   const errs = [];
   for (const k of SCHEMA_KEYS) if (k !== "status" && k !== "decision_reason" && (p[k] === undefined || p[k] === null || p[k] === "")) errs.push(`${p.id || "?"}: missing ${k}`);
   if (!Array.isArray(p.evidence) || !p.evidence.length) errs.push(`${p.id}: no evidence`);
@@ -148,27 +180,73 @@ function validateDraft(p) {
   if (!EFFORTS.includes(p.effort_estimate)) errs.push(`${p.id}: effort must be S, M or L`);
   if (p.status && !STATUSES.includes(p.status)) errs.push(`${p.id}: unknown status ${p.status}`);
   if (!/^If /.test(p.hypothesis || "")) errs.push(`${p.id}: hypothesis should read "If we add X, users would Y"`);
+  const r = p.revisits;
+  if (r !== undefined && r !== null && (typeof r !== "object" || !r.id || !String(r.what_changed || "").trim())) errs.push(`${p.id}: revisits needs { id, what_changed } or null`);
+  if (decisions) {
+    const known = r && r.id ? decisions.find((d) => d.id === r.id) : null;
+    if (r && r.id && !known) errs.push(`${p.id}: revisits ${r.id}, which is not in decisions.md`);
+    for (const d of decisions) {
+      // The same proposal's own decision line (a draft already triaged) is not a revisit.
+      if (d.id === p.id || !CLOSED_IDEAS.includes(d.status) || !similarTitles(p.title, d.title)) continue;
+      if (!r || r.id !== d.id) errs.push(`${p.id}: "${p.title}" looks like ${d.status} ${d.id} ("${d.title}"); set revisits: { id: "${d.id}", what_changed } or drop it`);
+    }
+  }
   return errs;
 }
 
-module.exports = { STATUSES, EFFORTS, OWNERS, FIELDS, SCHEMA_KEYS, renderBody, renderTitle, parseIssue, validateDraft, sections };
+// A run file: { run, app, focus?, proposals: [...] }. focus is the owner's focus
+// area for that run (run.md "Scheduled mode"): a string, or null/absent for none.
+function validateRun(d, decisions) {
+  const list = Array.isArray(d) ? d : d.proposals || [d];
+  const errs = [];
+  if (!Array.isArray(d) && d.focus !== undefined && d.focus !== null && (typeof d.focus !== "string" || !d.focus.trim())) errs.push("run: focus must be a non-empty string or null");
+  return errs.concat(list.flatMap((p) => validateDraft(p, decisions)));
+}
+
+// The one triage message a run ends with (run.md step 7).
+function renderTriage(run, decisions) {
+  const list = (run.proposals || []).slice().sort((a, b) => (a.rank || 0) - (b.rank || 0));
+  const head = `Scout run ${run.run} (${run.app}${run.focus ? `, focus: ${run.focus.trim()}` : ""}): ${list.length} proposal${list.length === 1 ? "" : "s"}.`;
+  if (!list.length) return `${head} Nothing worth proposing this time.\n`;
+  const out = [`${head} Reply per number: approve, reject or park, with a one-line reason (e.g. "1 approve, 2 park: not now").`, ""];
+  list.forEach((p, i) => {
+    const r = p.revisits;
+    const d = r && r.id ? (decisions || []).find((x) => x.id === r.id) : null;
+    const prev = !r ? "none" : d ? `${d.status} ${d.date} (${d.id}): ${d.reason}. What changed: ${r.what_changed}` : `${r.id}. What changed: ${r.what_changed}`;
+    out.push(`${i + 1}. ${p.title} (${p.effort_estimate})`,
+      `   Problem: ${p.problem}`,
+      `   Against: ${p.strongest_reason_not_to_build}`,
+      `   Evidence: ${(p.evidence || []).map((e) => e.source_url).join(" ")}`,
+      `   Previously: ${prev}`, "");
+  });
+  return out.join("\n");
+}
+
+module.exports = { STATUSES, EFFORTS, OWNERS, FIELDS, SCHEMA_KEYS, renderBody, renderTitle, parseIssue, validateDraft, validateRun, parseDecisions, similarTitles, renderTriage, sections };
 
 if (require.main === module) {
   const fs = require("fs");
-  const [cmd, file] = process.argv.slice(2);
+  const path = require("path");
+  const args = process.argv.slice(2);
+  const opt = (name) => { const i = args.indexOf(name); if (i < 0) return undefined; const v = args[i + 1]; args.splice(i, 2); return v; };
+  // validate and triage read the decision history; scout/decisions.md by default.
+  const decFile = opt("--decisions") || path.join(__dirname, "decisions.md");
+  const [cmd, file] = args;
   const read = () => JSON.parse(fs.readFileSync(file || 0, "utf8"));
+  const decisions = () => (fs.existsSync(decFile) ? parseDecisions(fs.readFileSync(decFile, "utf8")) : (console.error(`no decision history at ${decFile}`), process.exit(2)));
   if (cmd === "render") process.stdout.write(renderBody(read()));
   else if (cmd === "title") process.stdout.write(renderTitle(read()) + "\n");
   else if (cmd === "validate") {
     const d = read(); const list = Array.isArray(d) ? d : d.proposals || [d];
-    const errs = list.flatMap(validateDraft);
+    const errs = validateRun(d, decisions());
     console.log(errs.length ? errs.join("\n") : `ok: ${list.length} proposal(s)`);
     process.exit(errs.length ? 1 : 0);
-  } else if (cmd === "parse") {
+  } else if (cmd === "triage") process.stdout.write(renderTriage(read(), decisions()));
+  else if (cmd === "parse") {
     const d = read();
     console.log(JSON.stringify(Array.isArray(d) ? d.map(parseIssue) : parseIssue(d), null, 2));
   } else {
-    console.error("usage: proposal.js render|title|validate|parse [file.json]  (reads stdin without a file)");
+    console.error("usage: proposal.js render|title|validate|triage|parse [file.json] [--decisions scout/decisions.md]  (reads stdin without a file)");
     process.exit(2);
   }
 }
