@@ -173,6 +173,20 @@ main { max-width: 1280px; margin: 0 auto; padding: 1rem; }
 .chip.watch .wm { font-size: .75em; color: var(--bad); margin-left: 1px; }
 .watchout { grid-column: 1 / -1; margin: .1rem 0 0; font-size: .86rem; color: var(--ink); background: var(--panel-2); border-left: 3px solid var(--bad); border-radius: 8px; padding: .45rem .6rem; }
 .watchout[hidden] { display: none; }
+.watchout .fixgo { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .45rem; }
+.watchout .fixgo button { font: inherit; font-size: .84rem; padding: .35rem .6rem; border-radius: 8px; border: 1px solid var(--accent); background: var(--panel); color: var(--ink); cursor: pointer; }
+.fixpanel { grid-column: 1 / -1; margin: .3rem 0 0; background: var(--panel-2); border: 2px solid var(--accent); border-radius: 10px; padding: .6rem .7rem; font-size: .9rem; color: var(--ink); }
+.fixpanel[hidden] { display: none; }
+.fixpanel .fxhead { display: flex; justify-content: space-between; align-items: baseline; gap: .5rem; font-weight: 700; }
+.fixpanel .fxhead button { font: inherit; font-weight: 400; font-size: .8rem; border: 0; background: none; color: var(--ink); text-decoration: underline; cursor: pointer; }
+.fixpanel .fxsets { display: flex; gap: .9rem; margin: .45rem 0 .3rem; font-size: 1.25rem; letter-spacing: .15rem; }
+.fixpanel .fxsets .lbl { font-size: .72rem; letter-spacing: 0; display: block; color: var(--ink); opacity: .75; }
+.fixpanel .on { color: var(--good); } .fixpanel .off { opacity: .35; }
+.fixpanel .fxlast { min-height: 1.3em; }
+.fixpanel .fxlast.ok { color: var(--good); font-weight: 600; } .fixpanel .fxlast.bad { color: var(--bad); font-weight: 600; }
+.fixpanel .fxbreak { height: 8px; border-radius: 4px; background: var(--panel); overflow: hidden; margin: .35rem 0; }
+.fixpanel .fxbreak i { display: block; height: 100%; background: var(--accent); }
+.fixpanel .fxwhy { font-size: .76rem; opacity: .8; margin-top: .35rem; }
 .shiftmark { font-size: .72rem; color: var(--accent); font-weight: 700; padding: 0 2px; }
 @keyframes pulse { 50% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 25%, transparent); } }
 
@@ -457,6 +471,7 @@ main { max-width: 1280px; margin: 0 auto; padding: 1rem; }
       </div>
       <div class="path" id="path"></div>
       <p class="watchout" id="watchOut" hidden></p>
+      <div class="fixpanel" id="fixPanel" hidden aria-live="polite"></div>
 
       <div class="focus">
         <div class="card target">
@@ -1058,6 +1073,7 @@ function loop(t, gen) {
   smooth = recent.length >= 2 ? median(recent) : m;
 
   const stable = stableMedian(t);
+  if (fix) fixStep(t, stable);
   if (run) runStep(t, dt, stable);
   handsFreeStep(dt, stable);
   render();
@@ -1121,6 +1137,7 @@ function buildHunt() {
 // seq: a Note Hunt order drawn in advance, so hands-free start knows its first note
 function startRun(seq) {
   markActivity();
+  if (fix) stopFix();
   const ex = exById(DB.selected);
   const s = DB.settings, mode = modeOf(ex);
   if (mode === "tempo" && !ctx) { startAudio().then((ok) => ok && startRun(seq)); return; }
@@ -1886,7 +1903,7 @@ function renderIdle() {
 }
 
 function render() {
-  const cur = run && run.seq[run.idx];
+  const cur = run ? run.seq[run.idx] : fix && fix.phase !== "break" && fix.phase !== "done" ? fix.steps[fix.phase === "play" ? fix.step : 0] : null;
   const needle = $("#needle");
   let dev = null, ref = null;
   if (smooth !== null) {
@@ -2008,6 +2025,114 @@ function renderWatchOut(seq) {
   if (!w) return;
   const sharp = w.avg > 0;
   el.innerHTML = `👀 <b>Watch ${noteHTML(w.it.midi)}</b> (${w.it.string} string, finger ${fingerLabel(w.it)}): your last ${w.n} landings averaged <b>${sharp ? "+" : ""}${w.avg.toFixed(0)}¢ ${sharp ? "sharp" : "flat"}</b>. Aim a hair ${sharp ? "lower, toward the scroll" : "higher, toward the bridge"}.`;
+  // Round 2 (owner, 2026-11-21): fix it with short, spaced sets of clean repetitions
+  const from = fixApproach(seq, w.it), today = fixVisitsToday(w.it.key);
+  el.insertAdjacentHTML("beforeend", `<span class="fixgo"><button id="fixNoteBtn">🎯 Fix this note</button>${from ? `<button id="fixMoveBtn">🔁 Fix this progression ${noteHTML(from.midi)} → ${noteHTML(w.it.midi)}</button>` : ""}</span>${today ? `<span class="muted small"> Fixed ${today}× today${today < 3 ? `: come back ${today === 1 ? "once or twice" : "once"} more` : ""}.</span>` : ""}`);
+  $("#fixNoteBtn").onclick = () => startFix("note");
+  if (from) $("#fixMoveBtn").onclick = () => startFix("move");
+}
+
+// ---------- Fix mode (prototype round 2: "fix this note" / "fix this progression") ----------
+// Molly Gebrian's microbreaks (Learn Faster, Perform Better, OUP 2024, Appendix A, ch. 4): three correct
+// repetitions, a 10-second break, three more; a repetition with an error starts the set over. A repetition is
+// one clean landing: the right note, first steady pitch within the medal tolerance (move: the approach note,
+// then the target). Fix reps are logged apart from the note history, so the Watch line keeps judging the
+// note in real runs, and the next day is the test.
+const FIX_SET = 3, FIX_SETS = 2, FIX_BREAK_MS = 10000, FIX_QUIET_MS = 300, FIX_MISS_BREAK = 3;
+let fix = null;
+function fixApproach(seq, it) { // the note before the watched one in the drill: a shift or a crossing first
+  let best = null;
+  for (let k = 1; k < seq.length; k++) {
+    if (seq[k].key !== it.key || seq[k - 1].key === it.key) continue;
+    const c = seq[k - 1], score = (c.pos !== it.pos ? 2 : 0) + (c.string !== it.string ? 1 : 0);
+    if (!best || score > best.score) best = { c, score };
+  }
+  return best && best.c;
+}
+const fixDay = (ts) => new Date(ts).toDateString();
+function fixVisitsToday(key) { return ((DB.fixes || {})[key] || []).filter((v) => fixDay(v.at) === fixDay(Date.now()) && v.done).length; }
+async function startFix(kind) {
+  const ex = exById(DB.selected), w = watchOutNote(ex.notes);
+  if (!w || !(await startAudio())) return;
+  if (run) stopRun();
+  const from = kind === "move" ? fixApproach(ex.notes, w.it) : null;
+  fix = { kind: from ? "move" : "note", steps: from ? [from, w.it] : [w.it], target: w.it, avg: w.avg, tol: TIERS[DB.settings.tier].tol,
+    sets: 0, count: 0, misses: 0, reps: 0, missRun: 0, step: 0, wrong: false, phase: "play", quietSince: null, breakUntil: 0, last: null, t0: Date.now() };
+  $("#startBtn").hidden = true;
+  setMsg(fix.kind === "move" ? `Play ${noteName(from.midi)} then ${noteName(w.it.midi)}, then stop. Three clean in a row, then a 10-second break.` : `Play ${noteName(w.it.midi)} on its own, then stop. Three clean in a row, then a 10-second break.`);
+  renderFix(performance.now());
+}
+function stopFix(msg) {
+  if (!fix) return;
+  const f = fix; fix = null;
+  if (f.reps) {
+    const log = ((DB.fixes ||= {})[f.target.key] ||= []);
+    log.push({ at: Date.now(), kind: f.kind, reps: f.reps, clean: f.sets * FIX_SET + f.count, misses: f.misses, done: f.sets >= FIX_SETS });
+    if (log.length > 30) log.shift();
+    save();
+  }
+  $("#startBtn").hidden = false; $("#fixPanel").hidden = true;
+  buildPath(); renderIdle();
+  setMsg(msg || "Stopped. Press Start (or Space) to go again.");
+}
+function fixRep(t, ok, cents) {
+  const f = fix; f.reps++;
+  f.last = { ok, cents };
+  f.phase = "quiet"; f.quietSince = null; f.step = 0; f.wrong = false;
+  if (ok) {
+    f.missRun = 0;
+    if (++f.count >= FIX_SET) {
+      f.sets++; f.count = 0;
+      if (f.sets >= FIX_SETS) { f.phase = "done"; return renderFix(t); }
+      f.phase = "break"; f.breakUntil = t + FIX_BREAK_MS; f.breakWhy = "set";
+    }
+  } else {
+    f.misses++; f.count = 0;
+    if (++f.missRun >= FIX_MISS_BREAK) { f.missRun = 0; f.phase = "break"; f.breakUntil = t + FIX_BREAK_MS; f.breakWhy = "misses"; }
+  }
+  renderFix(t);
+}
+function fixStep(t, stable) {
+  const f = fix;
+  if (f.phase === "done") return;
+  if (f.phase === "break") { if (t >= f.breakUntil) { f.phase = "quiet"; f.quietSince = null; } return renderFix(t); }
+  if (f.phase === "quiet") { // between repetitions: wait for the bow to stop, so one long note can't count twice
+    if (smooth !== null) f.quietSince = null; else if (f.quietSince === null) f.quietSince = t;
+    if (f.quietSince !== null && t - f.quietSince >= FIX_QUIET_MS) { f.phase = "play"; renderFix(t); }
+    return;
+  }
+  if (stable === null) return;
+  const cur = f.steps[f.step], prev = f.steps[f.step - 1], dev = (stable - cur.midi) * 100;
+  if (Math.abs(dev) <= CAPTURE) {
+    if (f.step < f.steps.length - 1) { f.step++; return renderFix(t); } // the approach note: right note is enough
+    return fixRep(t, !f.wrong && Math.abs(dev) <= f.tol, dev);
+  }
+  if (prev && Math.abs(stable - prev.midi) * 100 <= CAPTURE) return; // still on the approach note
+  if (f.step === 0 && f.phase === "play" && f.steps.length > 1) return; // waiting for the approach note
+  if (!f.wrong) { f.wrong = true; renderFix(t); }
+}
+function renderFix(t) {
+  const f = fix, el = $("#fixPanel");
+  if (!f) { el.hidden = true; return; }
+  el.hidden = false;
+  const tg = f.target, cur = f.steps[f.phase === "play" ? f.step : 0];
+  const dots = (n, of) => Array.from({ length: of }, (_, i) => `<span class="${i < n ? "on" : "off"}">●</span>`).join("");
+  const set = (k) => `<span><span class="lbl">Set ${k + 1}${f.sets > k ? " ✓" : ""}</span>${dots(f.sets > k ? FIX_SET : f.sets === k ? f.count : 0, FIX_SET)}</span>`;
+  const sign = (c) => `${c > 0 ? "+" : c < 0 ? "−" : ""}${Math.abs(c).toFixed(0)}¢`;
+  let last = "";
+  if (f.last) last = f.last.ok ? `✓ Clean: ${sign(f.last.cents)}` : `✗ ${Math.abs(f.last.cents) <= CAPTURE ? `${sign(f.last.cents)}, outside ±${f.tol}¢` : "wrong note on the way"}. The set starts over.`;
+  let body;
+  if (f.phase === "done") body = `<div class="fxlast ok">Done for now: ${FIX_SETS * FIX_SET} clean, ${f.misses} miss${f.misses === 1 ? "" : "es"} on the way.</div><div>Come back to it once or twice more today, then let sleep do its part. Tomorrow's runs are the real test: the Watch line still judges ${noteHTML(tg.midi)} from your drills.</div>`;
+  else if (f.phase === "break") {
+    const left = Math.max(0, f.breakUntil - t);
+    body = `<div class="fxlast ${f.breakWhy === "set" ? "ok" : "bad"}">${f.breakWhy === "set" ? `Set ${f.sets} done.` : `${FIX_MISS_BREAK} misses in a row.`} Bow down, breathe: ${Math.ceil(left / 1000)} s</div><div class="fxbreak"><i style="width:${(100 * left) / FIX_BREAK_MS}%"></i></div><div class="muted small">The short rest is part of the practice: much of the gain shows up after the pause, not during the playing.</div>`;
+  } else body = `<div class="fxlast ${f.last ? (f.last.ok ? "ok" : "bad") : ""}">${last || "&nbsp;"}</div><div>${f.phase === "quiet" ? "…and stop." : f.steps.length > 1 && f.step === 0 ? `Start on <b>${noteHTML(f.steps[0].midi)}</b>, then move to <b>${noteHTML(tg.midi)}</b>.` : `Now land <b>${noteHTML(tg.midi)}</b> (${tg.string} string, finger ${fingerLabel(tg)}). Aim a hair ${f.avg > 0 ? "lower" : "higher"}.`}</div>`;
+  el.innerHTML = `<div class="fxhead"><span>${f.kind === "move" ? `🔁 Fix this progression ${noteHTML(f.steps[0].midi)} → ${noteHTML(tg.midi)}` : `🎯 Fix ${noteHTML(tg.midi)}`}</span><button id="fixStop">${f.phase === "done" ? "Close" : "Stop"}</button></div>
+    <div class="fxsets">${Array.from({ length: FIX_SETS }, (_, k) => set(k)).join("")}</div>${body}
+    <div class="fxwhy">3 clean in a row, 10 s break, 3 more; a miss starts the set over (Molly Gebrian's microbreaks).</div>`;
+  $("#fixStop").onclick = () => stopFix(f.phase === "done" ? `Fixed ${noteName(tg.midi)} for now. Press Start for the drill.` : null);
+  $("#bigNote").innerHTML = noteHTML(cur.midi);
+  $("#fing").innerHTML = `<div class="big">${cur.string} string · finger ${fingerLabel(cur)}</div><div>${cur.pos ? ord(cur.pos) + " position" : "open string"}</div>`;
 }
 function updatePath() {
   if (!run) return;
@@ -2400,6 +2525,7 @@ function renderExList() {
 }
 
 function selectEx(id, tier) {
+  if (fix) stopFix();
   if (!exById(id)) id = EXERCISES[0].id;
   DB.selected = id;
   const ex = exById(id);
@@ -3354,7 +3480,7 @@ document.addEventListener("keydown", async (e) => {
     if ($("#tab-piece").classList.contains("active")) return piece ? stopPiece() : startPiece();
     if (await startAudio()) startRun();
   }
-  if (e.code === "Escape") { if (!$("#results").hidden) $("#results").hidden = true; else if (run) stopRun(); }
+  if (e.code === "Escape") { if (!$("#results").hidden) $("#results").hidden = true; else if (fix) stopFix(); else if (run) stopRun(); }
 });
 
 // Simulator: lets you try the app with synthetic tones (open with ?sim)
