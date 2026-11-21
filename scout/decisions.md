@@ -20,3 +20,5 @@ One line per decision, appended by the session where the owner decided (see [REA
 - 2026-11-19 · violin-2026-11-19-5 · draft · rejected · Lesson card: the teacher's assignments in, a since-last-lesson sheet out — "Lesson card is too much. I will let my claude session manage my lessons and drills for now."
 - 2026-11-19 · watch-out-notes · #27 · approved · Watch-out notes before you start — no reason given (approved for a prototype; written by the demo kit, not a scout run, and filed on 2026-11-20 once prototype #24 existed)
 - 2026-11-19 · watch-out-notes · #27 · prototyped · Watch-out notes before you start — "I like the demo. We should deploy it to a preview deployment."
+- 2026-11-20 · watch-out-notes · #27 · prototyped · Watch-out notes before you start — hold: "6. Hold. I haven't used it yet."
+- 2026-11-21 · watch-out-notes · #27 · prototyped · Watch-out notes before you start — iterate: "I like the idea. Let's take this further. Research Molly Gebrian's method of repetition to reinforce the correct muscle memory. It should be a "fix this note" or "fix this progression" mode."
