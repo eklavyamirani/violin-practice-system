@@ -31,3 +31,20 @@ export const inTune = () => 0;
 export const highSecondFinger = (n) => (n.label.includes("♯") && n.finger === "2" ? 32 : 0);
 
 export const outPath = (outDir, name) => path.join(outDir, `${name}.wav`);
+
+/**
+ * Fix mode (watch-out-notes round 2): repetitions of one note, or of a move into it, each followed by a rest so
+ * the app hears the bow stop. `reps` is a list of cents for the target; `breakAfter` puts a long rest after
+ * that many repetitions (the app's 10-second microbreak, while it ignores the microphone).
+ */
+export function playFix(file, target, { from = null, reps, breakAfter = 4, breakSec = 10.8, sec = 0.8, rest = 0.6, missRest = rest, leadIn = 1.2 } = {}) {
+  const passage = [];
+  reps.forEach((cents, i) => {
+    if (from) passage.push({ midi: from.midi, cents: 0, sec: 0.7 });
+    passage.push({ midi: target.midi, cents, sec });
+    passage.push({ rest: i + 1 === breakAfter ? breakSec : Math.abs(cents) >= 20 ? missRest : rest });
+  });
+  const r = render(passage, { leadIn });
+  writeWav(file, r.samples);
+  return { file, notes: r.notes, seconds: r.seconds };
+}
