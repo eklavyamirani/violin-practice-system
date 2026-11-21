@@ -46,7 +46,7 @@ node scout/proposal.js render draft.json | gh issue create --title "$(node scout
 # check drafts, including against decisions.md: a look-alike of a rejected or parked idea needs revisits
 node scout/proposal.js validate scout/runs/2026-11-19/proposals.json
 # the triage message for the owner, with a "Previously:" line per proposal
-node scout/proposal.js triage scout/runs/2026-11-19/proposals.json
+node scout/proposal.js triage scout/runs/2026-11-19/proposals.json   # names the run's focus, if proposals.json has one
 node scout/proposal.test.js
 ```
 
