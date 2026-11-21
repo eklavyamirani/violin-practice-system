@@ -194,10 +194,19 @@ function validateDraft(p, decisions) {
   return errs;
 }
 
+// A run file: { run, app, focus?, proposals: [...] }. focus is the owner's focus
+// area for that run (run.md "Scheduled mode"): a string, or null/absent for none.
+function validateRun(d, decisions) {
+  const list = Array.isArray(d) ? d : d.proposals || [d];
+  const errs = [];
+  if (!Array.isArray(d) && d.focus !== undefined && d.focus !== null && (typeof d.focus !== "string" || !d.focus.trim())) errs.push("run: focus must be a non-empty string or null");
+  return errs.concat(list.flatMap((p) => validateDraft(p, decisions)));
+}
+
 // The one triage message a run ends with (run.md step 7).
 function renderTriage(run, decisions) {
   const list = (run.proposals || []).slice().sort((a, b) => (a.rank || 0) - (b.rank || 0));
-  const head = `Scout run ${run.run} (${run.app}): ${list.length} proposal${list.length === 1 ? "" : "s"}.`;
+  const head = `Scout run ${run.run} (${run.app}${run.focus ? `, focus: ${run.focus.trim()}` : ""}): ${list.length} proposal${list.length === 1 ? "" : "s"}.`;
   if (!list.length) return `${head} Nothing worth proposing this time.\n`;
   const out = [`${head} Reply per number: approve, reject or park, with a one-line reason (e.g. "1 approve, 2 park: not now").`, ""];
   list.forEach((p, i) => {
@@ -213,7 +222,7 @@ function renderTriage(run, decisions) {
   return out.join("\n");
 }
 
-module.exports = { STATUSES, EFFORTS, OWNERS, FIELDS, SCHEMA_KEYS, renderBody, renderTitle, parseIssue, validateDraft, parseDecisions, similarTitles, renderTriage, sections };
+module.exports = { STATUSES, EFFORTS, OWNERS, FIELDS, SCHEMA_KEYS, renderBody, renderTitle, parseIssue, validateDraft, validateRun, parseDecisions, similarTitles, renderTriage, sections };
 
 if (require.main === module) {
   const fs = require("fs");
@@ -229,8 +238,7 @@ if (require.main === module) {
   else if (cmd === "title") process.stdout.write(renderTitle(read()) + "\n");
   else if (cmd === "validate") {
     const d = read(); const list = Array.isArray(d) ? d : d.proposals || [d];
-    const dec = decisions();
-    const errs = list.flatMap((p) => validateDraft(p, dec));
+    const errs = validateRun(d, decisions());
     console.log(errs.length ? errs.join("\n") : `ok: ${list.length} proposal(s)`);
     process.exit(errs.length ? 1 : 0);
   } else if (cmd === "triage") process.stdout.write(renderTriage(read(), decisions()));

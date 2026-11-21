@@ -87,6 +87,11 @@ check("no history, no guard", P.validateDraft(tone).length === 0);
 const msg = P.renderTriage({ run: "2026-12-01", app: "violin", proposals: [{ ...toneBack, rank: 2 }, { ...draft, rank: 1, revisits: null }] }, history);
 check("triage ranks and numbers", /\n1\. Say which way to move the finger \(S\)\n/.test(msg) && /\n2\. Tone meter for long tones \(S\)\n/.test(msg), msg);
 check("triage previously lines", /Previously: none\n/.test(msg) && /Previously: parked 2026-11-19 \(violin-2026-11-19-4\): "For tone meter[^\n]*What changed: A one-line/.test(msg), msg);
+check("triage header names the focus", /^Scout run 2026-12-01 \(violin, focus: shifting to 3rd position\): 1 proposal\. /.test(P.renderTriage({ run: "2026-12-01", app: "violin", focus: " shifting to 3rd position ", proposals: [draft] }, history)));
+check("triage header without focus", /^Scout run 2026-12-01 \(violin\): 1 proposal\. /.test(P.renderTriage({ run: "2026-12-01", app: "violin", focus: null, proposals: [draft] }, history)));
+check("run with focus validates", P.validateRun({ run: "2026-12-01", app: "violin", focus: "shifting", proposals: [draft] }, history).length === 0);
+check("run with a blank or non-string focus fails", P.validateRun({ run: "2026-12-01", app: "violin", focus: " ", proposals: [draft] }).length === 1 && P.validateRun({ focus: 3, proposals: [draft] }).length === 1);
+check("run file without focus still validates", P.validateRun({ run: "2026-12-01", app: "violin", proposals: [draft] }).length === 0);
 check("triage empty run", /0 proposals\. Nothing worth proposing/.test(P.renderTriage({ run: "2026-12-01", app: "violin", proposals: [] }, history)));
 
 console.log(fails ? `${fails} failure(s)` : "proposal: all checks pass");

@@ -22,6 +22,12 @@ request of its own. Format:
 
 ---
 
+## 2026-11-20 · A scheduled scout run asks first and can take a focus area
+- Decided by: the owner ("scout should ask me before it runs. I'd love to be able to assign it a focus area"); the "keep" rule by the scout session, on the owner's behalf (reversible)
+- Decision: a scheduled run starts by asking (`go`, `go: <focus area>`, `go: <focus area> keep`, `skip`) and does nothing until the owner replies. A focus steers the research for that run only; non-goals, decisions and caps still apply, and a thin focus area yields fewer proposals, not padding. `keep` adds the focus in the owner's words as the one `Focus (owner, kept <date>)` line of `scout/brief.md`'s favour list, through the decisions pull request. See `scout/run.md` → Scheduled mode.
+- Rejected: keeping a focus only in the routine's prompt — the repository and every other run would not see it, and changing it would mean editing the routine. A separate focus file — the brief's favour list already steers ranking, and one place is easier to read. Several kept focuses at once — they would add up to no focus; a new `keep` replaces the old one.
+- Revisit if: the owner wants more than one standing focus, or answers the ask so rarely that runs never happen.
+
 ## 2026-11-20 · The prototype cleanup job also runs on every push to main, and the flow starts it itself
 - Decided by: the orchestrating session, on the owner's behalf (eklavyamirani/app-platform records 0063, 0066 and 0067; reversible)
 - Decision: `.github/workflows/preview-cleanup.yml` also runs on `push` to `main`; the 30-minute schedule and `workflow_dispatch` stay, but the schedule is best effort. The session working on a prototype starts the job once with `gh workflow run preview-cleanup.yml -R eklavyamirani/violin-practice-system --ref main` after its preview goes live and after it is discarded or closed (app-platform `docs/v2/product-scout.md`). The job also reads the default branch from the API when the event does not carry it, so its "commit is on main" check for images never runs against an empty name.
