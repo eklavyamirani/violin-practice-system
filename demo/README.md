@@ -92,33 +92,72 @@ nothing on the machine beyond Node and `npm --prefix demo ci` (Setup below).
 `demo/package-lock.json`:
 
 - **Playwright 1.64.1** and its Chromium. If the browser isn't cached on the machine yet:
-  `npx --prefix demo playwright install chromium`.
+  `npx --prefix demo playwright install chromium`. A machine that already has a Playwright with its
+  browsers, and shouldn't download others, is used as it is: when the pinned Playwright's Chromium can't
+  launch (or can't record video), the runner takes the first installed Playwright that can (the global npm
+  root, `NODE_PATH`, `/usr/local/lib/node_modules`, `/usr/lib/node_modules`), or exactly the one in
+  `DEMO_PLAYWRIGHT=<its package directory>`. The first output line names the one used, and why any was
+  skipped.
 - **ffmpeg and ffprobe** as static builds (`ffmpeg-static` 5.2.0 = ffmpeg 6.0 with libx264, AAC and libass;
   `ffprobe-static` 3.1.0). No Homebrew or apt step. A system `ffmpeg`/`ffprobe` on the PATH is used instead if
-  there is one, or set `DEMO_FFMPEG` / `DEMO_FFPROBE`.
-- **Text to speech**: nothing to install on a Mac (see below).
+  there is one, or set `DEMO_FFMPEG` / `DEMO_FFPROBE`. `ffmpeg-static` downloads its binary from GitHub when it
+  installs; it is an optional dependency, so where that download is blocked `npm ci` still succeeds and the
+  system ffmpeg is used.
+- **Text to speech**: nothing to install on a Mac (see below). On Linux, `demo/runner/voice/setup-kokoro.sh`.
 
 What this machine had before setup (2026-11-19, macOS on x86_64, Node 24.21): no ffmpeg on the PATH (only
 Playwright's own stripped-down ffmpeg, which can encode VP8 webm only), no TTS other than macOS `say`,
 Playwright 1.64.1's Chromium already cached.
 
-### Text to speech: macOS `say`, voice Samantha
+### Text to speech: macOS `say` on a Mac, Kokoro on Linux
 
-| Option | Quality | Licence | Offline | Cost | Here |
+Words misheard: the same 6 narration lines (80 words) spoken by each voice and transcribed by Whisper (base.en), a stand-in for a listener; numbers written differently ("20" for "twenty") count as wrong. Linux figures from a container on a Mac (2 CPUs).
+
+| Option | Quality | Licence | Offline | Install | Here |
 |---|---|---|---|---|---|
-| macOS `say` (Samantha) | clear, a bit flat | ships with macOS. My reading of Apple's licence: system voices may be used for your own personal, non-commercial content, which a private demo for the owner is. Not a lawyer's check. | yes | free | **used** |
-| Piper (e.g. an `en_US` medium voice) | natural, better than `say` | engine MIT; each voice has its own licence on its model card, so check before choosing one | yes | free | supported (`DEMO_TTS=piper`, `PIPER_MODEL=…`), **not tried here** |
-| espeak-ng | robotic | GPL | yes | free | supported as a last resort on Linux, **not tried here** |
-| OpenAI TTS, ElevenLabs, Azure, Google | best | API terms | no | paid, needs a key | **not used**: anything paid or needing a key is the owner's decision |
+| macOS `say` (Samantha) | clear, a bit flat | ships with macOS. My reading of Apple's licence: system voices may be used for your own personal, non-commercial content, which a private demo for the owner is. Not a lawyer's check. | yes | none on a Mac | **used on macOS** |
+| Kokoro 82M (`kokoro-onnx`, voice `af_heart`) | neural; 0 of 80 words misheard by a Whisper check (`say`: 3, all number formatting) | weights Apache-2.0; `kokoro-onnx` MIT; it bundles espeak-ng (GPL) for phonemes, run as a library, which doesn't affect the audio | yes | pip (189 MB venv) + 338 MB of model files from GitHub releases; about 2 minutes in a Linux container | **used on Linux** (`setup-kokoro.sh`) |
+| Piper (`piper-tts`, voice `en_US-kristin-medium`) | neural; 6 of 80 words misheard | engine GPL-3.0 (run as a program); voices vary, kristin is public domain, others are non-commercial | yes | pip (209 MB venv, 34 s) + a 61 MB voice from Hugging Face | supported (`DEMO_TTS=piper`, `PIPER_MODEL=…`) |
+| Pico (`pico2wave`) | older, non-neural (SVOX Pico); 3 of 80 words misheard | Apache-2.0 | yes | apt `libttspico-utils` (Ubuntu multiverse, 7 MB) | not used: an older, non-neural voice; Kokoro is the neural option with no worse a score |
+| espeak-ng | robotic; 13 of 80 words misheard | GPL-3.0 | yes | apt | last resort; the runner says so when it falls back to it |
+| OpenAI TTS, ElevenLabs, Azure, Google | best | API terms | no | — | **not used**: anything paid or needing a key is the owner's decision |
 
-`say` won because it is already on the machine where demos are recorded, costs nothing, needs no key or
-download, and is good enough to follow on a phone speaker. The runner picks the first engine available
-(`say` on macOS, then Piper, then espeak-ng) and you can force one with `DEMO_TTS`. `DEMO_VOICE` picks another
-`say` voice; if you download an Enhanced or Premium voice in System Settings → Accessibility → Spoken Content,
-it is free and noticeably better (`DEMO_VOICE="Ava (Premium)"`, for example).
+The runner picks the first engine available: `say` on macOS, then Kokoro if `setup-kokoro.sh` has installed
+it, then Piper (with `PIPER_MODEL`), then espeak-ng. `DEMO_TTS` forces one, `DEMO_VOICE` picks the voice
+(a `say` voice, or a Kokoro voice such as `am_michael`). On a Mac, a free Enhanced or Premium voice from
+System Settings → Accessibility → Spoken Content is noticeably better than Samantha (`DEMO_VOICE="Ava
+(Premium)"`, for example). Kokoro works on a Mac too (`DEMO_TTS=kokoro`), if a demo should sound the same
+wherever it was recorded.
 
-On Linux (a cloud session) the same commands should work with `apt-get install espeak-ng` or Piper for the
-voice; ffmpeg-static ships a Linux build. This has not been tried in a cloud session.
+`demo/runner/voice/setup-kokoro.sh` installs Kokoro into `demo/.cache/voice/kokoro` (or `DEMO_KOKORO_DIR`):
+a Python venv with `kokoro-onnx` 0.6.1 from PyPI, and `kokoro-v1.0.onnx` and `voices-v1.0.bin` from the
+`kokoro-onnx` project's GitHub release. It needs `python3` with venv (apt `python3-venv`) or `uv`. Re-running
+it skips what is there.
+
+## Recording in a cloud session
+
+In a Claude cloud session (Linux, no upload token), after the prototype is built on its branch:
+
+```bash
+npm --prefix demo ci
+demo/runner/voice/setup-kokoro.sh
+node demo/runner/demo.mjs demo/proposals/<id>.json --no-upload
+```
+
+Then send the owner the mp4 whose path the last line prints. That is all the runner needs:
+
+- **Browser.** Nothing to install. The machine's own Playwright and browsers are used when the pinned one
+  has none (the `[demo] browser:` line says which). Don't run `playwright install` there.
+- **ffmpeg.** The system `/usr/bin/ffmpeg`. `ffmpeg-static` is skipped if its download is blocked.
+- **Voice.** `setup-kokoro.sh` needs these hosts: `pypi.org` and `files.pythonhosted.org` (the Python
+  packages), and `github.com` and `release-assets.githubusercontent.com` (the model files). If they are
+  blocked, the runner falls back to espeak-ng, says so, and still records.
+- **Network for `npm ci`:** `registry.npmjs.org`.
+- **Time** (measured in a Linux container with 2 CPUs): `npm ci` 38 s and `setup-kokoro.sh` about 2 minutes,
+  once; then about 2.5 minutes for a recording with Kokoro (1.5 with espeak-ng). The setup downloads about
+  530 MB, so a slower network adds to it.
+- **No upload.** There is no token there, so `--no-upload` just makes that explicit; the last line gives
+  the video's path.
 
 ## How it works
 
@@ -168,6 +207,7 @@ demo/
 ```bash
 node demo/test/template.test.mjs          # timings, proposal schema, narration fallbacks (no browser)
 node demo/test/publish.test.mjs           # upload: no token, refused, accepted, token kept out of args (local stand-in server)
+node demo/test/browser.test.mjs           # which Playwright is used, and the fallback when the pinned one has no browser
 node demo/test/scripted-audio.mjs 3       # the app hears the scripted audio the same way 3 times
 node demo/test/same-structure.mjs demo/out/*/*.demo.json   # after two demos: same sections and timing
 ```

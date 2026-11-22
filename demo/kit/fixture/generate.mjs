@@ -10,7 +10,7 @@
 //
 // --end is the last practice day (default: yesterday, so the streak is live and today is still open).
 // The same --end always gives the same file (seeded random numbers).
-import { chromium } from "playwright";
+import { launch } from "../../runner/browser.mjs";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -36,7 +36,7 @@ export function defaultEnd(now = new Date()) { const d = new Date(now); d.setDat
 
 export async function generate({ end = defaultEnd(), browser: shared } = {}) {
   const srv = await serveStatic(APP_ROOT);
-  const browser = shared || (await chromium.launch());
+  const browser = shared || (await launch());
   try {
     const [y, m, d] = end.split("-").map(Number);
     const endDay = new Date(y, m - 1, d);
