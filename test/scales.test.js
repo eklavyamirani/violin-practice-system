@@ -19,8 +19,17 @@ const g = S.buildDrills({ tonic: "G", type: "major", strings: ["A", "E"], positi
 eq("G 3rd A", byId(g, "p3-A").notes.map((n) => n.midi), [74, 76, 78, 79, 78, 76, 74]);
 eq("G 3rd E", byId(g, "p3-E").notes.map((n) => n.midi), [81, 83, 84, 86, 84, 83, 81]);
 eq("G 5th A", byId(g, "p5-A").notes.map((n) => n.midi), [78, 79, 81, 83, 81, 79, 78]);
-eq("G 5th E", byId(g, "p5-E").notes.map((n) => n.midi), [84, 86, 88, 90, 88, 86, 84]);
-eq("G frames", ["p3-A", "p3-E", "p5-A", "p5-E"].map((id) => byId(g, id).frame), ["1 — 2 — 3‿4", "1 — 2‿3 — 4", "1‿2 — 3 — 4", "1 — 2 — 3 — 4"]);
+// The scale tops out on G6 with the 4th finger stretched, so the 5th-position E string drill climbs to it too
+eq("G 5th E", byId(g, "p5-E").notes.map((n) => n.midi), [84, 86, 88, 90, 91, 90, 88, 86, 84]);
+eq("G frames", ["p3-A", "p3-E", "p5-A", "p5-E"].map((id) => byId(g, id).frame), ["1 — 2 — 3‿4", "1 — 2‿3 — 4", "1‿2 — 3 — 4", "1 — 2 — 3 — 4‿4x"]);
+// Three octaves, G3–G6 on all four strings through 1st, 3rd & 5th: the top G is in the 5th-position E string drill,
+// up and back, and in the all-strings drill; no other build drill gets a stretch
+const g3 = S.buildDrills({ tonic: "G", type: "major", strings: ["G", "D", "A", "E"], positions: [1, 3, 5] });
+eq("G 3 oct: top of run", seq(byId(g3, "shift")).slice(21, 22), ["G6:E4x@5"]);
+eq("G 3 oct: 5th E", seq(byId(g3, "p5-E")), ["C6:E1@5", "D6:E2@5", "E6:E3@5", "F♯6:E4@5", "G6:E4x@5", "F♯6:E4@5", "E6:E3@5", "D6:E2@5", "C6:E1@5"]);
+eq("G 3 oct: 5th E tip", byId(g3, "p5-E").tip, "All whole steps. Open the hand evenly. Then stretch 4 up a half step for the top G.");
+eq("G 3 oct: 5th all strings top", seq(byId(g3, "p5-GDAE")).slice(15, 18), ["F♯6:E4@5", "G6:E4x@5", "F♯6:E4@5"]);
+eq("G 3 oct: other build drills", g3.filter((d) => d.role === "build" && !["p5-E", "p5-GDAE"].includes(d.id) && d.notes.some((n) => n.finger === "4x")).map((d) => d.id), []);
 eq("G shift", seq(byId(g, "shift")).slice(0, 8), ["G5:A4@3", "A5:E1@3", "B5:E2@3", "C6:E1@5", "D6:E2@5", "E6:E3@5", "F♯6:E4@5", "G6:E4x@5"]);
 eq("G shift name", byId(g, "shift").name, "G5→G6 with a shift");
 eq("G down pairs E", seq(byId(g, "down-E")).slice(0, 2).concat(byId(g, "down-E").frame), ["C6:E1@5", "A5:E1@3", "5th ⇣ 3rd: 1→1 2→2 1→2 3→3"]);
