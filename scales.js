@@ -335,8 +335,20 @@
     return flats ? ["C", "D♭", "D", "E♭", "E", "F", "G♭", "G", "A♭", "A", "B♭", "B"][pc] : ["C", "C♯", "D", "D♯", "E", "F", "F♯", "G", "G♯", "A", "A♯", "B"][pc];
   }
 
+  // A drill's free-text key ("D minor", "Bb major", "F♯ harmonic minor") → { tonic, type }, or null if it isn't one we can spell.
+  // Plain "minor" means natural minor.
+  function parseKey(text) {
+    if (typeof text !== "string") return null;
+    const m = text.trim().match(/^([A-Ga-g])\s*(#|♯|b|♭)?\s*(major|maj|natural minor|harmonic minor|melodic minor|minor|min|m)?$/i);
+    if (!m) return null;
+    const tonic = m[1].toUpperCase() + (m[2] ? (m[2] === "#" || m[2] === "♯" ? "#" : "b") : "");
+    const word = (m[3] || "major").toLowerCase();
+    const type = word === "major" || word === "maj" ? "major" : word.includes(" ") ? word.split(" ")[0] : "natural";
+    return SCALE_TYPES[type] && SCALE_TYPES[type].keys.includes(tonic) ? { tonic, type } : null;
+  }
+
   const api = { SCALE_TYPES, STRINGS, STRING_ORDER, ordinal, prettyTonic, spell, fingering, fingers4, openString, framePattern, frameTip, upDown, segFrame,
-    annotateShifts, shiftPairs, handPattern, buildDrills, rhythmNotes, RHYTHMS, findRun, normalizeCfg, cfgKey, cfgLabel, nameIn };
+    annotateShifts, shiftPairs, handPattern, buildDrills, rhythmNotes, RHYTHMS, findRun, normalizeCfg, cfgKey, cfgLabel, nameIn, parseKey };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else root.Scales = api;
 })(this);

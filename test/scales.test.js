@@ -9,6 +9,12 @@ const seq = (d) => d.notes.map((n) => `${n.label}${n.oct}:${n.string}${n.finger}
 const byId = (ds, id) => ds.find((d) => d.id === id);
 
 // G major, A & E, 3rd & 5th must match the original hand-written drills
+// An imported drill's free-text key, used to spell the notes the app hears while that drill is selected
+eq("parseKey", ["D minor", "Bb major", "B♭ major", "F# harmonic minor", "e melodic minor", "Dm", "G", "Gb major", "D dorian", ""].map(S.parseKey),
+  [{ tonic: "D", type: "natural" }, { tonic: "Bb", type: "major" }, { tonic: "Bb", type: "major" }, { tonic: "F#", type: "harmonic" }, { tonic: "E", type: "melodic" },
+    { tonic: "D", type: "natural" }, { tonic: "G", type: "major" }, null, null, null]);
+eq("D minor spells B♭, not A♯", S.nameIn(70, S.parseKey("D minor")), "B♭");
+
 const g = S.buildDrills({ tonic: "G", type: "major", strings: ["A", "E"], positions: [3, 5] });
 eq("G 3rd A", byId(g, "p3-A").notes.map((n) => n.midi), [74, 76, 78, 79, 78, 76, 74]);
 eq("G 3rd E", byId(g, "p3-E").notes.map((n) => n.midi), [81, 83, 84, 86, 84, 83, 81]);

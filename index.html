@@ -701,10 +701,13 @@ const SIM = new URLSearchParams(location.search).has("sim");
 
 // ---------- Music data (generated from the chosen scale, strings & positions) ----------
 const ord = Scales.ordinal;
-const pc = (m) => Scales.nameIn(m, curKey());
+const pc = (m) => Scales.nameIn(m, spellKey());
 const oct = (m) => Math.floor(m / 12) - 1;
 const noteName = (m) => pc(m) + oct(m);
 const noteHTML = (m) => `${pc(m)}<sub>${oct(m)}</sub>`;
+// A drill's own note, spelled as the drill spells it (an imported D minor drill's B♭ stays B♭ whatever the Scale card's key)
+const itemName = (it) => it.label + it.oct;
+const itemHTML = (it) => `${it.label}<sub>${it.oct}</sub>`;
 const OPEN = { G: 55, D: 62, A: 69, E: 76 };
 const STRING_MM = 325;
 const distMM = (s, m) => STRING_MM * (1 - Math.pow(2, -(m - OPEN[s]) / 12));
@@ -725,6 +728,8 @@ const isPath = () => DB.settings.view === "path";
 const modeOf = (ex) => (ex && ex.rhythm ? "tempo" : DB.settings.mode);
 // The key in play: the selected Path skill's, or the Scale card's
 const curKey = () => { const ex = EXERCISES && exById(DB.selected); return ex && ex.path ? ex.keyCfg : CFG; };
+// The key used to spell other pitches (the note heard, a wrong note): an imported drill's own "key" when it names one
+const spellKey = () => { const ex = EXERCISES && exById(DB.selected); return (ex && ex.custom && Scales.parseKey(ex.key)) || curKey(); };
 const keyName = () => `${Scales.prettyTonic(curKey().tonic)} ${Scales.SCALE_TYPES[curKey().type].name}`;
 const exById = (id) => EXERCISES.find((e) => e.id === id);
 const recKey = (id) => (id.startsWith("c-") ? "custom|" : id.startsWith("n:") ? "path|" : CFG_KEY + "|") + id;
@@ -1188,7 +1193,7 @@ function runStep(t, dt, stable) {
       st.wrong = played;
       const up = played < cur.midi;
       const tipG = Math.abs(played - cur.midi) === 1 ? ` ${keyPhrase(run.ex)} this note is ${cur.label}.` : "";
-      setMsg(`✗ That's ${noteName(played)}. The target is ${noteName(cur.midi)}. Move ${up ? "higher, toward the bridge" : "lower, toward the scroll"}.${tipG}`, "bad");
+      setMsg(`✗ That's ${noteName(played)}. The target is ${itemName(cur)}. Move ${up ? "higher, toward the bridge" : "lower, toward the scroll"}.${tipG}`, "bad");
     }
   } else if (run.mode === "lock") {
     const inTol = smooth !== null && Math.abs((smooth - cur.midi) * 100) <= run.tol;
@@ -1564,7 +1569,7 @@ function buildTips(res, tol, seq, ex) {
     .sort((a, b) => Math.abs(mean(b.c)) - Math.abs(mean(a.c)));
   for (const g of habits.slice(0, 3)) {
     const a = mean(g.c), mm = Math.abs(mmOff(g.item, a)).toFixed(1), sharp = a > 0;
-    const who = `<b>${noteName(g.item.midi)}</b> (${g.item.string} string, finger ${fingerLabel(g.item)}, ${posText(g.item)})`;
+    const who = `<b>${itemName(g.item)}</b> (${g.item.string} string, finger ${fingerLabel(g.item)}, ${posText(g.item)})`;
     if (g.shifted === "up") tips.push(`Your shift up to ${who} ${sharp ? "overshoots" : "falls short"} by ~${Math.abs(a).toFixed(0)}¢ (≈${mm} mm). ${sharp ? "Slide more lightly and stop sooner" : "Let the whole hand travel, not just the finger"}. Slow shifts first, then speed up.`);
     else if (g.shifted === "down") tips.push(`Your shift down to ${who} ${sharp ? "stops short" : "overshoots"} by ~${Math.abs(a).toFixed(0)}¢ (≈${mm} mm). ${sharp ? "The hand isn't coming back far enough. Let the thumb lead it back" : "Release the pressure sooner and let the hand settle"}${g.item.guide ? `, and aim for the guide note ${g.item.guide.label}${g.item.guide.oct} with finger ${g.item.from.finger}` : ""}.`);
     else tips.push(`${who} lands ${Math.abs(a).toFixed(0)}¢ ${sharp ? "sharp" : "flat"}${g.c.length > 1 ? " every time" : ""}, about ${mm} mm too far ${sharp ? "toward the bridge" : "toward the scroll"}. Aim a hair ${sharp ? "lower" : "higher"}.`);
@@ -1572,7 +1577,7 @@ function buildTips(res, tol, seq, ex) {
   const wrongs = [...new Map(res.filter((x) => x.wrong !== null).map((x) => [x.wrong + "|" + x.item.midi, x])).values()];
   for (const x of wrongs.slice(0, 2)) {
     const accidentalSlip = Math.abs(x.wrong - x.item.midi) === 1;
-    tips.push(`You played <b>${noteName(x.wrong)}</b> instead of <b>${noteName(x.item.midi)}</b>.${accidentalSlip ? ` ${keyPhrase(ex)} it's ${x.item.label}. Check the finger pattern: ${x.item.midi > x.wrong ? "this finger sits higher" : "this finger sits lower"} than you placed it.` : " Check the hand frame for this position."}`);
+    tips.push(`You played <b>${noteName(x.wrong)}</b> instead of <b>${itemName(x.item)}</b>.${accidentalSlip ? ` ${keyPhrase(ex)} it's ${x.item.label}. Check the finger pattern: ${x.item.midi > x.wrong ? "this finger sits higher" : "this finger sits lower"} than you placed it.` : " Check the hand frame for this position."}`);
   }
   const all = res.filter((x) => x.cents !== null).map((x) => x.cents), m = all.length ? mean(all) : 0;
   if (Math.abs(m) > 8 && tips.length < 4) tips.push(`Overall you ran ${m > 0 ? "sharp" : "flat"} (${m > 0 ? "+" : ""}${m.toFixed(0)}¢ on average). ${m > 0 ? `${Math.max(...res.map((x) => x.item.pos)) >= 3 ? "In higher positions the hand often creeps toward the bridge." : "Your hand may be creeping toward the bridge."} Keep your thumb under the 1st–2nd finger.` : "Often the hand doesn't fully reach the position. Check where your thumb is and where your palm meets the violin's shoulder."}`);
@@ -1860,7 +1865,7 @@ function renderTarget() {
   const hide = DB.settings.hide;
   if (!run) return renderIdle();
   const cur = run.seq[run.idx], prev = run.seq[run.idx - 1];
-  $("#bigNote").innerHTML = noteHTML(cur.midi);
+  $("#bigNote").innerHTML = itemHTML(cur);
   const showMap = !hide || run.st.landed;
   const dir = shiftDir(prev, cur);
   const shift = dir ? `<div class="badge">${dir === "down" ? "⇣" : "⇡"} Shift ${dir} to ${ord(cur.pos)} position</div>${cur.guide ? `<div class="guide">Slide ${prev.finger} to <b>${cur.guide.label}${cur.guide.oct}</b> (guide note), then drop ${cur.finger}</div>` : ""}` : "";
@@ -1973,7 +1978,7 @@ function buildPath() {
   seq.forEach((it, i) => {
     const dir = shiftDir(seq[i - 1], it);
     if (dir) el.insertAdjacentHTML("beforeend", `<span class="shiftmark">${dir === "down" ? "⇣" : "⇡"}${ord(it.pos)}</span>`);
-    el.insertAdjacentHTML("beforeend", `<span class="chip" data-i="${i}">${noteHTML(it.midi)}</span>`);
+    el.insertAdjacentHTML("beforeend", `<span class="chip" data-i="${i}">${itemHTML(it)}</span>`);
   });
 }
 function updatePath() {
@@ -2094,9 +2099,9 @@ function showResults(o) {
     : `<div class="medal-big">🎯</div><div><h2 style="margin:0">${need} more ${r.tempo ? "clean" : "in-tune"} note${need > 1 ? "s" : ""} for ${T.name}</h2><div class="muted">Need ${Math.round(PASS * 100)}% within ±${r.tol}¢${r.tempo ? ` and ±${r.tempo.tolMs} ms` : ""}${r.rhythm ? `, long notes held ${Math.round(r.rhythm.holdFrac * 100)}% of their length` : ""} · ${r.ex.name}</div></div>`;
   const labels = res.map((x) => x.item.label + (x.wrong !== null ? "✗" : ""));
   const pitchChart = barChart(res.map((x) => x.cents), labels, r.tol, 50, "sharp", "flat",
-    res.map((x) => (x.wrong !== null ? "var(--bad)" : colorFor(Math.abs(x.cents || 0), r.tol))), res.map((x) => `${noteName(x.item.midi)} ${x.cents === null ? "missed" : (x.cents > 0 ? "+" : "") + x.cents.toFixed(0) + "¢"}`));
+    res.map((x) => (x.wrong !== null ? "var(--bad)" : colorFor(Math.abs(x.cents || 0), r.tol))), res.map((x) => `${itemName(x.item)} ${x.cents === null ? "missed" : (x.cents > 0 ? "+" : "") + x.cents.toFixed(0) + "¢"}`));
   const timingChart = r.tempo && !r.rhythm ? barChart(res.map((x) => x.timing), labels, r.tempo.tolMs, Math.round(r.tempo.slot / 2), "late", "early",
-    res.map((x) => colorFor(Math.abs(x.timing || 0), r.tempo.tolMs)), res.map((x) => `${noteName(x.item.midi)} ${x.timing === null ? "missed" : (x.timing > 0 ? "+" : "") + x.timing.toFixed(0) + " ms"}`)) : "";
+    res.map((x) => colorFor(Math.abs(x.timing || 0), r.tempo.tolMs)), res.map((x) => `${itemName(x.item)} ${x.timing === null ? "missed" : (x.timing > 0 ? "+" : "") + x.timing.toFixed(0) + " ms"}`)) : "";
   const onTimeN = res.filter((x) => x.onTime).length;
   const shown = path && path.counted ? path.judged.pct : score;
   $("#resultsBox").innerHTML = `
@@ -2456,7 +2461,7 @@ function renderProgress() {
       bar += `<i style="left:${c < 0 ? 50 - w : 50}%;width:${Math.max(w, 0.8)}%;background:${colorFor(Math.abs(s.avg), 15)}"></i><em style="${c < 0 ? "right:52%" : "left:52%"}">${s.avg > 0 ? "+" : ""}${s.avg.toFixed(0)}¢</em>`;
     }
     bar += `</div>`;
-    return `<div class="nrow"><b>${noteHTML(it.midi)} <span class="muted" style="font-weight:400">${it.string}</span></b><span class="fx">${fx}</span>${bar}<span>${s ? Math.round(s.hit * 100) + "%" : "<span class='muted'>—</span>"}</span></div>`;
+    return `<div class="nrow"><b>${itemHTML(it)} <span class="muted" style="font-weight:400">${it.string}</span></b><span class="fx">${fx}</span>${bar}<span>${s ? Math.round(s.hit * 100) + "%" : "<span class='muted'>—</span>"}</span></div>`;
   }).join("");
 
   const d = new Date(); d.setDate(d.getDate() - 27);
