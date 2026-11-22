@@ -132,7 +132,10 @@ wherever it was recorded.
 `demo/runner/voice/setup-kokoro.sh` installs Kokoro into `demo/.cache/voice/kokoro` (or `DEMO_KOKORO_DIR`):
 a Python venv with `kokoro-onnx` 0.6.1 from PyPI, and `kokoro-v1.0.onnx` and `voices-v1.0.bin` from the
 `kokoro-onnx` project's GitHub release. It needs `python3` with venv (apt `python3-venv`) or `uv`. Re-running
-it skips what is there.
+it skips what is there. The two model files are pinned by sha256 in the script and checked after download and on
+reuse; on a mismatch the file is deleted, the script fails, and narration falls back to espeak-ng. `tts.mjs`
+only uses Kokoro once the script has written its `verified` stamp (an install from before the pins: run the
+script again; it checks the files and downloads nothing).
 
 ## Recording in a cloud session
 

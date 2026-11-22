@@ -21,7 +21,8 @@ const has = (cmd) => spawnSync("sh", ["-c", `command -v ${cmd}`]).status === 0;
 export function kokoro(env = process.env) {
   const dir = path.resolve(env.DEMO_KOKORO_DIR || path.join(HERE, "../.cache/voice/kokoro"));
   const k = { dir, python: path.join(dir, "venv/bin/python"), model: path.join(dir, "kokoro-v1.0.onnx"), voices: path.join(dir, "voices-v1.0.bin") };
-  return [k.python, k.model, k.voices].every((f) => fs.existsSync(f)) ? k : null;
+  // "verified": written by setup-kokoro.sh once both model files match their pinned sha256
+  return [k.python, k.model, k.voices, path.join(dir, "verified")].every((f) => fs.existsSync(f)) ? k : null;
 }
 // Kokoro's own pace at speed 1.0, in words a minute (measured on the demo's narration lines)
 const KOKORO_WPM = 180;
