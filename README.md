@@ -50,6 +50,24 @@ Use the **Scale** card to pick a key (12 per scale type), a scale type (major, n
 - **Move on:** when Next up stays on the drill you just played (a medal earned and the next one to go for, or a miss), the results also offer **Move on** to the next other drill with a step to make, by button or by playing its first note. Next up brings the skipped drill back later. If both drills start on the same note, one of them gets an open string instead (see Hands-free start).
 - After a medal, **↻ Again** goes for the next medal on the same drill (its button says which). **Hide fingering** and **Ears first** only take away help; they don't change medals, so they're suggested once a drill is done (🥈 for a build-up drill, 🥇 otherwise).
 
+### Watch line and Fix a note
+
+Before a run, the line under the note strip can say **👀 Watch F♯4**: a note in the selected drill that has been landing off on the same side lately. It shows when that note's last landings (at least 8 of them, up to the last 20) average 6¢ or more off, with at least 70% on that side. It names the string, finger, the average and which way to move, and marks that note's chip ↑ or ↓. It reads the same per-spot history as the note map, so it works the same in Path and in Free practice, across every drill that uses the spot. Nothing shows for a drill without such a note, nothing changes during a run, and the line is worked out again after each run.
+
+From the Watch line:
+- **🎯 Fix this note:** play the note on its own, then stop.
+- **🔁 Fix this progression:** play the note before it in the drill, then the note, then stop. When the note comes after a shift or a string crossing somewhere in the drill, that approach is the one chosen.
+
+Both follow Molly Gebrian's microbreaks:
+- **Three clean in a row fill a set.** A miss empties the set.
+- **Clean** means the note's first steady pitch is within the drill's tolerance (🥉 ±25¢, 🥈 ±15¢, 🥇 ±10¢; a Path skill's own window), with no wrong note on the way. In a progression, the first note only has to be the right note.
+- **Between repetitions** the app waits for 0.3 s of quiet, so one long note never counts twice.
+- **After set 1**, a 10-second break with a countdown; nothing is scored while it runs. **After set 2** the fix is done: come back to it once or twice more today.
+- **Three misses in a row** also give a 10-second break, so a bad patch turns into a reset instead of a grind.
+- **Stop**, **Escape**, starting a run or choosing another drill ends a fix.
+
+Fix repetitions are kept apart from your progress: they never change the note history, XP, medals, the path or the practice log's runs. The Watch line keeps judging the note from your real drills, so the next runs show whether the fix carried over; it also says how many fixes you finished today. Each fix is logged with every repetition's cents (and any wrong note), synced like the rest of your progress, and included in the practice log for Claude, so a miss the microphone heard wrongly can be told from a real one.
+
 ## Rhythm drills
 
 A drill whose notes have lengths (`beats`) is a rhythm drill. It's for practising the rhythm of a passage from a piece: dotted rhythms, long notes, repeated notes and rests.
@@ -146,6 +164,7 @@ Per-drill reports hold one drill's last 5 runs. To find habits that repeat acros
 - **Patterns:** intonation after shifts up and down, by finger, position and string; the worst spots (a pitch on a string, across every drill and spelling); common wrong notes; timing in tempo runs.
 - **Progress:** the range split into an earlier and a later half, overall and per spot, plus each drill's scores and tempos in order.
 - **Claude's drills:** for each imported drill, its target notes before and after you added it, measured across all your practice and not just that drill.
+- **Fixes:** each Fix this note / Fix this progression, with every repetition's cents, apart from the runs.
 - **Every note of every run** adds each run's landings and coach notes. It's on by default for a session or a day; leave it off for longer ranges to keep the log short.
 
 A loop that works: paste a week's log and ask Claude for the consistent problems and drills for them; practise those for a week or two; then paste a new log covering both periods and ask what changed. Claude can also write rhythm drills for any passage: give every note a `beats` length and add `{"rest": …}` entries (see the format).
@@ -203,6 +222,7 @@ Then open http://localhost:8765 and allow microphone access. Chrome and Safari b
 - `index.html`: the app (UI, drills, scoring, progress)
 - `piece.js`: Piece tab analysis (note splitting, intonation, metronome and free timing, reports)
 - `practicelog.js`: the 90-day practice log and its export for Claude (patterns, progress, before/after for imported drills)
+- `fix.js`: the Watch line (which note in a drill keeps landing off) and Fix this note / Fix this progression (sets, breaks, the fix log)
 - `plan.js`: practice plan format (documentation, validation), session rotation, calendar, streak and report days
 - `drills.js`: custom drill format (documentation, validation, import/export)
 - `curriculum.js`: Path mode (skill graph, drills per skill and direction, run metrics and pass criteria, tempo, mastery and review, what to practise next)

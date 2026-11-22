@@ -169,6 +169,24 @@ main { max-width: 1280px; margin: 0 auto; padding: 1rem; }
 .chip.ok { background: var(--good); color: #fff; }
 .chip.near { background: var(--near); color: #1d1300; }
 .chip.bad { background: var(--bad); color: #fff; }
+.chip.watch { border: 2px dashed var(--bad); }
+.chip.watch .wm { font-size: .75em; color: var(--bad); margin-left: 1px; }
+.watchout { grid-column: 1 / -1; margin: .1rem 0 0; font-size: .86rem; color: var(--ink); background: var(--panel-2); border-left: 3px solid var(--bad); border-radius: 8px; padding: .45rem .6rem; }
+.watchout[hidden] { display: none; }
+.watchout .fixgo { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .45rem; }
+.watchout .fixgo button { font: inherit; font-size: .84rem; padding: .35rem .6rem; border-radius: 8px; border: 1px solid var(--accent); background: var(--panel); color: var(--ink); cursor: pointer; }
+.fixpanel { grid-column: 1 / -1; margin: .3rem 0 0; background: var(--panel-2); border: 2px solid var(--accent); border-radius: 10px; padding: .6rem .7rem; font-size: .9rem; color: var(--ink); }
+.fixpanel[hidden] { display: none; }
+.fixpanel .fxhead { display: flex; justify-content: space-between; align-items: baseline; gap: .5rem; font-weight: 700; }
+.fixpanel .fxhead button { font: inherit; font-weight: 400; font-size: .8rem; border: 0; background: none; color: var(--ink); text-decoration: underline; cursor: pointer; }
+.fixpanel .fxsets { display: flex; gap: .9rem; margin: .45rem 0 .3rem; font-size: 1.25rem; letter-spacing: .15rem; }
+.fixpanel .fxsets .lbl { font-size: .72rem; letter-spacing: 0; display: block; color: var(--ink); opacity: .75; }
+.fixpanel .on { color: var(--good); } .fixpanel .off { opacity: .35; }
+.fixpanel .fxlast { min-height: 1.3em; }
+.fixpanel .fxlast.ok { color: var(--good); font-weight: 600; } .fixpanel .fxlast.bad { color: var(--bad); font-weight: 600; }
+.fixpanel .fxbreak { height: 8px; border-radius: 4px; background: var(--panel); overflow: hidden; margin: .35rem 0; }
+.fixpanel .fxbreak i { display: block; height: 100%; background: var(--accent); }
+.fixpanel .fxwhy { font-size: .76rem; opacity: .8; margin-top: .35rem; }
 .shiftmark { font-size: .72rem; color: var(--accent); font-weight: 700; padding: 0 2px; }
 @keyframes pulse { 50% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 25%, transparent); } }
 
@@ -452,6 +470,8 @@ main { max-width: 1280px; margin: 0 auto; padding: 1rem; }
         <button class="btn" id="startBtn">▶ Start</button>
       </div>
       <div class="path" id="path"></div>
+      <p class="watchout" id="watchOut" hidden></p>
+      <div class="fixpanel" id="fixPanel" hidden aria-live="polite"></div>
 
       <div class="focus">
         <div class="card target">
@@ -646,6 +666,7 @@ main { max-width: 1280px; margin: 0 auto; padding: 1rem; }
       <div class="card"><h2>A path, not a menu</h2><p>Each skill builds on the ones before it: finger pattern, then position frame, then shift pair, then the full scale. Keys come in the order their positions need: G, A and B♭ fit two octaves in 1st position, C and D need 3rd, E and F need 5th.</p><p class="in"><b>Path</b> unlocks a skill once its groundwork is mastered. Mastery means clean runs up <i>and</i> from the top, at the target tempo, with a clean first try on 2 different days. A good session only shows what you can do today; the first try on another day shows what you've kept. Mastered skills come back for review at growing intervals.</p></div>
       <div class="card"><h2>Coming down is its own skill</h2><p>String players play descending passages measurably sharper than ascending ones (Kantorski 1986; Sogin 1989). Going down, each lower finger has to find its spot while the ones above lift.</p><p class="in">Every Path skill is scored in both directions, and the ⇣⇡ version starts at the top. The results split your average up and down, and when coming down is weaker, Next up starts you at the top.</p></div>
       <div class="card"><h2>Practise the hard part on its own</h2><p>Break a hard skill into parts, drill the hardest one separately, then put it back in context.</p><p class="in"><b>Shift pairs</b> repeat each down-shift on its own, and the guide notes show the classic route (slide the old finger, then drop the new one). <b>From the top</b> then puts the shift back into a scale, starting high so you shift down while you're fresh.</p></div>
+      <div class="card"><h2>Short sets, short breaks</h2><p>Much of the early gain in learning a movement comes during short rests between bouts of practice, not during the practice itself (Bönstrup et al. 2019, <i>Current Biology</i>). Molly Gebrian turns this into a rule for musicians: three correct repetitions, a 10-second break, three more, and start over after any repetition with an error (<i>Learn Faster, Perform Better</i>, 2024, Appendix A, ch. 4).</p><p class="in">When the <b>Watch</b> line flags a note, <b>Fix this note</b> and <b>Fix this progression</b> run exactly that: three clean in a row, a 10-second break, three more. A miss starts the set over, and three misses in a row also earn a break. Then come back once or twice later in the day; your next drills show whether it stuck.</p></div>
       <div class="card"><h2>Mixing and spacing your practice</h2><p>Switching between drills and spreading sessions over several days feels harder at the time, but you remember more.</p><p class="in">In Path, "Next up" starts with reviews that are due, in mixed order, then your focus skill in short blocks, then its weakest groundwork. In Free practice, <b>Note Hunt</b> gives you random notes from your positions, picking your weakest notes more often. Short daily sessions build your streak.</p></div>
       <div class="card"><h2>Hear the note before you play it</h2><p>You can only play in tune if you can hear the right note in your head first.</p><p class="in"><b>Hear it first</b> plays each note before you play it. The <b>tonic drone</b> helps you hear how each note sounds against the key. Listen for the ring when the tonic, 4th and 5th are in tune.</p></div>
     </div>
@@ -689,6 +710,7 @@ window.addEventListener("error", (e) => {
 <script src="curriculum.js"></script>
 <script src="drills.js"></script>
 <script src="practicelog.js"></script>
+<script src="fix.js"></script>
 <script src="plan.js"></script>
 <script src="piece.js"></script>
 <script src="rhythm.js"></script>
@@ -768,7 +790,7 @@ function applyRange() {
 
 // ---------- Storage ----------
 const STORE_KEY = "fingerboard-coach.v1";
-const defaults = () => ({ ear: { stages: {}, hist: [], strings: {} }, xp: 0, notes: {}, ex: {}, days: {}, sessions: [], selected: "p3-A", cfg: { ...DEFAULT_CFG }, custom: [], customMeta: {}, runs: {}, log: [], path: { states: {}, session: null }, goals: {}, plan: null, planLog: {},
+const defaults = () => ({ ear: { stages: {}, hist: [], strings: {} }, xp: 0, notes: {}, ex: {}, days: {}, sessions: [], selected: "p3-A", cfg: { ...DEFAULT_CFG }, custom: [], customMeta: {}, runs: {}, log: [], fixes: [], path: { states: {}, session: null }, goals: {}, plan: null, planLog: {},
   settings: { view: "path", mode: "lock", tier: 1, drone: false, hear: false, hide: false, ears: false, chime: true, a4: 440, bpm: 60, per: 1, ladder: true, latencyMs: null, voiceMic: false, handsFree: true, clicks: 2, earMode: "pitch", earStage: null, earDur: 0.5, earVib: false, earSrc: "synth", earStrStage: null, earStrKind: null } });
 function loadDB() {
   const d = defaults();
@@ -1053,6 +1075,7 @@ function loop(t, gen) {
   smooth = recent.length >= 2 ? median(recent) : m;
 
   const stable = stableMedian(t);
+  if (fix) fixStep(t, stable);
   if (run) runStep(t, dt, stable);
   handsFreeStep(dt, stable);
   render();
@@ -1116,6 +1139,7 @@ function buildHunt() {
 // seq: a Note Hunt order drawn in advance, so hands-free start knows its first note
 function startRun(seq) {
   markActivity();
+  if (fix) stopFix(null);
   const ex = exById(DB.selected);
   const s = DB.settings, mode = modeOf(ex);
   if (mode === "tempo" && !ctx) { startAudio().then((ok) => ok && startRun(seq)); return; }
@@ -1422,7 +1446,7 @@ function hfAssign(order) {
 }
 // What playing a note would start right now: Again / Next / Move on on the results, else the selected drill
 function hfCands() {
-  if (!DB.settings.handsFree || run || calib || tcal || piece || hearing || !$("#tab-practice").classList.contains("active")) return null;
+  if (!DB.settings.handsFree || run || fix || calib || tcal || piece || hearing || !$("#tab-practice").classList.contains("active")) return null;
   if (!$("#results").hidden) return hfResults;
   const ex = exById(DB.selected);
   if (!ex) return null;
@@ -1651,6 +1675,7 @@ const pieceNoteName = () => { const k = pieceKey(); return k ? k.noteName : (m) 
 async function startPiece() {
   if (!(await startAudio())) return;
   if (run) stopRun();
+  if (fix) stopFix(null);
   if (tcal) { tcal = null; stopMetronome(); }
   const P = pcS();
   RANGE = PIECE_RANGE; hp.frequency.value = RANGE.hp;
@@ -1881,7 +1906,7 @@ function renderIdle() {
 }
 
 function render() {
-  const cur = run && run.seq[run.idx];
+  const cur = run ? run.seq[run.idx] : fixNote();
   const needle = $("#needle");
   let dev = null, ref = null;
   if (smooth !== null) {
@@ -1965,6 +1990,7 @@ function moveHead(beats) {
 
 // Path chips
 function buildPath() {
+  $("#watchOut").hidden = true; // shown again by renderWatchOut for a plain note strip
   if ((run ? run.ex : exById(DB.selected)).rhythm) return buildLanes();
   const seq = run ? run.seq : (exById(DB.selected).hunt ? [] : exById(DB.selected).notes);
   const el = $("#path");
@@ -1975,6 +2001,96 @@ function buildPath() {
     if (dir) el.insertAdjacentHTML("beforeend", `<span class="shiftmark">${dir === "down" ? "⇣" : "⇡"}${ord(it.pos)}</span>`);
     el.insertAdjacentHTML("beforeend", `<span class="chip" data-i="${i}">${noteHTML(it.midi)}</span>`);
   });
+  renderWatchOut(seq);
+}
+
+// ---------- Watch line and Fix mode (fix.js) ----------
+// Before a run: the note in this drill that has been landing off on the same side lately, from the per-spot
+// history the Progress tab's note map shows. From it, Fix this note / Fix this progression.
+let fix = null;
+const drillTol = (ex) => (ex.path ? pathLevel(ex).L.window : TIERS[DB.settings.tier].tol);
+function renderWatchOut(seq) {
+  const el = $("#watchOut"), w = !run && !fix && seq.length ? Fix.watchOut(seq, DB.notes) : null;
+  document.querySelectorAll("#path .chip").forEach((c) => {
+    const on = !!w && !!seq[+c.dataset.i] && seq[+c.dataset.i].key === w.it.key;
+    c.classList.toggle("watch", on);
+    if (on && !c.querySelector(".wm")) c.insertAdjacentHTML("beforeend", `<span class="wm">${w.avg > 0 ? "↑" : "↓"}</span>`);
+  });
+  el.hidden = !w;
+  if (!w) return;
+  const sharp = w.avg > 0, from = Fix.approach(seq, w.it), today = Fix.doneToday(DB.fixes, w.it.key, Date.now());
+  el.innerHTML = `👀 <b>Watch ${noteHTML(w.it.midi)}</b> (${w.it.string} string, finger ${fingerLabel(w.it)}): your last ${w.n} landings averaged <b>${sharp ? "+" : ""}${w.avg.toFixed(0)}¢ ${sharp ? "sharp" : "flat"}</b>. Aim a hair ${sharp ? "lower, toward the scroll" : "higher, toward the bridge"}.`
+    + `<span class="fixgo"><button id="fixNoteBtn">🎯 Fix this note</button>${from ? `<button id="fixMoveBtn">🔁 Fix this progression ${noteHTML(from.midi)} → ${noteHTML(w.it.midi)}</button>` : ""}</span>`
+    + (today ? `<span class="muted small"> Fixed ${today}× today${today < 3 ? `: come back ${today === 1 ? "once or twice" : "once"} more later` : ""}.</span>` : "");
+  $("#fixNoteBtn").onclick = () => startFix("note");
+  if (from) $("#fixMoveBtn").onclick = () => startFix("progression");
+}
+async function startFix(kind) {
+  const ex = exById(DB.selected), w = Fix.watchOut(ex.notes, DB.notes);
+  if (!w || !(await startAudio())) return;
+  markActivity();
+  if (run) stopRun();
+  if (piece) stopPiece();
+  stopHearing(); calib = null;
+  const from = kind === "progression" ? Fix.approach(ex.notes, w.it) : null;
+  fix = Fix.start({ kind, target: w.it, from, tol: drillTol(ex), avg: w.avg });
+  $("#startBtn").hidden = true; $("#results").hidden = true;
+  buildPath();
+  setMsg(fix.kind === "progression" ? `Play ${noteName(from.midi)} then ${noteName(w.it.midi)}, then stop. Three clean in a row, then a 10-second break.` : `Play ${noteName(w.it.midi)} on its own, then stop. Three clean in a row, then a 10-second break.`);
+  renderFix(performance.now());
+}
+// Fix repetitions go to DB.fixes only: never the note history, XP, medals, the path or the practice log's runs
+function logFix(f) {
+  if (f.logged) return;
+  f.logged = true;
+  const rec = Fix.record(f, Date.now(), noteName);
+  if (rec) { DB.fixes = Fix.add(DB.fixes, rec, Date.now()); save(); }
+}
+function stopFix(msg) {
+  if (!fix) return;
+  const f = fix; fix = null;
+  logFix(f);
+  $("#startBtn").hidden = false; $("#fixPanel").hidden = true;
+  buildPath(); renderIdle();
+  if (msg !== null) setMsg(msg || "Stopped. Press Start (or Space) to go again.");
+}
+function fixStep(t, stable) {
+  const e = Fix.step(fix, t, stable, smooth !== null);
+  if (!e) return;
+  if (fix.phase === "done") logFix(fix);
+  if (e.type === "tick") return renderFixBreak(t);
+  renderFix(t);
+}
+// The note to show on the big card and to read the needle against during a fix
+function fixNote() {
+  if (!fix || fix.phase === "break" || fix.phase === "done") return null;
+  return fix.steps[fix.phase === "play" ? fix.step : 0];
+}
+const fixSign = (c) => `${c > 0 ? "+" : c < 0 ? "−" : ""}${Math.abs(c).toFixed(0)}¢`;
+function renderFixBreak(t) {
+  const left = Math.max(0, fix.breakUntil - t), s = $("#fixPanel .fxcount"), bar = $("#fixPanel .fxbreak i");
+  if (s) s.textContent = `${Math.ceil(left / 1000)} s`;
+  if (bar) bar.style.width = `${(100 * left) / Fix.BREAK_MS}%`;
+}
+function renderFix(t) {
+  const f = fix, el = $("#fixPanel");
+  if (!f) { el.hidden = true; return; }
+  el.hidden = false;
+  const tg = f.target, cur = fixNote() || f.steps[0], L = f.last;
+  const dots = (n) => Array.from({ length: Fix.SET }, (_, i) => `<span class="${i < n ? "on" : "off"}">●</span>`).join("");
+  const set = (k) => `<span><span class="lbl">Set ${k + 1}${f.sets > k ? " ✓" : ""}</span>${dots(f.sets > k ? Fix.SET : f.sets === k ? f.count : 0)}</span>`;
+  const last = !L ? "" : L.ok ? `✓ Clean: ${fixSign(L.cents)}`
+    : `✗ ${L.wrong !== null ? `${noteName(L.wrong)} on the way` : `${fixSign(L.cents)}, outside ±${f.tol}¢`}.${f.phase === "break" ? "" : " The set starts over."}`;
+  let body;
+  if (f.phase === "done") body = `<div class="fxlast ok">Done for now: ${Fix.clean(f)} clean, ${Fix.misses(f)} miss${Fix.misses(f) === 1 ? "" : "es"} on the way.</div><div>Come back to it once or twice more today, then let sleep do its part. Your next drills are the real test: the Watch line still judges ${noteHTML(tg.midi)} from them, not from this fix.</div>`;
+  else if (f.phase === "break") body = `<div class="fxlast ${f.breakWhy === "set" ? "ok" : "bad"}">${f.breakWhy === "set" ? `Set ${f.sets} done.` : `${Fix.MISS_BREAK} misses in a row: reset.`} Bow down, breathe: <span class="fxcount"></span></div><div class="fxbreak"><i></i></div><div class="muted small">The short rest is part of the practice: much of the gain shows up after the pause, not during the playing.</div>`;
+  else body = `<div class="fxlast ${L ? (L.ok ? "ok" : "bad") : ""}">${last || "&nbsp;"}</div><div>${f.phase === "quiet" ? "…and stop." : f.steps.length > 1 && f.step === 0 ? `Start on <b>${noteHTML(f.steps[0].midi)}</b>, then move to <b>${noteHTML(tg.midi)}</b>.` : `Now land <b>${noteHTML(tg.midi)}</b> (${tg.string} string, finger ${fingerLabel(tg)}). Aim a hair ${f.avg > 0 ? "lower" : "higher"}.`}</div>`;
+  el.innerHTML = `<div class="fxhead"><span>${f.kind === "progression" ? `🔁 Fix this progression ${noteHTML(f.steps[0].midi)} → ${noteHTML(tg.midi)}` : `🎯 Fix ${noteHTML(tg.midi)}`}</span><button id="fixStop">${f.phase === "done" ? "Close" : "Stop"}</button></div>
+    <div class="fxsets">${Array.from({ length: Fix.SETS }, (_, k) => set(k)).join("")}</div>${body}
+    <div class="fxwhy">3 clean in a row, a 10-second break, 3 more; a miss starts the set over (Molly Gebrian's microbreaks). Clean = within ±${f.tol}¢${f.steps.length > 1 ? "; the first note only has to be the right note" : ""}.</div>`;
+  if (f.phase === "break") renderFixBreak(t);
+  $("#bigNote").innerHTML = noteHTML(cur.midi);
+  $("#fing").innerHTML = `<div class="big">${cur.string} string · finger ${fingerLabel(cur)}</div><div>${cur.pos ? ord(cur.pos) + " position" : "open string"}</div>`;
 }
 function updatePath() {
   if (!run) return;
@@ -2367,6 +2483,7 @@ function renderExList() {
 }
 
 function selectEx(id, tier) {
+  if (fix) stopFix(null);
   if (!exById(id)) id = EXERCISES[0].id;
   DB.selected = id;
   const ex = exById(id);
@@ -2551,7 +2668,7 @@ function practiceLog() {
     return { key: recKey(ex.id), title: d.title, goal: d.goal || null, source: packTitles.has(d.title) ? "drill pack" : "imported", added: (DB.customMeta[d.title] || {}).added || null, spots };
   });
   const pieces = (DB.pieces || []).map((x) => ({ t: Date.parse(x.report.date), title: x.report.title, key: x.report.key, summary: x.report.summary }));
-  return PracticeLog.build(DB.log, $("#logRange").value, { now: Date.now(), a4: DB.settings.a4, customs, pieces, detail: $("#logDetail").checked });
+  return PracticeLog.build(DB.log, $("#logRange").value, { now: Date.now(), a4: DB.settings.a4, customs, pieces, fixes: DB.fixes, detail: $("#logDetail").checked });
 }
 function renderLogCard(resetDetail) {
   const sel = $("#logRange");
@@ -3271,6 +3388,12 @@ document.querySelectorAll(".tabs button").forEach((b) => (b.onclick = () => {
 }));
 $("#startBtn").onclick = async () => { if (await startAudio()) startRun(); };
 $("#stopBtn").onclick = stopRun;
+// The fix panel is redrawn as it goes: one handler for its Stop / Close button
+$("#fixPanel").onclick = (e) => {
+  if (!e.target.closest("#fixStop") || !fix) return;
+  const f = fix;
+  stopFix(f.phase === "done" ? `Fixed ${noteName(f.target.midi)} for now. Press Start for the drill.` : undefined);
+};
 document.querySelectorAll("#modeSeg button").forEach((b) => (b.onclick = () => { DB.settings.mode = b.dataset.v; save(); syncSettingsUI(); if (run) startRun(); }));
 document.querySelectorAll("#tierSeg button").forEach((b) => (b.onclick = () => { DB.settings.tier = +b.dataset.v; save(); syncSettingsUI(); if (run) startRun(); }));
 const bindOpt = (id, key, after) => ($(id).onchange = (e) => { DB.settings[key] = e.target.checked; save(); if (after) after(); if (run) renderTarget(); });
@@ -3292,11 +3415,13 @@ $("#pcCalBtn").onclick = () => calibrateTiming(true);
 $("#calibBtn").onclick = async () => {
   if (!(await startAudio())) return;
   if (run) stopRun();
+  if (fix) stopFix(null);
   calib = { start: performance.now(), samples: [] }; markActivity();
   setMsg("🎻 Bow your open A string steadily for 2–3 seconds. Take your time to get set: it waits for the A.");
 };
 $("#resetBtn").onclick = () => {
   if (!confirm("Erase all medals, XP, streak and note history?")) return;
+  if (fix) stopFix(null);
   const s = DB.settings; DB = defaults(); DB.settings = s; save(); renderAll();
 };
 $("#backupSave").onclick = () => download(`fingerboard-coach-progress-${dayKey()}.json`, JSON.stringify(Sync.backup(DB, Date.now())));
@@ -3309,6 +3434,7 @@ $("#backupLoad").onchange = async (e) => {
   const days = Object.keys(p.days || {}).length;
   if (!confirm(`Replace the progress here with this file's (${p.xp || 0} XP, ${days} day${days === 1 ? "" : "s"} practised)? This device's settings stay.`)) return;
   if (run) stopRun();
+  if (fix) stopFix(null);
   if (!Array.isArray(p.log)) p.log = PracticeLog.backfill(p.runs, Date.now());
   DB = migrate(Object.assign(defaults(), p, { settings: DB.settings, selected: DB.selected }));
   save(); applyConfig(); renderAll();
@@ -3321,7 +3447,7 @@ document.addEventListener("keydown", async (e) => {
     if ($("#tab-piece").classList.contains("active")) return piece ? stopPiece() : startPiece();
     if (await startAudio()) startRun();
   }
-  if (e.code === "Escape") { if (!$("#results").hidden) $("#results").hidden = true; else if (run) stopRun(); }
+  if (e.code === "Escape") { if (!$("#results").hidden) $("#results").hidden = true; else if (fix) stopFix(); else if (run) stopRun(); }
 });
 
 // Simulator: lets you try the app with synthetic tones (open with ?sim)
@@ -3449,7 +3575,7 @@ Sync.start({
     try { localStorage.setItem(STORE_KEY, JSON.stringify(DB)); } catch (e) {}
     renderAll();
   },
-  idle: () => !run,
+  idle: () => !run && !fix,
 });
 </script>
 </body>

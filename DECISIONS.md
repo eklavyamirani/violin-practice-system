@@ -22,6 +22,31 @@ request of its own. Format:
 
 ---
 
+## 2026-11-21 · Watch-out notes are built: the Watch line, Fix this note and Fix this progression
+- Decided by: the owner ("Promote", 2026-11-21, after round 2's video and preview of prototype #24; the iterate before it: "Research Molly Gebrian's method of repetition to reinforce the correct muscle memory. It should be a "fix this note" or "fix this progression" mode."); the build details by the build session, on the owner's behalf
+- Decision: built fresh from `main` against proposal #27's ten acceptance criteria. The rules and thresholds, the set/break/miss state machine and the panel's wording come from the prototype; the logic moved out of `index.html` into `fix.js` (pure, tested in Node like `practicelog.js`). Changes from the prototype:
+  - hands-free start is off during a fix (holding the drill's first note could start a run mid-fix);
+  - a wrong note followed by quiet is a miss at once, instead of waiting for the next landing;
+  - a shift only counts as one between two stopped notes when choosing the progression's approach note;
+  - each fix keeps every repetition's cents and wrong note, for telling false misses from real ones;
+  - the panel's Stop button keeps working while the break counts down (the countdown no longer redraws it).
+  The fix works in Path and Free practice alike: it reads the per-spot note history, not the path.
+- Rejected: merging or cherry-picking prototype #24 — a prototype is throwaway (Promote rule). Serial practice across several flagged spots (Gebrian's tick marks) — the Watch line flags one note; a later "fix my spots" could add it.
+- Revisit if: the owner's real try with a violin shows false misses emptying sets (the brief's strongest objection): first look at the logged cents, then consider a wider capture or a second listen before a miss counts.
+
+## 2026-11-21 · Fix entries sync record by record
+- Decided by: the build session, on the owner's behalf (reversible)
+- Decision: `DB.fixes` is a flat list, newest first, each entry with `t` (its id), kept 90 days and at most 200 (`fix.js`; `sync.js` caps it at 200 too). Sync merges it record by record, so fixes done on two devices are both kept, and "Fixed N× today" counts both.
+- Rejected: the prototype's object of lists without ids — sync merges plain lists as "this device wins", so fixes on the other device were lost. Keeping fixes on one device (`LOCAL_ONLY`) — the count of today's fixes and the practice-log export would differ by device, and the progress file would leave them out.
+- Revisit if: the list grows large enough to matter in the synced document.
+
+## 2026-11-21 · Fix repetitions stay out of the note history
+- Decided by: the owner's acceptance criterion 9 ("Fix repetitions are logged apart from the note history, XP and the path"); the reasoning recorded by the build session
+- Decision: a fix never writes `DB.notes`, XP, medals, the path, the per-drill reports or the practice log's runs. It writes only its own `DB.fixes` entry.
+- Why: the Watch line is a test of real playing. Fix repetitions are the note in isolation, after a cue, often after a break; counting them would pull the note's average in after one good fix and hide the habit the drill still shows. Keeping them apart leaves the next real runs as the measure of whether the fix carried over, and lets XP and medals keep meaning drills passed.
+- Rejected: counting clean fix repetitions toward the note history — it would let the Watch line clear itself without a real run.
+- Revisit if: the owner wants fixes to count toward the day's goal or streak (they don't now).
+
 ## 2026-11-20 · A scheduled scout run asks first and can take a focus area
 - Decided by: the owner ("scout should ask me before it runs. I'd love to be able to assign it a focus area"); the "keep" rule by the scout session, on the owner's behalf (reversible)
 - Decision: a scheduled run starts by asking (`go`, `go: <focus area>`, `go: <focus area> keep`, `skip`) and does nothing until the owner replies. A focus steers the research for that run only; non-goals, decisions and caps still apply, and a thin focus area yields fewer proposals, not padding. `keep` adds the focus in the owner's words as the one `Focus (owner, kept <date>)` line of `scout/brief.md`'s favour list, through the decisions pull request. See `scout/run.md` → Scheduled mode.

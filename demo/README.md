@@ -141,7 +141,7 @@ demo/
     audio/         violin-like scripted playing of the app's own drills
     walkthroughs/  one script per proposal
   proposals/     proposal records
-  test/          template and publish tests, the two-proposal structure check, the scripted-audio check
+  test/          template and publish tests, the two-proposal structure check, the scripted-audio check, the Fix mode end-to-end check
 ```
 
 - **Recording.** Playwright records the page's screencast. Headless Chromium screencasts at CSS-pixel size,
@@ -169,5 +169,6 @@ demo/
 node demo/test/template.test.mjs          # timings, proposal schema, narration fallbacks (no browser)
 node demo/test/publish.test.mjs           # upload: no token, refused, accepted, token kept out of args (local stand-in server)
 node demo/test/scripted-audio.mjs 3       # the app hears the scripted audio the same way 3 times
+node demo/test/fix-mode.mjs               # Watch line and Fix mode end to end (--url <base> tests a preview instead)
 node demo/test/same-structure.mjs demo/out/*/*.demo.json   # after two demos: same sections and timing
 ```
