@@ -16,7 +16,7 @@ import { load } from "./proposal.mjs";
 import { record } from "./record.mjs";
 import { assemble } from "./assemble.mjs";
 import { publish } from "./publish.mjs";
-import { engine } from "./tts.mjs";
+import { engine, engineNote } from "./tts.mjs";
 import { ffmpegPath } from "./media.mjs";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -38,6 +38,7 @@ const outDir = path.resolve(opt("--out", path.join(HERE, "../out")), proposal.id
 fs.mkdirSync(outDir, { recursive: true });
 
 console.log(`[demo] ${proposal.id}: kit ${kit.app}, walkthrough ${walkName}, tts ${engine()}, ffmpeg ${ffmpegPath()}`);
+if (engineNote()) console.log(`[demo] note: ${engineNote()}`);
 const t = Date.now();
 const rec = await record({ kit, walk, proposal, outDir, headless: !args.includes("--headed") });
 console.log(`[demo] recorded ${rec.seconds.toFixed(1)} s walkthrough (${((Date.now() - t) / 1000).toFixed(0)} s)${rec.log.length ? "\n  " + rec.log.join("\n  ") : ""}`);

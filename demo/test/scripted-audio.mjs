@@ -2,7 +2,7 @@
 // The kit's scripted audio is repeatable: the app (with the fixture) hears the Stage 1 D-string pattern
 // played with a high 2nd finger, and every run flags the same notes by about the same amount.
 // Headless, no video, about 15 s a run.
-import { chromium } from "playwright";
+import { launch } from "../runner/browser.mjs";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -30,7 +30,7 @@ async function once(browser, srv, wav) {
   return out;
 }
 
-const browser = await chromium.launch({ args: mic.chromiumArgs("inject") });
+const browser = await launch({ args: mic.chromiumArgs("inject") });
 const srv = await kit.start({ browser });
 let bad = 0;
 try {

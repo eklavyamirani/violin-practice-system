@@ -1,7 +1,7 @@
 // Assembler: builds the fixed template from the proposal and the recorded walkthrough.
 // Problem card (5 s) → walkthrough (40 s) → evidence card (10 s) → strongest reason not to build (5 s),
 // narrated by TTS, encoded as H.264 + AAC in an mp4 with the index up front (plays in a phone browser).
-import { chromium } from "playwright";
+import { launch } from "./browser.mjs";
 import fs from "node:fs";
 import path from "node:path";
 import { SECTIONS, TOTAL, WIDTH, HEIGHT, FPS, LEAD, TAIL, narration, cards, shrinkToFit } from "./template.mjs";
@@ -13,7 +13,7 @@ const VIDEO_OUT = ["-c:v", "libx264", "-profile:v", "high", "-level", "4.0", "-p
 const AUDIO_OUT = ["-c:a", "aac", "-b:a", "128k", "-ar", "48000", "-ac", "2"];
 
 async function renderCards(p, dir) {
-  const browser = await chromium.launch();
+  const browser = await launch();
   try {
     const page = await browser.newPage({ viewport: { width: WIDTH / 2, height: HEIGHT / 2 }, deviceScaleFactor: 2 });
     const out = {};
