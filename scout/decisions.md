@@ -22,3 +22,4 @@ One line per decision, appended by the session where the owner decided (see [REA
 - 2026-11-19 · watch-out-notes · #27 · prototyped · Watch-out notes before you start — "I like the demo. We should deploy it to a preview deployment."
 - 2026-11-20 · watch-out-notes · #27 · prototyped · Watch-out notes before you start — hold: "6. Hold. I haven't used it yet."
 - 2026-11-21 · watch-out-notes · #27 · prototyped · Watch-out notes before you start — iterate: "I like the idea. Let's take this further. Research Molly Gebrian's method of repetition to reinforce the correct muscle memory. It should be a "fix this note" or "fix this progression" mode."
+- 2026-11-21 · watch-out-notes · #27 · promoted · Watch-out notes before you start — "Promote" (after round 2, fix this note / fix this progression: prototype #24 at db04aab; the build is a fresh PR)
