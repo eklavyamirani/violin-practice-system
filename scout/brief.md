@@ -46,5 +46,5 @@ The owner explicitly did **not** rule out lesson content, sheet music or score f
 
 ## What the scout should avoid
 
-- Anything in Non-goals, and anything the app already does (check the README).
+- Anything in Non-goals, and anything the app already does (check `docs/guide.md`).
 - Ideas rejected in [decisions.md](decisions.md), unless new evidence answers the stated reason; then say so and cite the decision.
