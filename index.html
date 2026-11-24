@@ -2193,7 +2193,7 @@ async function startFix(kind) {
   if (piece) stopPiece();
   stopHearing(); calib = null;
   const from = kind === "progression" ? Fix.approach(ex.notes, w.it) : null;
-  fix = Fix.start({ kind, target: w.it, from, tol: drillTol(ex), avg: w.avg });
+  fix = Fix.start({ kind, target: w.it, from, tol: drillTol(ex), avg: w.avg, t: performance.now() });
   $("#startBtn").hidden = true; $("#results").hidden = true;
   buildPath();
   setMsg(fix.kind === "progression" ? `Play ${noteName(from.midi)} then ${noteName(w.it.midi)}, then stop. Three clean in a row, then a 10-second break.` : `Play ${noteName(w.it.midi)} on its own, then stop. Three clean in a row, then a 10-second break.`);
@@ -2214,8 +2214,16 @@ function stopFix(msg) {
   buildPath(); renderIdle();
   if (msg !== null) setMsg(msg || "Stopped. Press Start (or Space) to go again.");
 }
+// A fix repetition is judged like a Place mode try (landing.js): from where the target touched down, from its onset
+// (after the approach note, in a progression)
+function fixJudge(target, prev, from) {
+  const fr = from === null ? frames : frames.filter((f) => f.t >= from);
+  if (!fr.length) return null;
+  const i = prev ? Landing.onsetIndex(fr, target.midi, fr[fr.length - 1].t, { prev: prev.midi }) : 0;
+  return i < 0 ? null : Landing.placeTry(fr.slice(i), target.midi);
+}
 function fixStep(t, stable) {
-  const e = Fix.step(fix, t, stable, smooth !== null);
+  const e = Fix.step(fix, t, stable, smooth !== null, fixJudge);
   if (!e) return;
   if (fix.phase === "done") logFix(fix);
   if (e.type === "tick") return renderFixBreak(t);
@@ -2240,14 +2248,14 @@ function renderFix(t) {
   const dots = (n) => Array.from({ length: Fix.SET }, (_, i) => `<span class="${i < n ? "on" : "off"}">●</span>`).join("");
   const set = (k) => `<span><span class="lbl">Set ${k + 1}${f.sets > k ? " ✓" : ""}</span>${dots(f.sets > k ? Fix.SET : f.sets === k ? f.count : 0)}</span>`;
   const last = !L ? "" : L.ok ? `✓ Clean: ${fixSign(L.cents)}`
-    : `✗ ${L.wrong !== null ? `${noteName(L.wrong)} on the way` : `${fixSign(L.cents)}, outside ±${f.tol}¢`}.${f.phase === "break" ? "" : " The set starts over."}`;
+    : `✗ ${L.wrong !== null ? `${noteName(L.wrong)} on the way` : L.slide !== null ? `landed ${fixSign(L.cents)}, then slid ${Math.abs(L.slide).toFixed(0)}¢. Lift it and place it again instead of fixing it on the string` : `${fixSign(L.cents)}, outside ±${f.tol}¢`}.${f.phase === "break" ? "" : " The set starts over."}`;
   let body;
   if (f.phase === "done") body = `<div class="fxlast ok">Done for now: ${Fix.clean(f)} clean, ${Fix.misses(f)} miss${Fix.misses(f) === 1 ? "" : "es"} on the way.</div><div>Come back to it once or twice more today, then let sleep do its part. Your next drills are the real test: the Watch line still judges ${noteHTML(tg.midi)} from them, not from this fix.</div>`;
   else if (f.phase === "break") body = `<div class="fxlast ${f.breakWhy === "set" ? "ok" : "bad"}">${f.breakWhy === "set" ? `Set ${f.sets} done.` : `${Fix.MISS_BREAK} misses in a row: reset.`} Bow down, breathe: <span class="fxcount"></span></div><div class="fxbreak"><i></i></div><div class="muted small">The short rest is part of the practice: much of the gain shows up after the pause, not during the playing.</div>`;
   else body = `<div class="fxlast ${L ? (L.ok ? "ok" : "bad") : ""}">${last || "&nbsp;"}</div><div>${f.phase === "quiet" ? "…and stop." : f.steps.length > 1 && f.step === 0 ? `Start on <b>${noteHTML(f.steps[0].midi)}</b>, then move to <b>${noteHTML(tg.midi)}</b>.` : `Now land <b>${noteHTML(tg.midi)}</b> (${tg.string} string, finger ${fingerLabel(tg)}). Aim a hair ${f.avg > 0 ? "lower" : "higher"}.`}</div>`;
   el.innerHTML = `<div class="fxhead"><span>${f.kind === "progression" ? `🔁 Fix this progression ${noteHTML(f.steps[0].midi)} → ${noteHTML(tg.midi)}` : `🎯 Fix ${noteHTML(tg.midi)}`}</span><button id="fixStop">${f.phase === "done" ? "Close" : "Stop"}</button></div>
     <div class="fxsets">${Array.from({ length: Fix.SETS }, (_, k) => set(k)).join("")}</div>${body}
-    <div class="fxwhy">3 clean in a row, a 10-second break, 3 more; a miss starts the set over (Molly Gebrian's microbreaks). Clean = within ±${f.tol}¢${f.steps.length > 1 ? "; the first note only has to be the right note" : ""}.</div>`;
+    <div class="fxwhy">3 clean in a row, a 10-second break, 3 more; a miss starts the set over (Molly Gebrian's microbreaks). Clean = lands within ±${f.tol}¢ and stays put, no slide of 15¢ or more${f.steps.length > 1 ? "; the first note only has to be the right note" : ""}.</div>`;
   if (f.phase === "break") renderFixBreak(t);
   $("#bigNote").innerHTML = noteHTML(cur.midi);
   $("#fing").innerHTML = `<div class="big">${cur.string} string · finger ${fingerLabel(cur)}</div><div>${cur.pos ? ord(cur.pos) + " position" : "open string"}</div>`;

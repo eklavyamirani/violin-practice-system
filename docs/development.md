@@ -19,7 +19,7 @@ Then open http://localhost:8765 and allow microphone access. Chrome and Safari b
 - `node test/practicelog.test.js` checks the practice log: storage limits, backfill, ranges and sessions, patterns, and before/after for imported drills.
 - `node test/plan.test.js` checks practice plan import (keys, strings, parts, errors), the session rotation, the calendar and the streak.
 - `node test/sync.test.js` checks the sync merge (both devices' progress kept, settings per device).
-- `node test/fix.test.js` checks the Watch line rule and Fix mode: sets, breaks, misses, the quiet gap, the progression, tolerance per medal level and the fix log. `node demo/test/fix-mode.mjs` runs it end to end with scripted audio.
+- `node test/fix.test.js` checks the Watch line rule and Fix mode: sets, breaks, misses, the quiet gap, the progression, tolerance per medal level, repetitions judged from the touchdown (a slid landing is a miss; after a shift, where it settles) and the fix log. `node demo/test/fix-mode.mjs` runs it end to end with scripted audio, including a finger that slides in.
 - `node test/scales.test.js` checks scale spelling and generated fingerings for every key and scale type across a range of string and position choices.
 - `node test/ear.test.js` checks the Ear tab: the stages' notes, questions (never the reference note, about a quarter in tune, weighted towards misses), grading, the cents ladder and medals; which notes go on which strings, which-string questions from partial recordings, and their medals.
 - `node test/landing.test.js` checks where a note touched down, slides into it, corrections while it's held, and Place mode tries, on synthetic pitch tracks.
@@ -32,7 +32,7 @@ Then open http://localhost:8765 and allow microphone access. Chrome and Safari b
 - `index.html`: the app (UI, drills, scoring, progress)
 - `piece.js`: Piece tab analysis (note splitting, intonation, metronome and free timing, reports)
 - `practicelog.js`: the 90-day practice log and its export for Claude (patterns, progress, before/after for imported drills)
-- `fix.js`: the Watch line (which note in a drill keeps landing off) and Fix this note / Fix this progression (sets, breaks, the fix log)
+- `fix.js`: the Watch line (which note in a drill keeps landing off) and Fix this note / Fix this progression (sets, breaks, the fix log); repetitions are judged with `landing.js`
 - `plan.js`: practice plan format (documentation, validation), session rotation, calendar, streak and report days
 - `drills.js`: custom drill format (documentation, validation, import/export)
 - `curriculum.js`: Path mode (skill graph, drills per skill and direction, run metrics and pass criteria, tempo, mastery and review, what to practise next)

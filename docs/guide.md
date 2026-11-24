@@ -57,13 +57,13 @@ From the Watch line:
 
 Both follow Molly Gebrian's microbreaks:
 - **Three clean in a row fill a set.** A miss empties the set.
-- **Clean** means the note's first steady pitch is within the drill's tolerance (🥉 ±25¢, 🥈 ±15¢, 🥇 ±10¢; a Path skill's own window), with no wrong note on the way. In a progression, the first note only has to be the right note.
+- **Clean** means the note is judged like a Place try: where the finger touched down (its first ~80 ms) is within the drill's tolerance (🥉 ±25¢, 🥈 ±15¢, 🥇 ±10¢; a Path skill's own window), it isn't then slid or adjusted by 15¢ or more, and there's no wrong note on the way. A finger that lands off and slides in is a miss: lift it and place it again. In a progression, the first note only has to be the right note; after a shift, the note is judged where it settles, since a shift's own slide is expected.
 - **Between repetitions** the app waits for 0.3 s of quiet, so one long note never counts twice.
 - **After set 1**, a 10-second break with a countdown; nothing is scored while it runs. **After set 2** the fix is done: come back to it once or twice more today.
 - **Three misses in a row** also give a 10-second break, so a bad patch turns into a reset instead of a grind.
 - **Stop**, **Escape**, starting a run or choosing another drill ends a fix.
 
-Fix repetitions are kept apart from your progress: they never change the note history, XP, medals, the path or the practice log's runs. The Watch line keeps judging the note from your real drills, so the next runs show whether the fix carried over; it also says how many fixes you finished today. Each fix is logged with every repetition's cents (and any wrong note), synced like the rest of your progress, and included in the practice log for Claude, so a miss the microphone heard wrongly can be told from a real one.
+Fix repetitions are kept apart from your progress: they never change the note history, XP, medals, the path or the practice log's runs. The Watch line keeps judging the note from your real drills, so the next runs show whether the fix carried over; it also says how many fixes you finished today. Each fix is logged with every repetition's cents (and any slide or wrong note), synced like the rest of your progress, and included in the practice log for Claude, so a miss the microphone heard wrongly can be told from a real one.
 
 ## Rhythm drills
 

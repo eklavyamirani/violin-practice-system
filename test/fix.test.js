@@ -144,5 +144,52 @@ let big = [];
 for (let i = 0; i < 230; i++) big = F.add(big, { t: NOW - i * 60000, key: "x", done: true }, NOW);
 check("log keeps at most 200", big.length === F.KEEP && big[0].t === NOW);
 
+// ---------- Judged from the touchdown (landing.js), as the app does ----------
+// Frames at 10 ms: a note touches down at c cents and, with `to`, slides there over 150 ms after 80 ms.
+const Landing = require("../landing.js");
+function playJudged(f, parts, t0 = 0) {
+  let t = t0;
+  const ev = [], frames = [];
+  const judge = (target, prev, from) => { // index.html's fixJudge
+    const fr = from === null ? frames : frames.filter((x) => x.t >= from);
+    if (!fr.length) return null;
+    const i = prev ? Landing.onsetIndex(fr, target.midi, fr[fr.length - 1].t, { prev: prev.midi }) : 0;
+    return i < 0 ? null : Landing.placeTry(fr.slice(i), target.midi);
+  };
+  for (const p of parts) {
+    const ms = p.rest !== undefined ? p.rest : p.ms || 600, settle = p.to !== undefined ? 230 : 0;
+    for (let e = 0; e < ms; e += 10, t += 10) {
+      const sounding = p.rest === undefined;
+      const c = !sounding ? null : p.to === undefined || e < 80 ? p.c : e >= 230 ? p.to : p.c + (p.to - p.c) * (e - 80) / 150;
+      frames.push({ t, m: sounding ? p.midi + c / 100 : null });
+      const stable = sounding && e >= 220 + settle ? p.midi + c / 100 : null;
+      const r = F.step(f, t, stable, sounding, judge);
+      if (r && r.type !== "tick") ev.push({ ...r, t });
+    }
+  }
+  return { ev, t };
+}
+f = F.start({ kind: "note", target: Fs4, tol: 15, avg: 12, t: 0 });
+r = playJudged(f, [{ midi: 66, c: 22, to: 2, ms: 700 }, rest()]);
+let rp = repsOf(r)[0];
+check("judged: lands 22¢ off and slides in = a miss", rp && rp.ok === false && Math.round(rp.cents) === 22 && Math.round(rp.slide) === -20, rp);
+check("judged: the slide is kept with the repetition", f.reps[0].s === -20 && F.record(f, 1).reps[0].s === -20, f.reps[0]);
+r = playJudged(f, [{ midi: 66, c: 4, ms: 600 }, rest()], r.t);
+rp = repsOf(r)[0];
+check("judged: a clean placement is clean", rp && rp.ok === true && Math.round(rp.cents) === 4 && rp.slide === null, rp);
+r = playJudged(f, [{ midi: 66, c: 20, ms: 600 }, rest()], r.t);
+check("judged: placed 20¢ off and left there = a miss", repsOf(r)[0].ok === false && repsOf(r)[0].slide === null, repsOf(r)[0]);
+r = playJudged(f, [{ midi: 66, c: 3, ms: 340 }, rest()], r.t);
+check("judged: a short clean note is still judged after the bow stops", repsOf(r).length === 1 && repsOf(r)[0].ok, r.ev);
+// Progression across a string crossing: judged from the target's own touchdown, after the approach note
+const B4c = it("B4A", 71, { string: "A", finger: "2", pos: 1 });
+f = F.start({ kind: "progression", target: B4c, from: it("E5E", 76, { string: "E", finger: "0", pos: null }), tol: 15, t: 0 });
+r = playJudged(f, [{ midi: 76, c: 0, ms: 500 }, { midi: 71, c: -24, to: -1, ms: 700 }, rest(), { midi: 76, c: 0, ms: 500 }, { midi: 71, c: 2, ms: 600 }, rest()]);
+check("judged progression: slid target is a miss, a clean one is clean", repsOf(r).length === 2 && !repsOf(r)[0].ok && repsOf(r)[0].slide !== null && repsOf(r)[1].ok, repsOf(r));
+// Progression across a shift: a shift's own slide is expected, so the steady pitch is judged (landing.js)
+f = F.start({ kind: "progression", target: C5, from: B4c, tol: 15, t: 0 });
+r = playJudged(f, [{ midi: 71, c: 0, ms: 500 }, { midi: 72, c: -25, to: 3, ms: 700 }, rest()]);
+check("judged progression across a shift: settles in tune = clean", repsOf(r).length === 1 && repsOf(r)[0].ok && Math.round(repsOf(r)[0].cents) === 3, repsOf(r));
+
 console.log(fails ? `${fails} failed` : "fix: all passed");
 process.exit(fails ? 1 : 0);

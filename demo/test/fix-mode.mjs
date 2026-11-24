@@ -3,7 +3,7 @@
 // scripted violin-like audio fed to the page as its microphone. Checks the acceptance criteria of proposal #27
 // (miss, set reset, break, nothing scored in the break, three-miss break, done, the progression, what ends a
 // fix, and that fix repetitions leave the note history, XP, medals, path and practice log alone), in Path and in
-// Free practice.
+// Free practice; and that a finger that lands off and slides in is a miss (#44's touchdown rule).
 //
 // Without --url it serves this checkout. With --url (e.g. a preview) it tests that app instead; the history is
 // put into this test browser's own storage before the page loads, so nothing is loaded on the server.
@@ -14,7 +14,8 @@ import path from "node:path";
 import kit from "../kit/kit.mjs";
 import { fixtureFor, STORE_KEY, DEMO_SETTINGS } from "../kit/serve.mjs";
 import { drillId } from "../kit/audio/passages.mjs";
-import { render, writeWav } from "../kit/audio/synth.mjs";
+import { writeWav } from "../kit/audio/synth.mjs";
+import { renderGlides } from "../kit/audio/glides.mjs";
 import * as mic from "../runner/fake-mic.mjs";
 
 const args = process.argv.slice(2), ui = args.indexOf("--url");
@@ -25,18 +26,21 @@ let bad = 0, n = 0;
 const check = (name, ok, got) => { n++; console.log(`${ok ? "ok  " : "FAIL"} ${name}${ok ? "" : `: ${JSON.stringify(got)}`}`); if (!ok) bad++; };
 const log = (s) => console.log(`     ${s}`);
 
-/** Repetitions of the target (or of from → target), each followed by a rest so the app hears the bow stop. */
+/**
+ * Repetitions of the target (or of from → target), each followed by a rest so the app hears the bow stop.
+ * reps: cents, [wrong midi, cents] (a wrong note on the way) or { path: [[ms, cents], ...] } (the finger slides).
+ */
 function fixWav(name, target, { from = null, reps, breakAfter = 4, breakSec = 10.8, sec = 0.8, rest = 0.6, leadIn = 1.2, extra = [] }) {
   const passage = [];
   reps.forEach((cents, i) => {
     if (from) passage.push({ midi: from.midi, cents: 0, sec: 0.7 });
     if (Array.isArray(cents)) passage.push({ midi: cents[0], cents: 0, sec: 0.5 }); // a wrong note on the way
-    passage.push({ midi: target.midi, cents: Array.isArray(cents) ? cents[1] : cents, sec });
+    passage.push(cents && cents.path ? { midi: target.midi, path: cents.path, sec } : { midi: target.midi, cents: Array.isArray(cents) ? cents[1] : cents, sec });
     passage.push({ rest: i + 1 === breakAfter ? breakSec : rest });
   });
   passage.push(...extra);
   const file = path.join(tmp, `${name}.wav`);
-  writeWav(file, render(passage, { leadIn }).samples);
+  writeWav(file, renderGlides(passage, { leadIn, tail: 30 }));
   return file;
 }
 
@@ -152,6 +156,21 @@ try {
   seen = await follow(page, (s) => s.reps >= 2, 15000);
   const wr = await page.evaluate(() => fix.reps);
   check("6. a wrong note on the way is a miss, the next clean one counts", wr.length === 2 && !wr[0].ok && wr[0].wrong === T.midi - 1 && wr[1].ok, wr);
+  await ctx.close();
+
+  // ---------- A finger that lands off and slides in (landing.js, #44) ----------
+  // Lands 20¢ off on the Watch line's side, then slides to in tune within 0.2 s: no longer a clean repetition
+  const side = T.avg > 0 ? 1 : -1;
+  ({ ctx, page } = await open(browser, fixWav("slide", T, { reps: [{ path: [[0, 20 * side], [100, 20 * side], [180, 0]] }, 2], breakAfter: 99 })));
+  await page.click("#fixNoteBtn");
+  seen = await follow(page, (s) => s.reps >= 2, 15000);
+  const sl = await page.evaluate(() => ({ reps: fix.reps, panel: $("#fixPanel").innerText }));
+  log(`slid then clean: ${JSON.stringify(sl.reps)}`);
+  check("11. lands 20¢ off and slides in: a miss, slide kept", sl.reps.length === 2 && !sl.reps[0].ok && Math.abs(sl.reps[0].c - 20 * side) <= 6 && Math.abs(sl.reps[0].s) >= 15, sl.reps[0]);
+  check("11. a clean placement after it still counts", sl.reps[1] && sl.reps[1].ok && !("s" in sl.reps[1]), sl.reps[1]);
+  await page.click("#fixStop");
+  const slog = await page.evaluate(() => DB.fixes[0].reps);
+  check("11. the log keeps where it landed and the slide", slog[0].c === sl.reps[0].c && slog[0].s === sl.reps[0].s && !slog[0].ok, slog);
   await ctx.close();
 
   // ---------- Fix this progression (criterion 5) ----------

@@ -152,7 +152,7 @@
     "earlier/later split the range in half (by practice day, or by run within a single day); trend compares them. timingMs (tempo runs) = + late, − early against the click as heard.",
     "claudeDrills: drills the player imported. targetSpots are the spots the drill uses; before/after compare those spots across ALL drills in everything the app has kept, around the date the drill was added (or first practised, if the add date isn't known).",
   ].join(" ");
-  const HOW_TO_READ_FIXES = "fixes: Fix this note / Fix this progression sessions (three clean repetitions, a 10-second break, three more; a miss starts the set over). Each repetition is the target note's first steady landing in cents (null = stopped after a wrong note), against tolerance: the steady pitch, not the touchdown that the runs' cents use. (Unrelated to fixCents.) Fix repetitions are not runs and are not in the patterns or spots above; the spots show whether a fix carried over into real drills.";
+  const HOW_TO_READ_FIXES = "fixes: Fix this note / Fix this progression sessions (three clean repetitions, a 10-second break, three more; a miss starts the set over). Each repetition is where the target touched down in cents, like a Place mode try (after a shift, its steady pitch; null = a wrong note), against tolerance; slideCents = it was then slid or adjusted that far (15¢ or more), which makes it a miss. Fix repetitions are not runs and are not in the patterns or spots above; the spots show whether a fix carried over into real drills.";
 
   // opts: { now, a4, customs: [{ key, title, goal, source, added, spots: [{ note, string }] }], pieces: [{ t, title, key, summary }],
   //   fixes: DB.fixes (fix.js record), detail }
@@ -244,7 +244,7 @@
     const fixes = (opts.fixes || []).filter((x) => x.t >= fixFrom && x.t <= now).sort((a, b) => a.t - b.t).map((x) => ({
       time: stamp(x.t), note: x.note, string: x.string, finger: x.finger, position: x.pos, kind: x.kind, ...(x.from ? { from: x.from } : {}),
       tolerance: x.tol, watchAvgCents: x.watchAvg, clean: x.clean, misses: x.misses, done: x.done,
-      reps: x.reps.map((r) => ({ cents: r.c, ok: r.ok, ...(r.wrong ? { wrongNote: r.wrong } : {}) })) }));
+      reps: x.reps.map((r) => ({ cents: r.c, ok: r.ok, ...(r.wrong ? { wrongNote: r.wrong } : {}), ...(r.s !== undefined ? { slideCents: r.s } : {}) })) }));
 
     return {
       format: FORMAT, exported: new Date(now).toISOString(), howToRead: HOW_TO_READ + (fixes.length ? " " + HOW_TO_READ_FIXES : ""),

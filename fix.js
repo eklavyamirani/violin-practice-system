@@ -2,6 +2,8 @@
 // landing off on the same side lately. From it, "Fix this note" and "Fix this progression" run Molly Gebrian's
 // microbreaks on that spot (Learn Faster, Perform Better, OUP 2024, Appendix A, ch. 4): three clean repetitions,
 // a 10-second break, three more; a repetition with an error starts the set over.
+// A repetition is clean like a Place mode try (landing.js): touched down within tolerance and not slid or
+// adjusted 15¢ or more after; after a shift, where it settles (a shift's own slide is expected).
 // Fix repetitions are logged in their own list (DB.fixes), never in the note history, so the Watch line keeps
 // judging the note from real drills.
 // Pure logic. Works in the browser (window.Fix) and in Node (module.exports) for testing.
@@ -49,22 +51,25 @@
 
   /**
    * A new fix. kind: "note" | "progression"; target: the watched note; from: the approach note (progression);
-   * tol: the cents a clean landing must be within (the drill's medal tolerance); avg: the Watch line's average.
+   * tol: the cents a clean landing must be within (the drill's medal tolerance); avg: the Watch line's average;
+ * t: when it starts (ms), the earliest a repetition's touchdown is looked for.
    */
-  function start({ kind, target, from = null, tol, avg = 0 }) {
+  function start({ kind, target, from = null, tol, avg = 0, t = null }) {
     const steps = kind === "progression" && from ? [from, target] : [target];
     return { kind: steps.length > 1 ? "progression" : "note", steps, target, tol, avg,
       phase: "play", step: 0, sets: 0, count: 0, missRun: 0, reps: [], wrong: null, quietSince: null,
-      breakUntil: 0, breakWhy: null, last: null };
+      breakUntil: 0, breakWhy: null, last: null, playFrom: t, judging: false };
   }
 
-  // One repetition is over: clean or a miss. cents: the target's first steady pitch (null: stopped after a wrong note).
+  // One repetition is over: clean or a miss. cents: where the target landed (null: stopped after a wrong note);
+  // slide: how far it was then slid or adjusted (¢, 15 or more) or null. A slid landing is a miss, like in Place mode.
   // quiet: the player has already been quiet for QUIET_MS (stopped after a wrong note), so listen again at once.
-  function rep(f, t, cents, quiet = false) {
-    const ok = cents !== null && f.wrong === null && Math.abs(cents) <= f.tol + 1e-6;
-    f.reps.push({ c: cents === null ? null : Math.round(cents), ok, ...(f.wrong !== null ? { wrong: f.wrong } : {}) });
-    f.last = { ok, cents, wrong: f.wrong };
-    f.phase = quiet ? "play" : "quiet"; f.quietSince = null; f.step = 0; f.wrong = null;
+  function rep(f, t, cents, quiet = false, slide = null) {
+    const ok = cents !== null && f.wrong === null && slide === null && Math.abs(cents) <= f.tol + 1e-6;
+    f.reps.push({ c: cents === null ? null : Math.round(cents), ok, ...(f.wrong !== null ? { wrong: f.wrong } : {}), ...(slide !== null ? { s: Math.round(slide) } : {}) });
+    f.last = { ok, cents, wrong: f.wrong, slide };
+    f.phase = quiet ? "play" : "quiet"; f.quietSince = null; f.step = 0; f.wrong = null; f.judging = false;
+    if (quiet) f.playFrom = t;
     if (ok) {
       f.missRun = 0;
       if (++f.count >= SET) {
@@ -76,15 +81,21 @@
       f.count = 0;
       if (++f.missRun >= MISS_BREAK) { f.missRun = 0; f.phase = "break"; f.breakUntil = t + BREAK_MS; f.breakWhy = "misses"; }
     }
-    return { type: "rep", ok, cents, wrong: f.last.wrong };
+    return { type: "rep", ok, cents, wrong: f.last.wrong, slide };
   }
+
+  // After a shift the way in is a slide anyway (landing.js), so a progression across a shift is judged by its steady pitch
+  const shiftedIn = (prev, cur) => !!(prev && prev.pos && cur.pos && prev.pos !== cur.pos);
 
   /**
    * One frame. t: ms; stable: the first steady pitch as a MIDI number, or null; sounding: whether any pitch is
-   * heard now. Returns what happened, or null: { type: "rep", ok, cents, wrong } | "approach" | "wrong" |
+   * heard now. judge (optional): (target, prev, from) → { cents, slide, wrong } once the target's try can be judged
+   * from where it touched down (the app passes Landing.placeTry on the frames since `from`), or null while it can't
+   * yet. Without it, or after a shift, a repetition is judged by its first steady pitch.
+   * Returns what happened, or null: { type: "rep", ok, cents, wrong, slide } | "approach" | "wrong" |
    * "listen" (quiet after a repetition: listening again) | "tick" (a break counting down) | "breakEnd".
    */
-  function step(f, t, stable, sounding) {
+  function step(f, t, stable, sounding, judge = null) {
     if (f.phase === "done") return null;
     if (f.phase === "break") { // nothing is scored during a break; afterwards it waits for quiet as after any repetition
       if (t < f.breakUntil) return { type: "tick" };
@@ -95,8 +106,15 @@
       if (sounding) { f.quietSince = null; return null; }
       if (f.quietSince === null) f.quietSince = t;
       if (t - f.quietSince < QUIET_MS) return null;
-      f.phase = "play"; f.quietSince = null;
+      f.phase = "play"; f.quietSince = null; f.playFrom = t;
       return { type: "listen" };
+    }
+    // The target was heard: judge where it touched down as soon as there's enough of it, even if the bow stops first
+    if (f.judging) {
+      const j = judge(f.steps[f.step], f.steps[f.step - 1] || null, f.playFrom);
+      if (!j) return null;
+      if (j.wrong !== null && f.wrong === null) f.wrong = j.wrong; // it touched down on another note and slid in
+      return rep(f, t, j.wrong !== null ? null : j.cents, false, j.wrong !== null ? null : j.slide);
     }
     // Playing. A wrong note and then stopping is a miss: no need to land the target to find out.
     if (f.wrong !== null) {
@@ -108,7 +126,9 @@
     const cur = f.steps[f.step], dev = (stable - cur.midi) * 100;
     if (Math.abs(dev) <= CAPTURE) {
       if (f.step < f.steps.length - 1) { f.step++; return { type: "approach" }; } // the approach note only has to be the right note
-      return rep(f, t, dev);
+      if (!judge || shiftedIn(f.steps[f.step - 1], cur)) return rep(f, t, dev);
+      f.judging = true;
+      return step(f, t, stable, sounding, judge);
     }
     const prev = f.steps[f.step - 1];
     if (prev && Math.abs(stable - prev.midi) * 100 <= CAPTURE) return null; // still on the approach note
@@ -133,7 +153,7 @@
     return { t: now, key: tg.key, note: name(tg.midi), string: tg.string, finger: tg.finger, pos: tg.pos || null, kind: f.kind,
       ...(from ? { from: name(from.midi), fromString: from.string } : {}),
       tol: f.tol, watchAvg: Math.round(f.avg), clean: clean(f), misses: misses(f), done: done(f),
-      reps: f.reps.map((r) => ({ c: r.c, ok: r.ok, ...(r.wrong !== undefined ? { wrong: name(r.wrong) } : {}) })) };
+      reps: f.reps.map((r) => ({ c: r.c, ok: r.ok, ...(r.wrong !== undefined ? { wrong: name(r.wrong) } : {}), ...(r.s !== undefined ? { s: r.s } : {}) })) };
   }
   const add = (list, rec, now) => (rec ? prune([rec, ...(list || []).filter((r) => r.t !== rec.t)], now) : prune(list, now));
 
