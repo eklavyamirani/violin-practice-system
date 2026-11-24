@@ -48,7 +48,7 @@ export async function record({ kit, walk, proposal, outDir, headless = true }) {
     const videoDir = path.join(outDir, "raw");
     fs.rmSync(videoDir, { recursive: true, force: true });
     const context = await browser.newContext({ viewport, deviceScaleFactor: 2, hasTouch: false, recordVideo: { dir: videoDir, size: { width: WIDTH, height: HEIGHT } } });
-    if (micFile) await mic.attach(context, micMode, micFile);
+    if (micFile) { await mic.attach(context, micMode, micFile); await mic.steadyFrames(context); }
     await context.addInitScript(OVERLAY);
     const t0 = Date.now(); // the video starts (close to) here
     const page = await context.newPage();

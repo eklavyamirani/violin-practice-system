@@ -17,6 +17,21 @@ export function chromiumArgs(mode, wavPath) {
   return [...base, "--use-fake-ui-for-media-stream", "--use-fake-device-for-media-stream", `--use-file-for-fake-audio-capture=${wavPath}`];
 }
 
+/**
+ * While a page is recorded, headless Chromium runs its animation frames only as fast as the screencast captures
+ * them: about 20 a second in a loaded Linux container (node:24-bookworm, 2026-11-24), against 60 without video.
+ * A page that analyses its microphone on animation frames then hears the scripted audio in coarse steps and
+ * misses notes (the violin app needs 5 frames in 220 ms to call a pitch steady). This runs animation-frame
+ * callbacks on a 16 ms timer instead, so the page keeps its usual pace while it is recorded. The page's code is
+ * unchanged. The recorder adds it when a walkthrough has scripted audio.
+ */
+export function steadyFrames(context) {
+  return context.addInitScript(() => {
+    window.requestAnimationFrame = (cb) => setTimeout(() => cb(performance.now()), 16);
+    window.cancelAnimationFrame = (id) => clearTimeout(id);
+  });
+}
+
 /** Wire the scripted WAV into a Playwright context. */
 export async function attach(context, mode, wavPath) {
   if (mode === "fake-device") { await context.grantPermissions(["microphone"]); return; }

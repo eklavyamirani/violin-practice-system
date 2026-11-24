@@ -100,6 +100,10 @@ Rules:
 - Audio input: a WAV with a short silent lead-in and a long silent tail. The default `inject` mode starts it
   exactly when the page opens the microphone. Use `fake-device` (Chromium's fake media flags) only where the
   page must see a real capture device; it does not work headless on macOS.
+- With scripted audio, the recorder runs the page's animation frames on a 16 ms timer
+  (`steadyFrames` in `demo/runner/fake-mic.mjs`). While recording, headless Chromium otherwise runs them only as
+  fast as it captures video, about 20 a second on a loaded Linux machine, and a page that listens on animation
+  frames misses notes. The page's code is unchanged.
 - Keep a repeatability check next to the inputs (violin: `demo/test/scripted-audio.mjs` runs the same input
   three times and compares what the app measured).
 
