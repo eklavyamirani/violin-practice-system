@@ -54,4 +54,7 @@ console.log(`[demo] sections: ${report.sections.map((s) => `${s.key} ${s.start}+
 for (const [k, v] of Object.entries(report.narration)) if (!Array.isArray(v) && v.shortened) console.log(`[demo] ${k} narration shortened to fit: "${v.text}"`);
 for (const q of pub.requests) console.log(`[demo] upload request ${q.at}: ${q.name} → ${q.status ? `HTTP ${q.status}` : q.error}`);
 console.log(`[demo] ${pub.message}`);
-if (pub.requests.length && !pub.uploaded) process.exitCode = 1;
+// Exit explicitly once everything is written, so nothing left open (a browser's video encoder, a kit's
+// handle) can keep the run alive after its result; Playwright kills the processes it started when node exits.
+// stdout is flushed first, since writes to a pipe are asynchronous on macOS.
+process.stdout.write("", () => process.exit(pub.requests.length && !pub.uploaded ? 1 : 0));

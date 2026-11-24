@@ -97,7 +97,9 @@ nothing on the machine beyond Node and `npm --prefix demo ci` (Setup below).
   launch (or can't record video), the runner takes the first installed Playwright that can (the global npm
   root, `NODE_PATH`, `/usr/local/lib/node_modules`, `/usr/lib/node_modules`), or exactly the one in
   `DEMO_PLAYWRIGHT=<its package directory>`. The first output line names the one used, and why any was
-  skipped.
+  skipped. The video check waits for its first frame before closing, because an older Playwright (1.57)
+  otherwise leaves its video encoder running and the run never ends; `demo.mjs` also exits explicitly once its
+  result is printed.
 - **ffmpeg and ffprobe** as static builds (`ffmpeg-static` 5.2.0 = ffmpeg 6.0 with libx264, AAC and libass;
   `ffprobe-static` 3.1.0). No Homebrew or apt step. A system `ffmpeg`/`ffprobe` on the PATH is used instead if
   there is one, or set `DEMO_FFMPEG` / `DEMO_FFPROBE`. `ffmpeg-static` downloads its binary from GitHub when it
@@ -210,7 +212,8 @@ demo/
 ```bash
 node demo/test/template.test.mjs          # timings, proposal schema, narration fallbacks (no browser)
 node demo/test/publish.test.mjs           # upload: no token, refused, accepted, token kept out of args (local stand-in server)
-node demo/test/browser.test.mjs           # which Playwright is used, and the fallback when the pinned one has no browser
+node demo/test/browser.test.mjs           # which Playwright is used, the fallback when the pinned one has no browser, and that node exits after the video check
+DEMO_TEST_PLAYWRIGHTS=/usr/local/lib/node_modules/playwright node demo/test/browser.test.mjs   # the exit check with an installed Playwright too
 node demo/test/scripted-audio.mjs 3       # the app hears the scripted audio the same way 3 times
 node demo/test/same-structure.mjs demo/out/*/*.demo.json   # after two demos: same sections and timing
 ```
