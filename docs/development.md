@@ -40,3 +40,8 @@ Then open http://localhost:8765 and allow microphone access. Chrome and Safari b
 - `landing.js`: where a finger touched down, slides into a note and corrections while it's held, and Place mode tries
 - `context.js`: intonation by context (up vs down, after shifts, after frame changes), for the coach's notes, the practice log and the Piece tab
 - `pitch.js`: McLeod pitch detector; the app narrows its frequency range to the current drill's notes so it doesn't jump octaves
+
+## Sources for design claims
+
+A claim on the **Why it works** tab names its source, or says it's the app's own design choice. Sources live in [references.md](references.md), with how strong each is and what it's used for. They're numbered the same in the tab's **Sources** card. Check each citation against the publisher, a DOI record, ERIC or the author's page before adding it, and say when a paper wasn't read in full.
+

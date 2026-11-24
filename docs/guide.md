@@ -1,6 +1,6 @@
 # Fingerboard Coach: the full guide
 
-Everything the app does, feature by feature, with the exact thresholds and rules. For what the app is and why it exists, start with the [README](../README.md). To run it locally, test it or find your way around the code, see [development.md](development.md).
+Everything the app does, feature by feature, with the exact thresholds and rules. For what the app is and why it exists, start with the [README](../README.md); for the research and teaching sources behind it, [references.md](references.md). To run it locally, test it or find your way around the code, see [development.md](development.md).
 
 ## Path
 
