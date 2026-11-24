@@ -42,6 +42,20 @@ t("a launch prints which Playwright and Chromium it used", () => {
   assert.match(r.stdout, /^\[demo\] browser: Playwright \d+\.\d+\.\d+ \(.+\), Chromium \d+/m);
 });
 
+// The video check must leave no recorder running: in Playwright 1.57 a page closed before its first frame
+// left ffmpeg waiting for ever, and node with it. Checked with the pinned Playwright and with each one in
+// DEMO_TEST_PLAYWRIGHTS (directories of playwright packages, separated like PATH), e.g. an installed 1.57.
+const exitChecks = [["pinned", {}], ...(process.env.DEMO_TEST_PLAYWRIGHTS || "").split(path.delimiter).filter(Boolean)
+  .map((dir) => [dir, { DEMO_PLAYWRIGHT: dir }])];
+for (const [label, env] of exitChecks) t(`after the video check and close, node exits by itself (${label})`, () => {
+  const started = Date.now();
+  const r = spawnSync(process.execPath, ["--input-type=module", "-e",
+    `import * as b from ${JSON.stringify(RUNNER)};\nconst br = await b.launch({}, { video: true }); await br.close();`],
+    { encoding: "utf8", env: { ...process.env, DEMO_PLAYWRIGHT: "", ...env }, timeout: 60000, killSignal: "SIGKILL" });
+  assert.equal(r.signal, null, `still running after ${((Date.now() - started) / 1000).toFixed(0)} s, killed`);
+  assert.equal(r.status, 0, r.stderr);
+});
+
 t("with no browser for the pinned Playwright, it is skipped with the reason", () => {
   const empty = fs.mkdtempSync(path.join(os.tmpdir(), "demo-no-browsers-"));
   const r = run("const br = await b.launch({}, { video: true }); await br.close()", { PLAYWRIGHT_BROWSERS_PATH: empty });

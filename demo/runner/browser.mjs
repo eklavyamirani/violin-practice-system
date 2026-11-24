@@ -43,7 +43,17 @@ export function candidates(env = process.env) {
   return out.filter((c) => { const r = fs.realpathSync(c.dir); return seen.has(r) ? false : seen.add(r); });
 }
 
-// Launches, and for recording also opens a page with video on, which needs that Playwright's ffmpeg.
+// The video check waits this long for its first frame
+const FIRST_FRAME_MS = 15000;
+const within = (p, ms, why) => {
+  let timer;
+  return Promise.race([p, new Promise((_, no) => { timer = setTimeout(() => no(new Error(why)), ms); })]).finally(() => clearTimeout(timer));
+};
+
+// Launches, and for recording also records a moment of video, which needs that Playwright's ffmpeg.
+// The check waits for the video's first frame before closing: Playwright starts a page's video (and resolves
+// video.path()) at its first frame, and in older releases (1.57 at least) closing a page before that frame
+// leaves its ffmpeg waiting for input for ever, which keeps node from exiting after the run.
 async function tryOne(c, opts, video) {
   const pw = load(c.dir, c.how);
   const browser = await pw.chromium.launch(opts);
@@ -51,7 +61,9 @@ async function tryOne(c, opts, video) {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "demo-video-check-"));
     try {
       const ctx = await browser.newContext({ recordVideo: { dir, size: { width: 64, height: 64 } } });
-      await ctx.newPage();
+      const page = await ctx.newPage();
+      await page.setContent('<body style="margin:0;background:#e07b39"></body>');
+      await within(page.video().path(), FIRST_FRAME_MS, `video recording got no frame in ${FIRST_FRAME_MS / 1000} s`);
       await ctx.close();
     } catch (e) { await browser.close(); throw e; } finally { fs.rmSync(dir, { recursive: true, force: true }); }
   }
