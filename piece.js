@@ -3,6 +3,7 @@
 // against a metronome grid when one was playing, or else against the player's own pulse.
 // Works in the browser (window.PieceIO) and in Node (module.exports) for testing.
 (function (root) {
+  const Context = typeof module !== "undefined" && module.exports ? require("./context.js") : root.Context;
   const REPORT_FORMAT = "fingerboard-coach/piece-report@1";
   const mean = (a) => a.reduce((x, y) => x + y, 0) / a.length;
   const median = (a) => { const s = [...a].sort((x, y) => x - y), h = s.length >> 1; return s.length % 2 ? s[h] : (s[h - 1] + s[h]) / 2; };
@@ -180,6 +181,21 @@
 
     const timing = opts.metronome ? metronomeTiming(notes, opts.metronome) : freeTiming(notes);
 
+    // When it goes off: the same notes going up against coming down, and the notes after an out-of-key note
+    // (against the same notes, same direction, elsewhere in the piece). Without the score there's no fingering, so no shifts.
+    const cn = notes.map((n) => ({ midi: n.midi, cents: n.cents, t: n.t, letter: name(n.midi)[0] }));
+    const direction = Context.direction(cn, opts.keyPcs ? Context.frameIndices(cn, opts.keyPcs) : null);
+    const byAcc = new Map();
+    if (opts.keyPcs) for (const e of Context.afterFrame(cn, opts.keyPcs)) {
+      const m = notes[e.i].midi;
+      if (!byAcc.has(m)) byAcc.set(m, { midi: m, note: name(m), lowered: e.lowered, times: 0, deltas: [] });
+      const g = byAcc.get(m); g.times++; g.deltas.push(...e.deltas.map((d) => d.delta));
+    }
+    const afterOutOfKey = [...byAcc.values()].map(({ deltas, ...g }) => ({ ...g, comparedNotes: deltas.length, avgDeltaCents: Math.round(mean(deltas) * 10) / 10,
+      sameSign: Math.max(deltas.filter((d) => d > 0).length, deltas.filter((d) => d < 0).length) / deltas.length }))
+      .sort((a, b) => Math.abs(b.avgDeltaCents) * Math.sqrt(b.comparedNotes) - Math.abs(a.avgDeltaCents) * Math.sqrt(a.comparedNotes));
+    const context = { direction, afterOutOfKey };
+
     // Moments worth listening back to
     const moments = [];
     for (const n of notes) {
@@ -191,10 +207,11 @@
     moments.sort((a, b) => b.sev - a.sev);
     const top = moments.slice(0, 8).sort((a, b) => a.t - b.t).map((m) => ({ ...m, at: clock(m.t - start) }));
 
-    return { notes, summary, tendencies, outOfKey, timing, moments: top, coachNotes: coach(summary, tendencies, outOfKey, timing, ev, tol, name, opts.keyName, start) };
+    return { notes, summary, tendencies, outOfKey, context, timing, moments: top, coachNotes: coach(summary, tendencies, outOfKey, timing, ev, tol, name, opts.keyName, start, context) };
   }
 
-  function coach(sum, tendencies, outOfKey, timing, ev, tol, name, keyName, start) {
+  const sgn = (c) => `${c > 0 ? "+" : c < 0 ? "−" : ""}${Math.abs(c).toFixed(0)}`;
+  function coach(sum, tendencies, outOfKey, timing, ev, tol, name, keyName, start, ctx) {
     const tips = [];
     if (!sum.notes) return ["No notes were detected. Check the microphone level and play a little louder."];
     if (ev.length) tips.push(`${sum.inTunePct}% of ${ev.length} notes were in tune (within ±${tol}¢); the average miss was ${sum.avgMissCents}¢.`);
@@ -203,6 +220,10 @@
     if (ev.length >= 10 && Math.abs(sum.meanCents) >= 6) tips.push(`Overall you ran ${sum.meanCents > 0 ? "sharp" : "flat"} (${sum.meanCents > 0 ? "+" : ""}${sum.meanCents}¢). ${sum.meanCents > 0 ? "Check your tuning, then whether the hand creeps toward the bridge." : "Check your tuning, then whether the hand fully reaches each position."}`);
     const high = ev.filter((n) => n.midi >= 84).map((n) => n.cents), low = ev.filter((n) => n.midi < 84).map((n) => n.cents);
     if (high.length >= 5 && low.length >= 5 && mean(high) - mean(low) > 8) tips.push(`High notes (C6 and up) average ${mean(high) > 0 ? "+" : ""}${mean(high).toFixed(0)}¢ against ${mean(low) > 0 ? "+" : ""}${mean(low).toFixed(0)}¢ lower down. In high positions the fingers need to sit closer together than you'd expect.`);
+    const acc = ctx && ctx.afterOutOfKey.find((a) => a.comparedNotes >= 3 && Math.abs(a.avgDeltaCents) >= 10 && a.sameSign >= 0.75);
+    if (acc) tips.push(`After ${acc.note} (${acc.times}×), the next notes ran ${sgn(acc.avgDeltaCents)}¢ against the same notes elsewhere in the piece. ${acc.lowered === true && acc.avgDeltaCents < 0 ? "The hand seems to go back with that low finger: move only the finger and keep the thumb and the other fingers where they were." : acc.lowered === false && acc.avgDeltaCents > 0 ? "The hand seems to follow that raised finger forward: reach with the finger alone and keep the thumb where it was." : "The hand frame seems to move at that note: keep the thumb still and move only the finger."} Practise the bar with the accidental, then the notes after it.`);
+    const d = ctx && ctx.direction;
+    if (d && d.spots >= 4 && Math.abs(d.diff) >= 10) tips.push(`${d.diff > 0 ? "Coming down" : "Going up"}, the same notes ran ${sgn(d.diff > 0 ? d.down : d.up)}¢ against ${sgn(d.diff > 0 ? d.up : d.down)}¢ the other way (${d.spots} notes heard both ways). ${d.diff > 0 ? "Descending notes tend to come out sharp: place each lower finger early and a touch lower." : "The hand creeps toward the bridge as the line climbs: keep the lower fingers down as anchors."}`);
     for (const o of outOfKey.slice(0, 2)) tips.push(`${o.note} (${o.count}×) isn't in ${keyName}. If your music has ${o.nearestInKey.join(" or ") || "a different note"} there, that finger is sitting ${o.nearestInKey.length === 1 ? (name(o.midi + 1) === o.nearestInKey[0] ? "low" : "high") : "off"}.`);
     if (timing.kind === "metronome" && timing.onTimePct !== undefined) {
       tips.push(`${timing.onTimePct}% of notes started within ±${timing.tolMs} ms of the click grid.`);
@@ -224,7 +245,7 @@
     const start = meta.t0;
     return {
       format: REPORT_FORMAT,
-      howToRead: "A recording of the player performing a piece, analysed without the score. notes[].cents: intonation against the nearest equal-tempered note (+ sharp, − flat), measured on the steady middle of the note; null when the note was too short to judge. With a metronome, notes[].timingMs: onset against the nearest line of the click grid (+ late, − early) and beat: the beat number from the first click after the count-in. Without a metronome, timing.pulsePerMin is the player's own pulse and timing.spans lists stretches that sped up or slowed down. tendencies: notes that were consistently sharp or flat (a likely finger-placement habit). outOfKey: pitches outside the chosen key, which may be real accidentals or a finger in the wrong place. Wrong notes can't be detected without the score.",
+      howToRead: "A recording of the player performing a piece, analysed without the score. notes[].cents: intonation against the nearest equal-tempered note (+ sharp, − flat), measured on the steady middle of the note; null when the note was too short to judge. With a metronome, notes[].timingMs: onset against the nearest line of the click grid (+ late, − early) and beat: the beat number from the first click after the count-in. Without a metronome, timing.pulsePerMin is the player's own pulse and timing.spans lists stretches that sped up or slowed down. tendencies: notes that were consistently sharp or flat (a likely finger-placement habit). outOfKey: pitches outside the chosen key, which may be real accidentals or a finger in the wrong place. context.direction: the same notes going up against coming down (downMinusUp = diff). context.afterOutOfKey: the notes after each out-of-key note, against the same notes (same direction) elsewhere; a consistent avgDeltaCents means the hand frame moved with that finger. Wrong notes can't be detected without the score.",
       title: meta.title || null, date: new Date(meta.date).toISOString(), key: meta.keyName || null, a4: meta.a4, toleranceCents: meta.tol,
       metronome: meta.metronome ? { bpm: meta.metronome.bpm, beatsPerBar: meta.metronome.beatsPerBar, subdivision: meta.metronome.sub, latencyMs: meta.metronome.lat } : null,
       summary: a.summary,
@@ -232,6 +253,7 @@
         tempoCurve: a.timing.curve && a.timing.curve.filter((_, i, c) => i % Math.ceil(c.length / 120) === 0).map((c) => ({ t: Math.round(c.t - start) / 1000, pct: c.pct })) },
       tendencies: a.tendencies.map(({ midi, ...x }) => x),
       outOfKey: a.outOfKey.map(({ midi, ...x }) => x),
+      context: { direction: a.context.direction, afterOutOfKey: a.context.afterOutOfKey.map(({ midi, ...x }) => x) },
       moments: a.moments.map((m) => ({ at: m.at, t: Math.round(m.t - start) / 1000, what: m.text })),
       coachNotes: a.coachNotes,
       previous: meta.previous || [],

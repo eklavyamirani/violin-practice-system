@@ -56,13 +56,15 @@
   }
   function frameTip(notes) {
     const parts = [];
+    let stretch = "";
     notes.forEach((n, i) => {
       if (!i) return;
       const p = notes[i - 1], d = n.midi - p.midi;
+      if (n.finger === "4x") { stretch = ` Then stretch 4 up ${d === 1 ? "a half step" : "a whole step"} for the top ${n.label}.`; return; }
       if (d === 1) parts.push(`${p.finger} and ${n.finger} touch (${p.label}–${n.label} is a half step)`);
       if (d === 3) parts.push(`${p.finger} and ${n.finger} stretch wide (${p.label}–${n.label} is an augmented 2nd)`);
     });
-    return parts.length ? parts.join("; ") + "." : "All whole steps. Open the hand evenly.";
+    return (parts.length ? parts.join("; ") + "." : "All whole steps. Open the hand evenly.") + stretch;
   }
 
   // Up-and-back sequence; melodic minor comes down with its natural-minor form
@@ -237,11 +239,19 @@
     const spUp = spell(cfg.tonic, type), spDown = type.down ? spell(cfg.tonic, SCALE_TYPES[type.down]) : spUp;
     const { strings, positions } = cfg, multiPos = positions.length > 1;
     const drills = [];
+    // A one-position run is only worth adding when it's a real tonic-to-tonic scale, not the string-crossing drill again
+    const found = findRun(cfg.tonic, type, strings, positions);
+    const run = found && (multiPos || found.octave) ? found : null;
+    // When the scale tops out on the stretched 4th (G major's G6 in 5th position on E), the top string's drill in
+    // that position climbs to it too, so the stretch gets practised before the full scale needs it
+    const topUp = run && run.up[run.up.length - 1], topDown = run && run.down[run.down.length - 1];
+    const stretchTop = topUp && topUp.finger === "4x" ? topUp : null;
     for (const p of positions) {
       const group = `${ordinal(p)} position`;
       // In 1st position the open strings belong to the frame too (when the key has them)
       const one = (s, sp) => (p === 1 && inKey(sp, STRINGS[s].midi) ? [openString(s, sp)] : []).concat(fingers4(s, p, sp));
       const u = strings.map((s) => one(s, spUp)), d = strings.map((s) => one(s, spDown));
+      if (stretchTop && stretchTop.pos === p) { const i = strings.indexOf(stretchTop.string); u[i].push(stretchTop); d[i].push(topDown); }
       strings.forEach((s, i) => drills.push({ id: `p${p}-${s}`, role: "build", group, name: `${s} string`, notes: upDown(u[i], d[i]), frame: framePattern(u[i]), tip: frameTip(u[i]) }));
       if (strings.length > 1) {
         // Crossing in 1st position: the next open string replaces the 4th finger, so the drill runs the whole range once
@@ -252,9 +262,6 @@
             : `Keep the hand still when you cross from ${strings[0]} to ${strings[strings.length - 1]}. Only the finger pattern changes.` });
       }
     }
-    // A one-position run is only worth adding when it's a real tonic-to-tonic scale, not the string-crossing drill again
-    const found = findRun(cfg.tonic, type, strings, positions);
-    const run = found && (multiPos || found.octave) ? found : null;
     const rhythms = [];
     if (run) {
       const first = run.up[0], last = run.up[run.up.length - 1];
@@ -335,8 +342,20 @@
     return flats ? ["C", "D♭", "D", "E♭", "E", "F", "G♭", "G", "A♭", "A", "B♭", "B"][pc] : ["C", "C♯", "D", "D♯", "E", "F", "F♯", "G", "G♯", "A", "A♯", "B"][pc];
   }
 
+  // A drill's free-text key ("D minor", "Bb major", "F♯ harmonic minor") → { tonic, type }, or null if it isn't one we can spell.
+  // Plain "minor" means natural minor.
+  function parseKey(text) {
+    if (typeof text !== "string") return null;
+    const m = text.trim().match(/^([A-Ga-g])\s*(#|♯|b|♭)?\s*(major|maj|natural minor|harmonic minor|melodic minor|minor|min|m)?$/i);
+    if (!m) return null;
+    const tonic = m[1].toUpperCase() + (m[2] ? (m[2] === "#" || m[2] === "♯" ? "#" : "b") : "");
+    const word = (m[3] || "major").toLowerCase();
+    const type = word === "major" || word === "maj" ? "major" : word.includes(" ") ? word.split(" ")[0] : "natural";
+    return SCALE_TYPES[type] && SCALE_TYPES[type].keys.includes(tonic) ? { tonic, type } : null;
+  }
+
   const api = { SCALE_TYPES, STRINGS, STRING_ORDER, ordinal, prettyTonic, spell, fingering, fingers4, openString, framePattern, frameTip, upDown, segFrame,
-    annotateShifts, shiftPairs, handPattern, buildDrills, rhythmNotes, RHYTHMS, findRun, normalizeCfg, cfgKey, cfgLabel, nameIn };
+    annotateShifts, shiftPairs, handPattern, buildDrills, rhythmNotes, RHYTHMS, findRun, normalizeCfg, cfgKey, cfgLabel, nameIn, parseKey };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else root.Scales = api;
 })(this);

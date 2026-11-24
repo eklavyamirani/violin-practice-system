@@ -116,3 +116,7 @@ Rules:
    ci`; workout: also Docker) and how long its first and later starts take (violin: about 10 seconds to make
    the fixture on the first start of a day, then it is cached; workout: about 12 minutes for the first API
    image build, then 7 to 13 seconds).
+7. The kit's README says whether a demo can be recorded in a Linux cloud session, and what that needs beyond
+   the runner (violin: yes, nothing beyond the steps in its README's "Recording in a cloud session"). The
+   runner itself needs no browser download there: it uses the machine's installed Playwright when the
+   pinned one has no browser (`demo/runner/browser.mjs`).

@@ -1,7 +1,7 @@
 // Recorder: starts the app through its demo kit, runs a walkthrough script with Playwright and captures a
 // phone-sized video of exactly the walkthrough section (the template's 40 s), plus the caption and
 // microphone timings the assembler needs. Generic: everything app-specific comes from the kit.
-import { chromium } from "playwright";
+import { launch } from "./browser.mjs";
 import fs from "node:fs";
 import path from "node:path";
 import { WIDTH, HEIGHT, SECTIONS } from "./template.mjs";
@@ -41,7 +41,7 @@ export async function record({ kit, walk, proposal, outDir, headless = true }) {
   // Headless Chromium screencasts (which Playwright's video uses) at CSS-pixel size unless the device scale
   // is forced; with it, a 390×693 phone viewport is captured at 780×1386 and fills the 720×1280 frame sharply
   const args = ["--force-device-scale-factor=2", ...(micFile ? mic.chromiumArgs(micMode, micFile) : [])];
-  const browser = await chromium.launch({ headless, args });
+  const browser = await launch({ headless, args }, { video: true });
   const srv = await kit.start({ browser });
   const log = [];
   try {

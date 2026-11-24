@@ -5,6 +5,7 @@
 // Pure logic. Works in the browser (window.PracticeLog) and in Node (module.exports) for testing.
 (function (root) {
   "use strict";
+  const Context = typeof module !== "undefined" && module.exports ? require("./context.js") : root.Context;
 
   const FORMAT = "fingerboard-coach/practice-log@1";
   const KEEP_DAYS = 90, KEEP_RUNS = 1000, SESSION_GAP_MS = 45 * 60 * 1000, DAY_MS = 86400000;
@@ -12,11 +13,19 @@
   // ---------- Storage ----------
   // A landing is stored as a tuple to keep localStorage (and sync) small:
   // [note, string, finger, position, cents, inTune, wrongNoteFirst, shift] + [timingMs, onTime, missed] in tempo runs
+  // + [fixCents, tries] when the finger was moved after landing or (Place mode) placed more than once.
+  // So the length says what's there: 8 plain, 11 tempo, 10 plain + fix, 13 tempo + fix.
   const toTuple = (l) => [l.note, l.string, l.finger, l.position === undefined ? null : l.position, l.cents, l.inTune ? 1 : 0, l.wrongNoteFirst || null, l.shift || null,
-    ...("timingMs" in l ? [l.timingMs, l.onTime ? 1 : 0, l.missed ? 1 : 0] : [])];
+    ...("timingMs" in l ? [l.timingMs, l.onTime ? 1 : 0, l.missed ? 1 : 0] : []),
+    ...("fixCents" in l || "tries" in l ? [l.fixCents ?? null, l.tries ?? null] : [])];
   const fromTuple = (a) => {
     const l = { note: a[0], string: a[1], finger: a[2], position: a[3], cents: a[4], inTune: !!a[5], wrongNoteFirst: a[6], shift: a[7] };
-    if (a.length > 8) Object.assign(l, { timingMs: a[8], onTime: !!a[9], missed: !!a[10] });
+    if (a.length === 11 || a.length === 13) Object.assign(l, { timingMs: a[8], onTime: !!a[9], missed: !!a[10] });
+    if (a.length === 10 || a.length === 13) {
+      const [fix, tries] = a.slice(-2);
+      if (fix !== null) l.fixCents = fix;
+      if (tries !== null) l.tries = tries;
+    }
     return l;
   };
 
@@ -26,7 +35,7 @@
       t: Date.parse(run.date), key, label, mode: run.mode, tol: run.tolerance, score: run.score,
       passed: run.path ? !!run.path.passed : !!run.passed,
       ...(run.bpm ? { bpm: run.bpm } : {}), ...(run.notesPerBeat ? { per: run.notesPerBeat } : {}),
-      notes: run.landings.map(toTuple),
+      notes: run.landings.map(toTuple), ...(run.keyAcc ? { acc: run.keyAcc } : {}),
       ...(run.coachNotes && run.coachNotes.length ? { coach: run.coachNotes } : {}),
     };
   }
@@ -138,10 +147,12 @@
     "cents = the first steady landing of a note, before any correction (+ sharp, − flat). inTuneRate = share of landings within the run's tolerance. wrongNoteRate = share where a different pitch sounded first.",
     "After a shift down, sharp = stopped short and flat = overshot. After a shift up, sharp = overshot and flat = fell short. A consistent sign on the same spot is a habit; scattered signs point to an unstable hand frame.",
     "A spot is a pitch on a string, combining every drill, key and spelling that uses it. finger and position are as written in the drill; position null = open string.",
+    "fixCents (on a landing) = how far the finger was slid or adjusted toward in tune after it touched down (15¢ or more); cents is still where it touched down. tries = Place mode placements until a clean one. patterns.corrections: how often that happens, and where.",
+    "patterns.byDirection compares the same spots going up and coming down. patterns.afterShift splits the note a shift lands on from the next notes in the new position (a clean landing followed by off notes = the frame isn't set after the shift). patterns.afterFrameChange: the notes after an accidental, a finger moved off its usual spot or a 4x stretch, against the same notes (spot and direction) elsewhere in the same run; a consistent deltaCents means the hand moved with that finger.",
     "earlier/later split the range in half (by practice day, or by run within a single day); trend compares them. timingMs (tempo runs) = + late, − early against the click as heard.",
     "claudeDrills: drills the player imported. targetSpots are the spots the drill uses; before/after compare those spots across ALL drills in everything the app has kept, around the date the drill was added (or first practised, if the add date isn't known).",
   ].join(" ");
-  const HOW_TO_READ_FIXES = "fixes: Fix this note / Fix this progression sessions (three clean repetitions, a 10-second break, three more; a miss starts the set over). Each repetition is the target note's first steady landing in cents (null = stopped after a wrong note), against tolerance. Fix repetitions are not runs and are not in the patterns or spots above; the spots show whether a fix carried over into real drills.";
+  const HOW_TO_READ_FIXES = "fixes: Fix this note / Fix this progression sessions (three clean repetitions, a 10-second break, three more; a miss starts the set over). Each repetition is the target note's first steady landing in cents (null = stopped after a wrong note), against tolerance: the steady pitch, not the touchdown that the runs' cents use. (Unrelated to fixCents.) Fix repetitions are not runs and are not in the patterns or spots above; the spots show whether a fix carried over into real drills.";
 
   // opts: { now, a4, customs: [{ key, title, goal, source, added, spots: [{ note, string }] }], pieces: [{ t, title, key, summary }],
   //   fixes: DB.fixes (fix.js record), detail }
@@ -163,6 +174,31 @@
         ...(Object.keys(shifts).length ? { afterShift: shifts } : {}), ...(wrong.length ? { playedInstead: wrong.slice(0, 3) } : {}),
         ...(H ? { earlier: e, later: l, trend: trend(e, l) } : {}), _bad: badness(a) };
     }).sort((x, y) => y._bad - x._bad).map(({ _bad, ...x }) => x);
+
+    // Context across runs. Each run's notes get times far apart from the next run's, so nothing reads across runs.
+    const ctxNotes = (r, k) => r.notes.map(fromTuple).map((l, i) => ({ midi: midiOf(l.note), cents: l.wrongNoteFirst ? null : l.cents, string: l.string, finger: l.finger, pos: l.position,
+      shift: l.shift, letter: String(l.note)[0], t: k * 1e7 + i, l }));
+    const allCtx = recs.flatMap(ctxNotes);
+    const skip = new Set();
+    let off = 0;
+    recs.forEach((r) => { for (const i of Context.frameIndices(ctxNotes(r, 0), r.acc ? Context.keyPcs(r.acc) : null)) skip.add(off + i); off += r.notes.length; });
+    const dir = Context.direction(allCtx, skip), sh = Context.afterShift(allCtx);
+    const fc = new Map();
+    recs.forEach((r, k) => {
+      const ns = ctxNotes(r, k);
+      for (const e of Context.afterFrame(ns, r.acc ? Context.keyPcs(r.acc) : null)) {
+        const l = ns[e.i].l, key = `${l.note}|${l.string}|${l.finger}|${l.position}`;
+        if (!fc.has(key)) fc.set(key, { note: l.note, string: l.string, finger: l.finger, position: l.position, why: e.why, lowered: e.lowered, times: 0, deltas: [] });
+        const g = fc.get(key); g.times++; g.deltas.push(...e.deltas.map((d) => d.delta));
+      }
+    });
+    const afterFrameChange = [...fc.values()].map(({ deltas, ...g }) => ({ ...g, comparedNotes: deltas.length, avgDeltaCents: r1(mean(deltas)), sameSignRate: r2(Math.max(deltas.filter((d) => d > 0).length, deltas.filter((d) => d < 0).length) / deltas.length) }))
+      .sort((a, b) => Math.abs(b.avgDeltaCents) * Math.sqrt(b.comparedNotes) - Math.abs(a.avgDeltaCents) * Math.sqrt(a.comparedNotes)).slice(0, 10);
+    const heardLs = ls.filter((l) => l.cents !== null && l.cents !== undefined), fixed = heardLs.filter((l) => l.fixCents !== undefined);
+    const corrections = heardLs.length ? { rate: r2(fixed.length / heardLs.length), landings: fixed.length, avgAbsFixCents: r1(mean(fixed.map((l) => Math.abs(l.fixCents)))),
+      spots: [...groupBy(fixed, spotKey)].sort((a, b) => b[1].length - a[1].length).slice(0, 8).map(([, v]) => ({ note: v[0].note, string: v[0].string, times: v.length, avgLandedCents: r1(mean(v.map((l) => l.cents))), avgFixCents: r1(mean(v.map((l) => l.fixCents))) })) } : null;
+    const placed = ls.filter((l) => l.tries !== undefined);
+    const place = placed.length ? { notes: placed.length, firstTryCleanRate: r2(placed.filter((l) => l.tries === 1 && l.inTune && l.fixCents === undefined && !l.wrongNoteFirst).length / placed.length), avgTries: r2(mean(placed.map((l) => l.tries))) } : null;
 
     const wrongPairs = [...groupBy(ls.filter((l) => l.wrongNoteFirst), (l) => `${l.note} (${l.string}) → ${l.wrongNoteFirst}`)]
       .sort((a, b) => b[1].length - a[1].length).slice(0, 10).map(([k, v]) => ({ targetToPlayed: k, times: v.length }));
@@ -223,6 +259,11 @@
       },
       patterns: {
         afterShift: byField(ls, (l) => l.shift || "none"),
+        ...(corrections ? { corrections } : {}),
+        ...(place ? { place } : {}),
+        ...(dir ? { byDirection: { spotsHeardBothWays: dir.spots, upAvgCents: dir.up, downAvgCents: dir.down, downMinusUp: dir.diff } } : {}),
+        ...(sh ? { afterShiftFrame: { up: sh.up, down: sh.down, elsewhere: sh.rest } } : {}),
+        ...(afterFrameChange.length ? { afterFrameChange } : {}),
         byFinger: byField(ls, (l) => String(l.finger)),
         byPosition: byField(ls, (l) => (l.position ? String(l.position) : "open")),
         byString: byField(ls, (l) => l.string),
