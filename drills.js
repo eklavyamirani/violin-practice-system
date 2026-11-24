@@ -273,20 +273,23 @@ Rhythm example (a dotted quarter and an 8th, then a half note):
 - context: key, a4 (the player's tuning in Hz), medal, number of runs.
 - runs: the last 5 runs, newest first. Each run has:
   - date
-  - mode: "lock" (the player holds each note in tune before moving on), "flow" (they play straight through) or "tempo" (with a metronome; a note counts only if it's in tune and on the beat)
+  - mode: "lock" (the player holds each note in tune before moving on), "place" (they stop, place the finger, then bow; a miss means lifting it and placing it again), "flow" (they play straight through) or "tempo" (with a metronome; a note counts only if it's in tune and on the beat)
   - bpm, notesPerBeat and timingToleranceMs: only in tempo runs
   - tolerance: ±cents counted as in tune
   - score: fraction of notes in tune
+  - keyAcc: the key's accidental per letter C..B (melodic minor adds its natural form).
   - passed: true when score ≥ 0.85
   - landings: one entry per note, with note, string, finger, position, cents, inTune, wrongNoteFirst and shift
-    - cents: the first steady landing, before any correction. Positive = sharp, negative = flat.
+    - cents: where the finger first touched down, before any correction. Positive = sharp, negative = flat.
+    - fixCents: only when the finger was then slid or adjusted 15¢ or more toward in tune (how far it moved). Notes like this land off and get fixed on the string: a habit to practise away in Place mode.
+    - tries: only in Place runs: placements until a clean one (the first try is what's scored).
     - wrongNoteFirst: a different pitch the player played before finding the note, or null.
     - shift: "up", "down" or null.
     - timingMs, onTime and missed: only in tempo runs. timingMs is when the note started compared with the click as heard: + late, − early. missed = the note wasn't heard in its beat window, so cents and timingMs are null.
     - beats, heldBeats, lastedBeats and held: only in rhythm runs. beats = written length; heldBeats = how long the note sounded; lastedBeats = from its start to the next note's start (null before a rest or at the end); held = false when a note of 1½ beats or more stopped sounding too soon.
   - rhythm: only in rhythm runs. clicksPerBeat (2 = 8ths, 1 = beats), meanOnsetMs (+ dragging, − rushing), dotted (ratio: median long:short of dotted pairs, 3 = exact; under ~2.5 sounds like a triplet), longNotes (for each length of 1½ beats or more: heldBeats and lastedBeats on average), values (for each written length: the median it actually lasted), evenRuns (runs of equal short notes: how long they lasted and how uneven, in % of their length).
   - coachNotes: the app's own feedback for that run.
-  - path: only for Path skills. nodeId, direction ("asc_desc" = up first, "desc_asc" = from the top), counted (false for Lock-in runs), level ("learning" or "mastery"), passed, firstTryOfSession, and metrics: medianAbsCents, meanSignedCents, ascCents and descCents (average signed cents on notes reached going up / coming down), intervalEvennessCents (SD of whole-step sizes), octaveConsistencyCents (largest gap between octaves of the same note), ioiCV (rhythm evenness, Tempo runs only).
+  - path: only for Path skills. nodeId, direction ("asc_desc" = up first, "desc_asc" = from the top), counted (false for Lock-in and Place runs), level ("learning" or "mastery"), passed, firstTryOfSession, and metrics: medianAbsCents, meanSignedCents, ascCents and descCents (average signed cents on notes reached going up / coming down), intervalEvennessCents (SD of whole-step sizes), octaveConsistencyCents (largest gap between octaves of the same note), ioiCV (rhythm evenness, Tempo runs only).
 - noteTrends: for each note in the drill, collected across all practice: avgCents over the last 20 landings, inTuneRate (share within ±15¢), landings and wrongNotes.
 - For Path skills, context.path gives the skill's stage, status (new, learning, consolidating, mastered, review), tempoBpm and targetBpm, asymmetry (score coming down minus going up; negative = coming down is weaker) and daysWithCleanFirstTry.
 

@@ -116,13 +116,14 @@ The [full guide](docs/guide.md) covers every feature, with the exact thresholds 
 The **Why it works** tab in the app explains the research behind each choice:
 
 - **Specific, immediate feedback.** "Something's off" isn't enough: you need which way and how far.
-- **Score the first landing.** In real playing there's no time to fix a note, so where your finger lands first is what counts.
+- **Score the first landing.** In real playing there's no time to fix a note, so where your finger touches down is what counts, even if you slide it into tune afterwards. **Place** mode drills the opposite of sliding: stop, place, bow, and if it's off, lift it and place it again.
+- **Move the finger, not the hand.** The coach checks whether the notes after an accidental (F♮ on the E string in a sharp key, say) or after a shift go off with it, against the same notes elsewhere.
 - **Practise the hard part on its own**, then put it back in context: a drill for the problem, then the scale or passage again.
 - **Accuracy first, then speed.** The tempo goes up in small steps, and only once the notes are clean.
 - **Coming down is its own skill.** String players play descending passages measurably sharper (Kantorski 1986; Sogin 1989), so scales are also practised from the top.
 - **Take the help away gradually.** Once a drill is done, hide the fingering or the needle so you don't come to depend on the feedback.
 
-Thresholds that don't come from a published source are labelled as starting defaults. You can tune them, and synthetic audio in the tests checks them.
+Every card on that tab names its sources and how strong they are (a study, a review, an expert's book, or established teaching advice), and says so when a rule is the app's own. The full list, with what each source was used for and whether it was read in full, is in [docs/references.md](docs/references.md). Thresholds that don't come from a published source are labelled as starting defaults. You can tune them, and synthetic audio in the tests checks them.
 
 **Next, from Gebrian's book:** *Fix this note* and *Fix this progression*. They take the note a drill keeps missing, or the move into it, and run it as her microbreaks: three clean repetitions, a 10-second break, three more. It's a prototype for now.
 

@@ -276,6 +276,14 @@ main { max-width: 1280px; margin: 0 auto; padding: 1rem; }
 .how { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; }
 .how .card p { margin: .3rem 0 0; font-size: .9rem; }
 .how .card .in { font-size: .84rem; color: var(--muted); margin-top: .5rem; }
+.how .card .src { font-size: .78rem; color: var(--muted); margin-top: .5rem; }
+.how .card a { color: var(--accent); }
+.how .kind { display: inline-block; font-size: .68rem; font-weight: 600; letter-spacing: .02em; padding: 0 .35rem; border-radius: 999px; background: var(--panel-2); color: var(--muted); border: 1px solid var(--line); vertical-align: 1px; }
+.how .refs { grid-column: 1 / -1; }
+.how .refs ol { margin: .5rem 0 0; padding-left: 1.4rem; font-size: .84rem; }
+.how .refs li { margin: .35rem 0; overflow-wrap: anywhere; }
+.how .refs li { scroll-margin-top: 220px; }
+.how .refs li:target { background: var(--panel-2); border-radius: 6px; }
 .routine { margin-top: 1rem; }
 .routine ol { margin: .4rem 0 0; padding-left: 1.2rem; }
 .routine li { margin: .35rem 0; }
@@ -412,7 +420,7 @@ main { max-width: 1280px; margin: 0 auto; padding: 1rem; }
       <div class="card">
         <h3>Mode</h3>
         <div class="seg" id="modeSeg">
-          <button data-v="lock">Lock-in</button><button data-v="flow">Flow</button><button data-v="tempo">⏱ Tempo</button>
+          <button data-v="lock">Lock-in</button><button data-v="place">Place</button><button data-v="flow">Flow</button><button data-v="tempo">⏱ Tempo</button>
         </div>
         <div id="tempoPanel" hidden>
           <div class="tempo-row"><button class="tbtn" id="bpmDown" aria-label="Slower">−</button><div class="bpm"><b id="bpmVal">60</b> BPM</div><button class="tbtn" id="bpmUp" aria-label="Faster">+</button></div>
@@ -431,7 +439,7 @@ main { max-width: 1280px; margin: 0 auto; padding: 1rem; }
           <button data-v="1">🥉 ±25¢</button><button data-v="2">🥈 ±15¢</button><button data-v="3">🥇 ±10¢</button>
         </div>
         <p class="muted small" id="pathTarget" hidden></p>
-        <label class="toggle"><input type="checkbox" id="optHear"><span><b>Hear it first</b><small>Plays each note before you play it (Lock-in only). Trains your inner ear.</small></span></label>
+        <label class="toggle"><input type="checkbox" id="optHear"><span><b>Hear it first</b><small>Plays each note before you play it (Lock-in and Place). Trains your inner ear.</small></span></label>
         <label class="toggle"><input type="checkbox" id="optDrone"><span><b id="droneName">Tonic drone</b><small>Hear intervals against the tonic. Headphones help.</small></span></label>
         <label class="toggle"><input type="checkbox" id="optHide"><span><b>Hide fingering</b><small>Memory test: find the note without the map.</small></span></label>
         <label class="toggle"><input type="checkbox" id="optEars"><span><b>Ears first</b><small>Needle stays hidden until you land. Wean yourself off the screen.</small></span></label>
@@ -637,17 +645,32 @@ main { max-width: 1280px; margin: 0 auto; padding: 1rem; }
   <!-- HOW -->
   <section id="tab-how" class="tab">
     <div class="how">
-      <div class="card"><h2>Instant, specific feedback</h2><p>You improve fastest when you know right away how far off you were and which way. Hearing "something's off" isn't enough.</p><p class="in">The needle shows cents sharp or flat. The fingerboard shows roughly how many millimetres to move and in which direction. You also get a warning when you play a wrong note, like F natural instead of F♯.</p></div>
-      <div class="card"><h2>Scoring the first landing</h2><p>Real playing gives you no time to fix a note. What counts is where your finger lands before you adjust it.</p><p class="in">Each note is scored from the first steady ¼ second you play. In Lock-in mode you then correct the note and hold it in tune, so the last thing you practise is the right spot.</p></div>
-      <div class="card"><h2>Tightening the target step by step</h2><p>Mastery learning: pass one level (85% or more) before you tighten the target.</p><p class="in">🥉 ±25¢ → 🥈 ±15¢ → 🥇 ±10¢ for each drill. The app suggests the next level for you.</p></div>
-      <div class="card"><h2>Removing the help over time</h2><p>Studies of the "guidance hypothesis" show that constant feedback can make you depend on it. Removing it gradually makes the skill stick.</p><p class="in">Once a drill is done (🥈 for a build-up drill, 🥇 otherwise), turn on <b>Hide fingering</b> (practise remembering where the note is) and <b>Ears first</b> (you only see the needle after you land).</p></div>
-      <div class="card"><h2>Record yourself and listen back</h2><p>While you play, your attention is on playing. Listening to a recording afterwards lets you hear what you missed at the time.</p><p class="in">The <b>Piece</b> tab records a whole performance and marks the moments worth hearing again. It also finds notes that are consistently sharp or flat, and places where your tempo drifted. Turn those into drills, then record the piece again to see the difference.</p></div>
-      <div class="card"><h2>Accuracy first, then speed</h2><p>Speed comes from making small, steady increases once the notes are already clean. Pushing the tempo while notes are still out of tune just practises the mistakes.</p><p class="in"><b>Tempo</b> mode plays a metronome. A note only counts if it's in tune <i>and</i> on the beat. The <b>tempo ladder</b> goes up 6% after 3 passed runs in a row, not after one lucky run, and backs off 8% after 2 misses. The coach points out when shifts are making you late.</p></div>
-      <div class="card"><h2>A path, not a menu</h2><p>Each skill builds on the ones before it: finger pattern, then position frame, then shift pair, then the full scale. Keys come in the order their positions need: G, A and B♭ fit two octaves in 1st position, C and D need 3rd, E and F need 5th.</p><p class="in"><b>Path</b> unlocks a skill once its groundwork is mastered. Mastery means clean runs up <i>and</i> from the top, at the target tempo, with a clean first try on 2 different days. A good session only shows what you can do today; the first try on another day shows what you've kept. Mastered skills come back for review at growing intervals.</p></div>
-      <div class="card"><h2>Coming down is its own skill</h2><p>String players play descending passages measurably sharper than ascending ones (Kantorski 1986; Sogin 1989). Going down, each lower finger has to find its spot while the ones above lift.</p><p class="in">Every Path skill is scored in both directions, and the ⇣⇡ version starts at the top. The results split your average up and down, and when coming down is weaker, Next up starts you at the top.</p></div>
-      <div class="card"><h2>Practise the hard part on its own</h2><p>Break a hard skill into parts, drill the hardest one separately, then put it back in context.</p><p class="in"><b>Shift pairs</b> repeat each down-shift on its own, and the guide notes show the classic route (slide the old finger, then drop the new one). <b>From the top</b> then puts the shift back into a scale, starting high so you shift down while you're fresh.</p></div>
-      <div class="card"><h2>Mixing and spacing your practice</h2><p>Switching between drills and spreading sessions over several days feels harder at the time, but you remember more.</p><p class="in">In Path, "Next up" starts with reviews that are due, in mixed order, then your focus skill in short blocks, then its weakest groundwork. In Free practice, <b>Note Hunt</b> gives you random notes from your positions, picking your weakest notes more often. Short daily sessions build your streak.</p></div>
-      <div class="card"><h2>Hear the note before you play it</h2><p>You can only play in tune if you can hear the right note in your head first.</p><p class="in"><b>Hear it first</b> plays each note before you play it. The <b>tonic drone</b> helps you hear how each note sounds against the key. Listen for the ring when the tonic, 4th and 5th are in tune.</p></div>
+      <div class="card"><h2>Instant, specific feedback</h2><p>You improve fastest when you know right away how far off you were and which way. Hearing "something's off" isn't enough.</p><p class="in">The needle shows cents sharp or flat. The fingerboard shows roughly how many millimetres to move and in which direction. You also get a warning when you play a wrong note, like F natural instead of F♯.</p><p class="src">Sources: <a href="#ref-3">Salmoni et al. 1984</a> <span class="kind">Review</span>.</p></div>
+      <div class="card"><h2>Scoring the first landing</h2><p>Real playing gives you no time to fix a note. What counts is where your finger lands before you adjust it.</p><p class="in">Each note is scored from where the finger first touches down (its first ~80 ms). If you then slide or adjust it by 15¢ or more, the score stays where it landed, the note is marked ↝, and the coach counts how often it happens. (A shift's own slide is expected, so after a shift only an adjustment while the note is held counts.)</p><p class="src">Sources: <a href="#ref-10">George 2019</a> <span class="kind">Teaching</span>. The 80 ms and 15¢ are the app's own starting defaults.</p></div>
+      <div class="card"><h2>Place it, don't slide it</h2><p>Landing near the note and then fixing it is a movement too, and it's the one you rehearse each time you do it. Teachers drill the opposite: commit to the spot before you play.</p><p class="in"><b>Place</b> mode works like the "Place and Play" exercise (<i>The Instrumentalist</i>, May 2019): stop the bow, put the finger down, then play. If it's off, don't wiggle it: "take the hand away, regroup, sing the pitch, and start over." The app scores the first try, waits for you to lift, and after two misses plays the note first. Lock-in mode is the opposite habit (land, then correct and hold), so use it for learning where notes are, and Place for landing them.</p><p class="src">Sources: <a href="#ref-10">George 2019</a> <span class="kind">Teaching</span>.</p></div>
+      <div class="card"><h2>Move the finger, not the hand</h2><p>An accidental (F♮ on the E string in a sharp key, say) needs one finger to move a half step. If the whole hand moves with it, every note after it is off too.</p><p class="in">Simon Fischer (<i>Basics</i>, "Chromatic scales"): "keep the left hand in one basic position and reach the accidentals by moving the finger… Keep the thumb in one place on the neck. Otherwise the hand can lose its orientation and intonation may suffer." The coach compares the notes after an accidental, a finger moved off its usual spot or a stretch with the same notes elsewhere in the run (and the Piece tab does it for notes outside the key), and says when the hand moved with the finger. It also splits the note a shift lands on from the next notes in the new position, and compares the same notes going up and coming down.</p><p class="src">Sources: <a href="#ref-9">Fischer, “Chromatic scales”</a> <span class="kind">Teaching</span>. Comparing the same notes in the same direction is the app's own method.</p></div>
+      <div class="card"><h2>Tightening the target step by step</h2><p>Mastery learning: pass one level (85% or more) before you tighten the target.</p><p class="in">🥉 ±25¢ → 🥈 ±15¢ → 🥇 ±10¢ for each drill. The app suggests the next level for you.</p><p class="src">Sources: <a href="#ref-6">Bloom 1968</a> <span class="kind">Teaching</span>. The 85% and the medal windows are the app's own.</p></div>
+      <div class="card"><h2>Removing the help over time</h2><p>Studies of the "guidance hypothesis" show that constant feedback can make you depend on it. Removing it gradually makes the skill stick.</p><p class="in">Once a drill is done (🥈 for a build-up drill, 🥇 otherwise), turn on <b>Hide fingering</b> (practise remembering where the note is) and <b>Ears first</b> (you only see the needle after you land).</p><p class="src">Sources: <a href="#ref-3">Salmoni et al. 1984</a> <span class="kind">Review</span>.</p></div>
+      <div class="card"><h2>Record yourself and listen back</h2><p>While you play, your attention is on playing. Listening to a recording afterwards lets you hear what you missed at the time.</p><p class="in">The <b>Piece</b> tab records a whole performance and marks the moments worth hearing again. It also finds notes that are consistently sharp or flat, and places where your tempo drifted. Turn those into drills, then record the piece again to see the difference.</p><p class="src">Sources: none. A design choice, no source.</p></div>
+      <div class="card"><h2>Accuracy first, then speed</h2><p>Speed comes from making small, steady increases once the notes are already clean. Pushing the tempo while notes are still out of tune just practises the mistakes.</p><p class="in"><b>Tempo</b> mode plays a metronome. A note only counts if it's in tune <i>and</i> on the beat. The <b>tempo ladder</b> goes up 6% after 3 passed runs in a row, not after one lucky run, and backs off 8% after 2 misses. The coach points out when shifts are making you late.</p><p class="src">Sources: none. Teaching practice, no source cited; the ladder's steps are the app's own.</p></div>
+      <div class="card"><h2>A path, not a menu</h2><p>Each skill builds on the ones before it: finger pattern, then position frame, then shift pair, then the full scale. Keys come in the order their positions need: G, A and B♭ fit two octaves in 1st position, C and D need 3rd, E and F need 5th.</p><p class="in"><b>Path</b> unlocks a skill once its groundwork is mastered. Mastery means clean runs up <i>and</i> from the top, at the target tempo, with a clean first try on 2 different days. A good session only shows what you can do today; the first try on another day shows what you've kept. Mastered skills come back for review at growing intervals.</p><p class="src">Sources: <a href="#ref-6">Bloom 1968</a> <span class="kind">Teaching</span>, <a href="#ref-5">Cepeda et al. 2006</a> <span class="kind">Review</span>. The skill graph and review intervals are the app's own.</p></div>
+      <div class="card"><h2>Coming down is its own skill</h2><p>String players play descending passages measurably sharper than ascending ones (Kantorski 1986; Sogin 1989). Going down, each lower finger has to find its spot while the ones above lift.</p><p class="in">Every Path skill is scored in both directions, and the ⇣⇡ version starts at the top. The results split your average up and down, and when coming down is weaker, Next up starts you at the top.</p><p class="src">Sources: <a href="#ref-1">Sogin 1989</a> <span class="kind">Study</span>, <a href="#ref-2">Kantorski 1986</a> <span class="kind">Study</span>.</p></div>
+      <div class="card"><h2>Practise the hard part on its own</h2><p>Break a hard skill into parts, drill the hardest one separately, then put it back in context.</p><p class="in"><b>Shift pairs</b> repeat each down-shift on its own, and the guide notes show the classic route (slide the old finger, then drop the new one). <b>From the top</b> then puts the shift back into a scale, starting high so you shift down while you're fresh.</p><p class="src">Sources: <a href="#ref-8">Gebrian 2024</a> <span class="kind">Book</span>.</p></div>
+      <div class="card"><h2>Mixing and spacing your practice</h2><p>Switching between drills and spreading sessions over several days feels harder at the time, but you remember more.</p><p class="in">In Path, "Next up" starts with reviews that are due, in mixed order, then your focus skill in short blocks, then its weakest groundwork. In Free practice, <b>Note Hunt</b> gives you random notes from your positions, picking your weakest notes more often. Short daily sessions build your streak.</p><p class="src">Sources: <a href="#ref-4">Shea &amp; Morgan 1979</a> <span class="kind">Study</span>, <a href="#ref-5">Cepeda et al. 2006</a> <span class="kind">Review</span>.</p></div>
+      <div class="card"><h2>Hear the note before you play it</h2><p>You can only play in tune if you can hear the right note in your head first.</p><p class="in"><b>Hear it first</b> plays each note before you play it. The <b>tonic drone</b> helps you hear how each note sounds against the key. Listen for the ring when the tonic, 4th and 5th are in tune.</p><p class="src">Sources: none. Teaching practice, no source cited.</p></div>
+      <div class="card refs" id="sources"><h2>Sources</h2><p>How strong each one is: <span class="kind">Study</span> a peer-reviewed experiment; <span class="kind">Review</span> a review of many studies; <span class="kind">Method</span> a published method the app implements; <span class="kind">Book</span> an expert's synthesis; <span class="kind">Teaching</span> established teaching advice, widely used but not tested as such. Thresholds are the app's own starting defaults unless a card says otherwise. Details, and what was read in full: <code>docs/references.md</code>.</p><ol>
+        <li id="ref-1"><span class="kind">Study</span> Sogin, D. W. (1989). An analysis of string instrumentalists' performed intonational adjustments within an ascending and descending pitch set. <i>Journal of Research in Music Education</i>, 37(2), 104–111.</li>
+        <li id="ref-2"><span class="kind">Study</span> Kantorski, V. J. (1986). String instrument intonation in upper and lower registers: The effects of accompaniment. <i>Journal of Research in Music Education</i>, 34(3), 200–210. <a href="https://doi.org/10.2307/3344749" target="_blank" rel="noopener">Link</a></li>
+        <li id="ref-3"><span class="kind">Review</span> Salmoni, A. W., Schmidt, R. A., &amp; Walter, C. B. (1984). Knowledge of results and motor learning: A review and critical reappraisal. <i>Psychological Bulletin</i>, 95(3), 355–386. <a href="https://doi.org/10.1037/0033-2909.95.3.355" target="_blank" rel="noopener">Link</a></li>
+        <li id="ref-4"><span class="kind">Study</span> Shea, J. B., &amp; Morgan, R. L. (1979). Contextual interference effects on the acquisition, retention, and transfer of a motor skill. <i>Journal of Experimental Psychology: Human Learning and Memory</i>, 5(2), 179–187.</li>
+        <li id="ref-5"><span class="kind">Review</span> Cepeda, N. J., Pashler, H., Vul, E., Wixted, J. T., &amp; Rohrer, D. (2006). Distributed practice in verbal recall tasks: A review and quantitative synthesis. <i>Psychological Bulletin</i>, 132(3), 354–380. (Verbal memory, not motor skills.) <a href="https://doi.org/10.1037/0033-2909.132.3.354" target="_blank" rel="noopener">Link</a></li>
+        <li id="ref-6"><span class="kind">Teaching</span> Bloom, B. S. (1968). Learning for mastery. <i>Evaluation Comment</i>, 1(2), 1–12. UCLA. <a href="https://eric.ed.gov/?id=ED053419" target="_blank" rel="noopener">Link</a></li>
+        <li id="ref-7"><span class="kind">Method</span> Levitt, H. (1971). Transformed up-down methods in psychoacoustics. <i>Journal of the Acoustical Society of America</i>, 49(2), 467–477. (Ear tab.) <a href="https://doi.org/10.1121/1.1912375" target="_blank" rel="noopener">Link</a></li>
+        <li id="ref-8"><span class="kind">Book</span> Gebrian, M. (2024). <i>Learn Faster, Perform Better: A Musician's Guide to the Neuroscience of Practicing.</i> Oxford University Press. <a href="https://academic.oup.com/book/57630" target="_blank" rel="noopener">Link</a></li>
+        <li id="ref-9"><span class="kind">Teaching</span> Fischer, S. <i>Basics</i>: “Chromatic scales.” <a href="https://www.simonfischeronline.com/uploads/5/7/7/9/57796211/211_jan_chromatic_scales.pdf" target="_blank" rel="noopener">Link</a></li>
+        <li id="ref-10"><span class="kind">Teaching</span> George, S. (2019, May). Improving intonation and hand habits in first position. <i>The Instrumentalist</i>. <a href="https://theinstrumentalist.com/may-2019/improving-intonation-and-hand-habits-in-first-position/" target="_blank" rel="noopener">Link</a></li>
+        <li id="ref-11"><span class="kind">Method</span> McLeod, P., &amp; Wyvill, G. (2005). A smarter way to find pitch. <i>Proc. International Computer Music Conference</i>, 138–141. (The pitch detector.) <a href="https://www.cs.otago.ac.nz/graphics/Geoff/tartini/papers.html" target="_blank" rel="noopener">Link</a></li>
+      </ol></div>
     </div>
     <div class="card routine">
       <h2>A 10-minute daily routine</h2>
@@ -688,6 +711,8 @@ window.addEventListener("error", (e) => {
 <script src="scales.js"></script>
 <script src="curriculum.js"></script>
 <script src="drills.js"></script>
+<script src="context.js"></script>
+<script src="landing.js"></script>
 <script src="practicelog.js"></script>
 <script src="plan.js"></script>
 <script src="piece.js"></script>
@@ -1148,7 +1173,7 @@ function startRun(seq) {
   buildPath(); buildBoard();
   newTarget(performance.now());
   setMsg(ex.rhythm ? `🎵 ${s.bpm} BPM, clicks on ${run.rhythm.clicks === 2 ? "8ths" : "beats"}. One bar counts you in; then play each note for its full length. You get the results at the end.`
-    : ex.path && mode === "lock" ? "Lock-in: learn the notes. Only Flow and Tempo runs count toward the path." : mode === "lock" ? "Play the note and hold it in tune until the ring fills." : mode === "flow" ? "Flow: play through at your own pace. Each note is scored where it first lands."
+    : ex.path && (mode === "lock" || mode === "place") ? `${mode === "lock" ? "Lock-in: learn the notes" : "Place: stop, place each finger, then bow"}. Only Flow and Tempo runs count toward the path.` : mode === "lock" ? "Play the note and hold it in tune until the ring fills." : mode === "place" ? "Place: stop the bow, put the finger down, then play. Where it touches down is the score; if it's off, lift it and place it again, don't slide." : mode === "flow" ? "Flow: play through at your own pace. Each note is scored where it first lands."
     : `⏱ ${s.bpm} BPM, ${s.per} note${s.per > 1 ? "s" : ""} per beat. Four clicks count you in, then play each note on its beat.`);
 }
 
@@ -1164,7 +1189,7 @@ function stopRun() {
 
 function newTarget(t) {
   const cur = run.seq[run.idx];
-  run.st = { landed: false, wrong: null, hold: 0, start: t, readyAt: t };
+  run.st = { landed: false, wrong: null, hold: 0, start: t, readyAt: t, phase: "lift", quiet: 0, tries: 0 };
   if (run.mode === "tempo") return renderTarget(), updatePath();
   if (run.mode === "lock" && DB.settings.hear) {
     tone(midiFreq(cur.midi), 0.7, 0.2, "triangle");
@@ -1175,6 +1200,7 @@ function newTarget(t) {
 
 function runStep(t, dt, stable) {
   if (run.mode === "tempo") return tempoStep(t);
+  if (run.mode === "place") return placeStep(t, dt);
   const cur = run.seq[run.idx], st = run.st;
   if (t < st.readyAt) return;
   if (!st.landed) {
@@ -1202,11 +1228,17 @@ function runStep(t, dt, stable) {
   }
 }
 
-function land(dev, t) {
-  const cur = run.seq[run.idx], st = run.st;
+function land(steady, t) {
+  const cur = run.seq[run.idx], st = run.st, prev = run.seq[run.idx - 1];
   st.landed = true;
+  // Score where the finger touched down, not where it was slid to (landing.js). After a wrong note or a shift, the way in is a slide anyway.
+  const shifted = !!shiftDir(prev, cur) || st.wrong !== null;
+  const td = Landing.touchdown(frames, cur.midi, t, { prev: prev ? prev.midi : null, notBefore: st.start });
+  closeHeld(td ? td.t : t);
+  const j = Landing.judge({ steady, touch: td ? td.cents : null, end: null, shifted }), dev = j.cents;
   const ok = st.wrong === null && Math.abs(dev) <= run.tol;
-  run.results[run.idx] = { item: cur, cents: dev, wrong: st.wrong, ok, inTune: ok, timing: null, onTime: null, missed: false, ms: t - st.start };
+  run.results[run.idx] = { item: cur, cents: dev, wrong: st.wrong, ok, inTune: ok, timing: null, onTime: null, missed: false, ms: t - st.start,
+    fix: run.mode === "lock" ? null : j.fix, steady, touch: td ? td.cents : null, shifted, landT: t };
   if (ok) {
     run.combo++; run.maxCombo = Math.max(run.maxCombo, run.combo);
     run.xp += 10 * TIERS[run.tier].mult + Math.min(run.combo, 10);
@@ -1218,12 +1250,20 @@ function land(dev, t) {
   ns.n++; ns.recent.push(Math.round(dev)); if (ns.recent.length > 20) ns.recent.shift();
   if (st.wrong !== null) ns.wrong++;
 
-  const where = `${Math.abs(dev).toFixed(0)}¢ ${dev > 0 ? "sharp" : "flat"}`;
+  const where = `${Math.abs(dev).toFixed(0)}¢ ${dev > 0 ? "sharp" : "flat"}${j.fix !== null && run.mode !== "lock" ? ", then slid" : ""}`;
   if (ok) setMsg(`✓ Landed ${Math.abs(dev) < 3 ? "dead on" : where}${run.combo >= 3 ? ` · combo ×${run.combo}` : ""}${run.mode === "lock" ? ". Hold it…" : ""}`, "good");
   else if (st.wrong === null) setMsg(`Landed ${where}. ${run.mode === "lock" ? `Move ${dev > 0 ? "toward the scroll" : "toward the bridge"} to lock it.` : "Keep going."}`, "bad");
   else if (run.mode === "lock") setMsg(`Found it. Now hold it in tune.`, "");
   renderStats(true); updatePath(); renderTarget();
   if (run.mode === "flow") advance(t);
+}
+
+// The previous note's end: did the finger move after it landed (Flow)? Called when the next note starts or the run ends.
+function closeHeld(until) {
+  const k = run.idx - 1, x = run.results[k];
+  if (run.mode !== "flow" || !x || x.landT === undefined || x.cents === null) return;
+  const end = Landing.held(frames, x.item.midi, x.landT, until);
+  if (end !== null) x.fix = Landing.judge({ steady: x.steady, touch: x.touch, end, shifted: x.shifted }).fix;
 }
 
 // Tempo mode: the target follows the metronome. Each note owns the half-slot either side of its beat,
@@ -1248,9 +1288,12 @@ function scoreTempoNote(k) {
   let res;
   if (j >= 0) {
     const body = fr.filter((f) => f.t >= fr[j].t && f.t < fr[j].t + Math.min(STABLE_MS, T.slot * 0.8) && near(f, it.midi)).map((f) => f.m);
-    const cents = (median(body) - it.midi) * 100, timing = fr[j].t - T.lat - exp;
+    const steady = (median(body) - it.midi) * 100, timing = fr[j].t - T.lat - exp;
+    const td = Landing.touchdown(fr, it.midi, fr[j].t, { prev: prev ? prev.midi : null });
+    const end = Landing.held(fr, it.midi, fr[j].t, to + T.lat);
+    const { cents, fix } = Landing.judge({ steady, touch: td ? td.cents : null, end, shifted: !!shiftDir(prev, it) });
     const inTune = Math.abs(cents) <= run.tol, onTime = Math.abs(timing) <= T.tolMs;
-    res = { item: it, cents, timing, inTune, onTime, wrong: null, ok: inTune && onTime, missed: false };
+    res = { item: it, cents, timing, inTune, onTime, wrong: null, ok: inTune && onTime, missed: false, fix };
   } else {
     // a steady different pitch (not the previous note ringing on, not a guide note) is a wrong note
     const w = fr.findIndex((f, idx) => f.t - T.lat < to && f.m !== null && !near(f, it.midi) && !(prev && near(f, prev.midi)) && !(it.guide && near(f, it.guide.midi)) && settles(idx, Math.round(f.m)));
@@ -1297,6 +1340,52 @@ function finishRhythm() {
     }
   }
   finishRun();
+}
+
+// Place mode (Place and Play): stop, place the finger, then bow. A try is judged from where the finger touched down;
+// sliding it counts as a miss. After a miss you lift, hear the note, and place it again; the note's score is the first try.
+const PLACE_QUIET_MS = 250;
+function placeStep(t, dt) {
+  const cur = run.seq[run.idx], st = run.st, last = frames[frames.length - 1];
+  if (t < st.readyAt) return;
+  if (st.phase === "lift") {
+    st.quiet = last && last.m === null ? st.quiet + dt : 0;
+    if (st.quiet < PLACE_QUIET_MS) return;
+    st.phase = "try";
+    st.from = t;
+    if (DB.settings.hear || st.tries >= 2) { // after two misses, hear it before placing again
+      tone(midiFreq(cur.midi), 0.7, 0.2, "triangle");
+      st.from = st.readyAt = suppressUntil = t + 950;
+    }
+    if (st.tries) setMsg(`${st.tries >= 2 ? "Listen, then p" : "P"}lace it again: ${itemName(cur)}, finger ${fingerLabel(cur)}. Put it down where it belongs and leave it there.`);
+    return;
+  }
+  const tr = Landing.placeTry(frames.filter((f) => f.t >= st.from), cur.midi);
+  if (!tr) return;
+  const clean = tr.wrong === null && tr.slide === null && Math.abs(tr.cents) <= run.tol;
+  st.tries++;
+  if (st.tries === 1) {
+    const inTune = tr.cents !== null && Math.abs(tr.cents) <= run.tol;
+    run.results[run.idx] = { item: cur, cents: tr.cents, wrong: tr.wrong, ok: clean, inTune, timing: null, onTime: null, missed: false, fix: tr.slide, tries: 1 };
+    if (clean) { run.combo++; run.maxCombo = Math.max(run.maxCombo, run.combo); run.xp += 10 * TIERS[run.tier].mult + Math.min(run.combo, 10); }
+    else { run.combo = 0; if (inTune) run.xp += 3; }
+    const ns = (DB.notes[cur.key] ||= { n: 0, recent: [], wrong: 0 });
+    if (tr.cents !== null) { ns.n++; ns.recent.push(Math.round(tr.cents)); if (ns.recent.length > 20) ns.recent.shift(); }
+    if (tr.wrong !== null) ns.wrong++;
+  } else run.results[run.idx].tries = st.tries;
+  st.landed = tr.cents !== null;
+  renderStats(true); updatePath(); renderTarget();
+  if (clean) {
+    const nx = run.seq[run.idx + 1];
+    setMsg(`✓ Placed ${Math.abs(tr.cents) < 3 ? "dead on" : `${Math.abs(tr.cents).toFixed(0)}¢ ${tr.cents > 0 ? "sharp" : "flat"}`}${st.tries > 1 ? ` (try ${st.tries})` : ""}.${nx ? ` Stop the bow, place ${nx.finger === "0" ? `open ${nx.string}` : `finger ${fingerLabel(nx)} for ${itemName(nx)}`}, then play.` : ""}`, "good");
+    if (DB.settings.chime) chime();
+    return advance(t);
+  }
+  st.phase = "lift"; st.quiet = 0;
+  const dir = (c) => (c > 0 ? "lower, toward the scroll" : "higher, toward the bridge");
+  if (tr.wrong !== null) setMsg(`✗ That's ${noteName(tr.wrong)}. The target is ${itemName(cur)}. Lift the finger off and place it ${dir((tr.wrong - cur.midi) * 100)}.`, "bad");
+  else if (tr.slide !== null) setMsg(`✗ It landed ${Math.abs(tr.cents).toFixed(0)}¢ ${tr.cents > 0 ? "sharp" : "flat"}, then slid ${Math.abs(tr.slide).toFixed(0)}¢. Don't fix it on the string: lift it and place it again.`, "bad");
+  else setMsg(`✗ Landed ${Math.abs(tr.cents).toFixed(0)}¢ ${tr.cents > 0 ? "sharp" : "flat"}. Don't slide it: lift the finger and place it a hair ${dir(tr.cents)}.`, "bad");
 }
 
 function advance(t) {
@@ -1494,9 +1583,10 @@ function recordRun(r, res, tips, path) {
   const entry = (DB.runs[key] ||= { label: drillLabel(r.ex), key: r.ex.custom ? r.ex.key || null : keyName(), runs: [] });
   entry.label = drillLabel(r.ex);
   entry.drill = r.ex.hunt ? null : r.ex.custom ? r.ex.def : DrillIO.fromSequence(drillLabel(r.ex), r.ex.notes, { key: keyName(), tips: r.ex.tip, drone: curKey().tonic });
-  const score = res.filter((x) => x.ok).length / res.length;
+  const score = res.filter((x) => x.ok).length / res.length, keyAcc = keyAccOf(r.ex);
   entry.runs.unshift({
     date: new Date().toISOString(), mode: r.mode, tolerance: r.tol, score: Math.round(score * 1000) / 1000, passed: score >= PASS,
+    ...(keyAcc ? { keyAcc } : {}),
     ...(r.tempo ? { bpm: r.tempo.bpm, ...(r.rhythm ? {} : { notesPerBeat: r.tempo.per }), timingToleranceMs: r.tempo.tolMs } : {}),
     ...(r.rhythm ? { rhythm: Rhythm.report(r.rhythm.summary, r.rhythm.clicks), holdFraction: r.rhythm.holdFrac } : {}),
     ...(path ? { path: { nodeId: r.ex.nodeId, direction: r.ex.dir, counted: path.counted, level: path.level, passed: path.passed, firstTryOfSession: path.cold,
@@ -1504,6 +1594,7 @@ function recordRun(r, res, tips, path) {
     landings: res.map((x, i) => ({ note: DrillIO.noteText(x.item), string: x.item.string, finger: x.item.finger === "4x" ? "4x" : +x.item.finger, position: x.item.pos,
       cents: x.cents === null ? null : Math.round(x.cents * 10) / 10, inTune: x.inTune, wrongNoteFirst: x.wrong === null ? null : DrillIO.midiText(x.wrong), shift: shiftDir(r.seq[i - 1], x.item),
       ...(r.tempo ? { timingMs: x.timing === null ? null : Math.round(x.timing), onTime: x.onTime, missed: x.missed } : {}),
+      ...(x.fix !== null && x.fix !== undefined ? { fixCents: Math.round(x.fix * 10) / 10 } : {}), ...(x.tries ? { tries: x.tries } : {}),
       ...(r.rhythm ? { beats: Math.round(x.beats * 1000) / 1000, heldBeats: x.heldBeats === null ? null : Math.round(x.heldBeats * 100) / 100, lastedBeats: x.lastedBeats === null ? null : Math.round(x.lastedBeats * 100) / 100, held: x.held } : {}) })),
     coachNotes: tips.map((t) => t.replace(/<[^>]+>/g, "")),
   });
@@ -1524,7 +1615,7 @@ function buildReport(key) {
   }
   return {
     format: DrillIO.REPORT_FORMAT, exported: new Date().toISOString(),
-    howToRead: "cents = first steady landing before any correction (+ sharp, − flat). After a shift down, sharp = stopped short; after a shift up, sharp = overshot. In tempo runs, timingMs = + late / − early against the click as heard. Full format: the app's My drills tab.",
+    howToRead: "cents = where the finger first touched down, before any correction (+ sharp, − flat); fixCents = how far it was then slid or adjusted toward in tune (only when 15¢ or more); tries = Place mode tries until a clean placement (the first try is scored). After a shift down, sharp = stopped short; after a shift up, sharp = overshot. In tempo runs, timingMs = + late / − early against the click as heard. Full format: the app's My drills tab.",
     drill: entry.drill,
     context: { drill: entry.label, key: entry.key, a4: DB.settings.a4, medal: rec.best ? TIERS[rec.best].name : "none", totalRuns: rec.runs || entry.runs.length, ...pathContext(key) },
     runs: entry.runs,
@@ -1579,14 +1670,78 @@ function buildTips(res, tol, seq, ex) {
     const accidentalSlip = Math.abs(x.wrong - x.item.midi) === 1;
     tips.push(`You played <b>${noteName(x.wrong)}</b> instead of <b>${itemName(x.item)}</b>.${accidentalSlip ? ` ${keyPhrase(ex)} it's ${x.item.label}. Check the finger pattern: ${x.item.midi > x.wrong ? "this finger sits higher" : "this finger sits lower"} than you placed it.` : " Check the hand frame for this position."}`);
   }
+  tips.push(...contextTips(res, tol, seq, ex));
   const all = res.filter((x) => x.cents !== null).map((x) => x.cents), m = all.length ? mean(all) : 0;
   if (Math.abs(m) > 8 && tips.length < 4) tips.push(`Overall you ran ${m > 0 ? "sharp" : "flat"} (${m > 0 ? "+" : ""}${m.toFixed(0)}¢ on average). ${m > 0 ? `${Math.max(...res.map((x) => x.item.pos)) >= 3 ? "In higher positions the hand often creeps toward the bridge." : "Your hand may be creeping toward the bridge."} Keep your thumb under the 1st–2nd finger.` : "Often the hand doesn't fully reach the position. Check where your thumb is and where your palm meets the violin's shoulder."}`);
-  const half = Math.ceil(res.length / 2);
-  if (!ex.hunt && !ex.custom && !ex.path && !ex.id.startsWith("down") && res.length > 6) {
-    const up = mean(all.slice(0, half)), down = mean(all.slice(half));
-    if (Math.abs(up - down) > 12 && tips.length < 4) tips.push(`Going up you averaged ${up > 0 ? "+" : ""}${up.toFixed(0)}¢; coming down ${down > 0 ? "+" : ""}${down.toFixed(0)}¢. Your fingers are drifting ${up > down ? "sharp going up" : "flat going up"}. Keep lower fingers down as you climb so they anchor the hand.`);
-  }
   return tips;
+}
+
+// The key a run is in, as pitch classes (for accidentals), or null when a custom drill doesn't say
+function keyAccOf(ex) {
+  const k = ex.custom ? (ex.key ? Scales.parseKey(ex.key) : null) : curKey();
+  if (!k) return null;
+  const T = Scales.SCALE_TYPES[k.type];
+  return [Scales.spell(k.tonic, T).acc, ...(T.down ? [Scales.spell(k.tonic, Scales.SCALE_TYPES[T.down]).acc] : [])];
+}
+const runKeyPcs = (ex) => { const a = keyAccOf(ex); return a && Context.keyPcs(a); };
+const contextNotes = (res, seq) => res.map((x, i) => ({ midi: x.item.midi, cents: x.wrong !== null ? null : x.cents, string: x.item.string, finger: x.item.finger, pos: x.item.pos,
+  shift: shiftDir(seq[i - 1], x.item), letter: x.item.label[0] }));
+const signedC = (c) => `${c > 0 ? "+" : c < 0 ? "−" : ""}${Math.abs(c).toFixed(0)}`;
+
+// When it goes off, not just where: corrections after landing, after a note that changes the hand frame, after shifts,
+// and coming down against going up (context.js)
+function contextTips(res, tol, seq, ex) {
+  const out = [], notes = contextNotes(res, seq);
+  if (res.some((x) => x.tries)) {
+    const again = res.filter((x) => x.tries > 1).sort((a, b) => b.tries - a.tries);
+    out.push(`<b>First placement clean on ${res.filter((x) => x.ok).length} of ${res.length}.</b>${again.length ? ` Needed more tries: ${again.slice(0, 4).map((x) => `${itemName(x.item)} (${x.tries})`).join(", ")}. Those are the spots to place a few extra times, lifting the finger off in between.` : " Every note went down where it belongs the first time."}`);
+  }
+  const fixed = res.filter((x) => x.fix !== null && x.fix !== undefined && x.cents !== null);
+  if (fixed.length >= 2 && fixed.length >= res.length * 0.15) {
+    const names = [...new Set(fixed.map((x) => itemName(x.item)))];
+    out.push(`You moved the finger after it landed on <b>${fixed.length} of ${res.length}</b> notes (${names.slice(0, 4).join(", ")}${names.length > 4 ? "…" : ""}), by ${mean(fixed.map((x) => Math.abs(x.fix))).toFixed(0)}¢ on average. The score counts where it landed. Landing and then fixing becomes the habit itself: practise it in <b>Place</b> mode, where a miss means lifting the finger and placing it again.`);
+  }
+
+  // After a frame change, against the same notes elsewhere in the run
+  const groups = new Map();
+  for (const e of Context.afterFrame(notes, runKeyPcs(ex))) {
+    const k = notes[e.i].midi + notes[e.i].string;
+    if (!groups.has(k)) groups.set(k, { e, it: res[e.i].item, deltas: [] });
+    groups.get(k).deltas.push(...e.deltas.map((d) => d.delta));
+  }
+  const frame = [...groups.values()].map((g) => ({ ...g, m: mean(g.deltas) }))
+    .filter((g) => g.deltas.length >= 2 && Math.abs(g.m) >= 10 && g.deltas.filter((d) => Math.sign(d) === Math.sign(g.m)).length >= g.deltas.length * 0.75)
+    .sort((a, b) => Math.abs(b.m) - Math.abs(a.m))[0];
+  if (frame) {
+    const { e, it, m } = frame, back = e.lowered === true && m < 0, fwd = e.lowered === false && m > 0;
+    const what = e.why.includes("stretch") ? "the stretch" : e.why.includes("accidental") ? "the accidental" : "that finger's new spot";
+    out.push(`After <b>${itemName(it)}</b> (${it.string} string, finger ${fingerLabel(it)}, ${posText(it)}), the next notes ran <b>${signedC(m)}¢</b> against the same notes elsewhere in the run (${frame.deltas.length} notes). ${back ? `The hand went back with the finger for ${what}. Move only the finger and leave the thumb and the other fingers where they were.` : fwd ? `The hand followed the finger forward for ${what}. Reach with that finger alone, then let it come back; the thumb stays put.` : `The hand frame moved at ${what}. Keep the thumb where it was and move only the finger.`} Then check the next note against an open string.`);
+  }
+
+  // After shifts: the shift lands, then do the notes in the new position hold?
+  const sh = Context.afterShift(notes);
+  if (sh) {
+    const cands = ["up", "down"].map((dir) => ({ dir, L: sh[dir].landing, A: sh[dir].after })).filter((c) => c.L && c.A && c.A.n >= 2).sort((a, b) => Math.abs(b.A.mean) - Math.abs(a.A.mean));
+    for (const { dir, L, A } of cands) {
+      const R = sh.rest;
+      if (Math.abs(L.mean) <= tol * 0.6 && Math.abs(A.mean) >= Math.max(10, tol * 0.8) && (!R || Math.abs(A.mean - R.mean) >= 8)) {
+        out.push(`Your shifts ${dir} arrive (the shift note averaged ${signedC(L.mean)}¢), but the next notes in the new position ran <b>${signedC(A.mean)}¢</b>${R ? ` (the rest of the run ${signedC(R.mean)}¢)` : ""}. The hand gets there; the frame doesn't. Once you arrive, keep the finger you shifted on down and place the next fingers from it.`);
+        break;
+      }
+      if (Math.sign(L.mean) === Math.sign(A.mean) && Math.abs(L.mean) >= 10 && Math.abs(A.mean) >= 10) {
+        const how = dir === "up" ? (A.mean > 0 ? "goes too far" : "falls short") : (A.mean > 0 ? "doesn't come back far enough" : "comes back too far");
+        out.push(`After shifting ${dir}, the shift note (${signedC(L.mean)}¢) and the notes after it (${signedC(A.mean)}¢) are all ${A.mean > 0 ? "sharp" : "flat"}: the whole hand ${how}, so every finger in the new position is off with it. Fix the shift's distance and the rest follows.`);
+        break;
+      }
+    }
+  }
+
+  // Coming down against going up, on the same notes (the path has its own version of this)
+  const d = Context.direction(notes, Context.frameIndices(notes, runKeyPcs(ex)));
+  if (!ex.path && d && d.spots >= 3 && Math.abs(d.diff) >= 10)
+    out.push(d.diff > 0 ? `Coming down, the same notes ran <b>${signedC(d.down)}¢</b> against ${signedC(d.up)}¢ going up (${d.spots} notes heard both ways). String players tend to play descending notes sharp (Kantorski 1986; Sogin 1989). Going down, place each lower finger early, and a touch lower.`
+      : `Going up, the same notes ran <b>${signedC(d.up)}¢</b> against ${signedC(d.down)}¢ coming down (${d.spots} notes heard both ways). The hand creeps toward the bridge as it climbs: keep the lower fingers down as anchors.`);
+  return out;
 }
 
 function rhythmTips(r) {
@@ -1646,8 +1801,7 @@ function pieceKey() {
   if (!k) return null;
   const [tonic, type] = k.split("|");
   const types = type === "major" ? ["major"] : ["natural", "harmonic", "melodic"]; // minor keys allow the raised 6th and 7th
-  const pcs = new Set();
-  for (const t of types) { const sp = Scales.spell(tonic, Scales.SCALE_TYPES[t]); [0, 2, 4, 5, 7, 9, 11].forEach((npc, l) => pcs.add((npc + sp.acc[l] + 12) % 12)); }
+  const pcs = Context.keyPcs(types.map((t) => Scales.spell(tonic, Scales.SCALE_TYPES[t]).acc)); // .letters: which way an accidental is off
   const cfg = { tonic, type: type === "major" ? "major" : "harmonic" };
   return { pcs, name: `${Scales.prettyTonic(tonic)} ${type === "major" ? "major" : "minor"}`, noteName: (m) => Scales.nameIn(m, cfg) + (Math.floor(m / 12) - 1) };
 }
@@ -2097,9 +2251,9 @@ function showResults(o) {
   const head = path ? pathHead(path, r) : medal ? `<div class="medal-big">${T.icon}</div><div><h2 style="margin:0">${T.name} earned!</h2><div class="muted">${r.ex.group} · ${r.ex.name}</div></div>`
     : passed ? `<div class="medal-big">✓</div><div><h2 style="margin:0">Passed ${T.name}</h2><div class="muted">${r.ex.group} · ${r.ex.name}</div></div>`
     : `<div class="medal-big">🎯</div><div><h2 style="margin:0">${need} more ${r.tempo ? "clean" : "in-tune"} note${need > 1 ? "s" : ""} for ${T.name}</h2><div class="muted">Need ${Math.round(PASS * 100)}% within ±${r.tol}¢${r.tempo ? ` and ±${r.tempo.tolMs} ms` : ""}${r.rhythm ? `, long notes held ${Math.round(r.rhythm.holdFrac * 100)}% of their length` : ""} · ${r.ex.name}</div></div>`;
-  const labels = res.map((x) => x.item.label + (x.wrong !== null ? "✗" : ""));
+  const labels = res.map((x) => x.item.label + (x.wrong !== null ? "✗" : x.fix !== null && x.fix !== undefined ? "↝" : ""));
   const pitchChart = barChart(res.map((x) => x.cents), labels, r.tol, 50, "sharp", "flat",
-    res.map((x) => (x.wrong !== null ? "var(--bad)" : colorFor(Math.abs(x.cents || 0), r.tol))), res.map((x) => `${itemName(x.item)} ${x.cents === null ? "missed" : (x.cents > 0 ? "+" : "") + x.cents.toFixed(0) + "¢"}`));
+    res.map((x) => (x.wrong !== null ? "var(--bad)" : colorFor(Math.abs(x.cents || 0), r.tol))), res.map((x) => `${itemName(x.item)} ${x.cents === null ? "missed" : (x.cents > 0 ? "+" : "") + x.cents.toFixed(0) + "¢"}${x.fix !== null && x.fix !== undefined ? `, then slid ${x.fix > 0 ? "+" : ""}${x.fix.toFixed(0)}¢` : ""}${x.tries > 1 ? `, ${x.tries} tries` : ""}`));
   const timingChart = r.tempo && !r.rhythm ? barChart(res.map((x) => x.timing), labels, r.tempo.tolMs, Math.round(r.tempo.slot / 2), "late", "early",
     res.map((x) => colorFor(Math.abs(x.timing || 0), r.tempo.tolMs)), res.map((x) => `${itemName(x.item)} ${x.timing === null ? "missed" : (x.timing > 0 ? "+" : "") + x.timing.toFixed(0) + " ms"}`)) : "";
   const onTimeN = res.filter((x) => x.onTime).length;
@@ -2149,7 +2303,7 @@ function showResults(o) {
 // Path results: the verdict, the criteria, and where the skill now stands
 function pathHead(path, r) {
   const sub = `<div class="muted">${escapeHTML(r.ex.name)}</div>`;
-  if (!path.counted) return `<div class="medal-big">🎯</div><div><h2 style="margin:0">Lock-in run (not counted)</h2>${sub}</div>`;
+  if (!path.counted) return `<div class="medal-big">🎯</div><div><h2 style="margin:0">${r.mode === "place" ? "Place" : "Lock-in"} run (not counted)</h2>${sub}</div>`;
   const lvl = path.level === "learning" ? "learning" : "mastery";
   return `<div class="medal-big">${path.events.some((e) => e.type === "mastered") ? "🏅" : path.passed ? "✓" : "🎯"}</div><div><h2 style="margin:0">${path.passed ? `Clean run (${lvl} level)` : `Not clean yet (${lvl} level)`}</h2>${sub}${path.cold ? `<div class="muted small">First try this session: counts toward the days.</div>` : ""}</div>`;
 }
@@ -2162,7 +2316,7 @@ function pathResultsBody(path) {
 }
 function pathEventTips(path) {
   const out = [], name = (id) => escapeHTML(C.nodeName(C.BY_ID[id]));
-  if (!path.counted) out.push("Lock-in runs help you learn the notes, but only <b>Flow</b> and <b>Tempo</b> runs count toward the path.");
+  if (!path.counted) out.push("Lock-in and Place runs help you learn the notes and their spots, but only <b>Flow</b> and <b>Tempo</b> runs count toward the path.");
   for (const e of path.events) {
     if (e.type === "tempoUp") out.push(`⏱ <b>Tempo up:</b> ♩=${e.from} → ${e.to} next time. Three clean runs in a row, both directions.`);
     if (e.type === "tempoDown") out.push(`⏱ Two misses in a row: back to ♩=${e.to}. Clean first, then fast.`);
@@ -2284,7 +2438,7 @@ function applyRec(n) {
   selectEx(n.id, n.tier);
   if (n.bpm && n.bpm !== s.bpm) { s.bpm = n.bpm; save(); renderAll(); }
 }
-const recIsCurrent = (n) => { const s = DB.settings; return n.id === DB.selected && n.tier === s.tier && (!n.mode || n.mode === s.mode || (n.mode === "flow" && s.mode === "lock")) && (!n.bpm || n.bpm === s.bpm) && (!n.per || n.per === s.per); };
+const recIsCurrent = (n) => { const s = DB.settings; return n.id === DB.selected && n.tier === s.tier && (!n.mode || n.mode === s.mode || (n.mode === "flow" && (s.mode === "lock" || s.mode === "place"))) && (!n.bpm || n.bpm === s.bpm) && (!n.per || n.per === s.per); };
 const moveLabel = (n) => { const ex = exById(n.id); return `${ex.group && !n.pack ? ex.group + " · " : ""}${recLabel(n)}`; };
 const recLabel = (n) => `${exById(n.id).name} ${TIERS[n.tier].icon}${n.mode === "tempo" && n.bpm ? ` ⏱ ♩=${n.bpm}` : ""}`;
 
@@ -2422,7 +2576,7 @@ function syncSettingsUI() {
   document.querySelectorAll("#modeSeg button").forEach((b) => { b.classList.toggle("on", b.dataset.v === mode); b.disabled = rh && b.dataset.v !== "tempo"; });
   document.querySelectorAll("#tierSeg button").forEach((b) => b.classList.toggle("on", +b.dataset.v === s.tier));
   $("#optHear").checked = s.hear; $("#optDrone").checked = s.drone; $("#optHide").checked = s.hide; $("#optEars").checked = s.ears; $("#optChime").checked = s.chime; $("#optVoiceMic").checked = !!s.voiceMic; $("#optHandsFree").checked = s.handsFree;
-  $("#optHear").disabled = mode !== "lock";
+  $("#optHear").disabled = mode !== "lock" && mode !== "place";
   $("#tempoPanel").hidden = mode !== "tempo";
   $("#clickBox").hidden = !rh;
   document.querySelectorAll("#clickSeg button").forEach((b) => b.classList.toggle("on", +b.dataset.v === s.clicks));
