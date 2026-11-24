@@ -107,6 +107,21 @@ check("single run: no earlier/later", sr.overview.splitBy === undefined);
 const empty = L.build([], "7", { now: NOW });
 check("empty log", empty.overview.runs === 0 && empty.range.from === null && empty.sessions.length === 0);
 
+// Fix mode sessions: listed apart from the runs, with every repetition; nothing about them in runs or spots
+const fixes = [
+  { t: t0 - 5 * 60000, key: "F#4D", note: "F#4", string: "D", finger: "2", pos: 1, kind: "note", tol: 15, watchAvg: 12, clean: 6, misses: 1, done: true,
+    reps: [{ c: 22, ok: false }, { c: 3, ok: true }, { c: null, ok: false, wrong: "F4" }] },
+  { t: NOW - 3 * D, key: "F#4D", note: "F#4", string: "D", finger: "2", pos: 1, kind: "progression", from: "E4", tol: 15, watchAvg: 14, clean: 2, misses: 0, done: false, reps: [{ c: 1, ok: true }] },
+];
+const fr = L.build(tl, "session", { now: NOW, fixes });
+check("fixes in the session (just before its first run)", fr.fixes.length === 1 && fr.fixes[0].kind === "note" && fr.fixes[0].done, fr.fixes);
+check("fix repetitions: cents, ok, the wrong note", JSON.stringify(fr.fixes[0].reps) === JSON.stringify([{ cents: 22, ok: false }, { cents: 3, ok: true }, { cents: null, ok: false, wrongNote: "F4" }]), fr.fixes[0].reps);
+check("fixes don't count as runs", fr.overview.runs === 1);
+check("howToRead explains fixes when there are some", /fixes: Fix this note/.test(fr.howToRead) && !/fixes: Fix this note/.test(sr.howToRead));
+const fw = L.build(tl, "7", { now: NOW, fixes });
+check("fixes over 7 days, oldest first, with the approach note", fw.fixes.length === 2 && fw.fixes[0].from === "E4", fw.fixes);
+check("no fixes: no section", L.build(tl, "7", { now: NOW }).fixes === undefined);
+
 // Output: valid JSON, leaf objects on one line
 const text = L.stringify(rep);
 check("stringify is JSON", JSON.stringify(JSON.parse(text)) === JSON.stringify(rep));

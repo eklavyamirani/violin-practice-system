@@ -152,8 +152,10 @@
     "earlier/later split the range in half (by practice day, or by run within a single day); trend compares them. timingMs (tempo runs) = + late, − early against the click as heard.",
     "claudeDrills: drills the player imported. targetSpots are the spots the drill uses; before/after compare those spots across ALL drills in everything the app has kept, around the date the drill was added (or first practised, if the add date isn't known).",
   ].join(" ");
+  const HOW_TO_READ_FIXES = "fixes: Fix this note / Fix this progression sessions (three clean repetitions, a 10-second break, three more; a miss starts the set over). Each repetition is where the target touched down in cents, like a Place mode try (after a shift, its steady pitch; null = a wrong note), against tolerance; slideCents = it was then slid or adjusted that far (15¢ or more), which makes it a miss. Fix repetitions are not runs and are not in the patterns or spots above; the spots show whether a fix carried over into real drills.";
 
-  // opts: { now, a4, customs: [{ key, title, goal, source, added, spots: [{ note, string }] }], pieces: [{ t, title, key, summary }], detail }
+  // opts: { now, a4, customs: [{ key, title, goal, source, added, spots: [{ note, string }] }], pieces: [{ t, title, key, summary }],
+  //   fixes: DB.fixes (fix.js record), detail }
   function build(log, rangeId, opts) {
     const now = opts.now, { range, recs } = select(log, rangeId, now);
     const detail = opts.detail === undefined ? !!range.detail : !!opts.detail;
@@ -236,8 +238,16 @@
 
     const pieces = (opts.pieces || []).filter((p) => from !== null && p.t >= midnight(from) && p.t <= now).map((p) => ({ date: stamp(p.t), title: p.title, key: p.key, ...p.summary }));
 
+    // Fix mode, apart from the runs: every repetition, so a miss the microphone heard wrongly can be told from a real one
+    const fixFrom = range.id === "session" ? (from === null ? midnight(now) : from - SESSION_GAP_MS) : range.id === "today" ? midnight(now)
+      : range.days ? midnight(now, range.days - 1) : 0;
+    const fixes = (opts.fixes || []).filter((x) => x.t >= fixFrom && x.t <= now).sort((a, b) => a.t - b.t).map((x) => ({
+      time: stamp(x.t), note: x.note, string: x.string, finger: x.finger, position: x.pos, kind: x.kind, ...(x.from ? { from: x.from } : {}),
+      tolerance: x.tol, watchAvgCents: x.watchAvg, clean: x.clean, misses: x.misses, done: x.done,
+      reps: x.reps.map((r) => ({ cents: r.c, ok: r.ok, ...(r.wrong ? { wrongNote: r.wrong } : {}), ...(r.s !== undefined ? { slideCents: r.s } : {}) })) }));
+
     return {
-      format: FORMAT, exported: new Date(now).toISOString(), howToRead: HOW_TO_READ,
+      format: FORMAT, exported: new Date(now).toISOString(), howToRead: HOW_TO_READ + (fixes.length ? " " + HOW_TO_READ_FIXES : ""),
       range: { label: range.label, from: from && stamp(from), to: to && stamp(to), everyNote: detail },
       a4: opts.a4,
       overview: {
@@ -264,6 +274,7 @@
       drills,
       claudeDrills,
       ...(pieces.length ? { pieces } : {}),
+      ...(fixes.length ? { fixes } : {}),
       sessions: sess.map((s) => ({
         start: stamp(s[0].t), end: stamp(s[s.length - 1].t), runs: s.length,
         list: s.map((r) => ({ time: stamp(r.t), drill: r.label, mode: r.mode, ...(r.bpm ? { bpm: r.bpm } : {}), ...(r.per ? { notesPerBeat: r.per } : {}),

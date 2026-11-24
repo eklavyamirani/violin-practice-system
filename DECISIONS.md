@@ -22,11 +22,42 @@ request of its own. Format:
 
 ---
 
+## 2026-11-24 · Fix repetitions are judged from the touchdown, before the owner's try
+- Decided by: the owner's merged decision for #44 ("Fix mode's clean-repetition check should use `Landing.placeTry` once both are merged"); the timing, in #39 before the owner's try, by the orchestrating session on the owner's behalf (reversible)
+- Decision: a Fix this note / Fix this progression repetition is judged like a Place try (`Landing.placeTry`, from the target's onset; in a progression, after the approach note): clean when where it touched down is within the drill's tolerance, it isn't then slid or adjusted 15¢ or more, and no wrong note came first. A finger that lands off and slides in is a miss, and the slide is logged with the repetition (`s`, `slideCents` in the practice log). After a shift, the repetition is judged by its steady pitch, as #44 does for runs (a shift's own slide is expected). `fix.js` stays pure: the app passes the judge in.
+- Rejected: doing it as a follow-up after #39 merges — the owner's try would test a Fix check about to change, and in between the Watch line (which since #44 counts a slid note where it touched down) and Fix would disagree about a slid landing.
+- Revisit if: the owner's try shows clean placements counted as slides (the 15¢ and 80 ms are #44's starting defaults), or shift progressions that slide after settling go uncounted.
+
 ## 2026-11-24 · Score where the finger touched down; Place mode; coaching by context
 - Decided by: the owner asked for it ("I'm often adjusting my fingers… we need a mechanism to practice landing it cleanly", and coach notes for descending vs ascending, after shifting, and after accidentals like F on the E string that move the hand); the details by an agent session, on the owner's behalf (reversible)
 - Decision: (1) Flow, Tempo and Lock-in score a note's touchdown (median of its first ~80 ms) when the steady pitch is 15¢ or more away from it, and Flow also flags a 15¢+ adjustment toward in tune while the note is held; shifts and wrong notes only count the held adjustment. Corrections are marked ↝, counted in the coach's notes and kept in the practice log (`fixCents`). (2) A new **Place** mode: stop, place, bow; a try that's off, slid or wrong stays on the note until a clean placement after a ¼ s lift; the first try is scored; it plays the note after two misses; it doesn't count toward the Path. (3) Coach's notes, the practice log and the Piece tab compare the notes after a frame change (accidental, moved finger, 4x) with the same notes in the same direction elsewhere, split shift landings from the notes after them, and compare the same notes up against down (leaving out notes after a frame change). Thresholds are starting defaults in `landing.js` and `contextTips`.
 - Rejected: keeping the steady-window score and only reporting slides — the "Why it works" card already promised "where your finger lands before you adjust it", and the 220 ms steady window hears a quick fix as the corrected pitch (checked in `test/landing.test.js`), so medals rewarded exactly the habit the owner wants gone. Failing every slid note outright — the touchdown already fails it when it landed outside the target, and a small in-target settle shouldn't cost the note. Making Lock-in lift-and-place — Lock-in's job is finding the note, and changing it would change every existing Lock-in history; Place sits next to it instead. Comparing notes after an accidental with the run's average — the 4x stretch at the top of a scale is always followed by descending notes, so it would blame the stretch for the descending tendency; same spot and same direction avoids that and says nothing when there's no comparison. Extending Fix this note (#39) instead — it works one note or move with microbreaks; landing cleanly is needed across whole drills. Fix mode's clean-repetition check should use `Landing.placeTry` once both are merged.
 - Revisit if: real playing shows slides flagged on clean notes (raise the 15¢ or widen the 80 ms), Place's ¼ s quiet is too short to register a lift on some mics, or the context notes fire on too few runs to matter (lower their minimums) or on noise.
+
+## 2026-11-21 · Watch-out notes are built: the Watch line, Fix this note and Fix this progression
+- Decided by: the owner ("Promote", 2026-11-21, after round 2's video and preview of prototype #24; the iterate before it: "Research Molly Gebrian's method of repetition to reinforce the correct muscle memory. It should be a "fix this note" or "fix this progression" mode."); the build details by the build session, on the owner's behalf
+- Decision: built fresh from `main` against proposal #27's ten acceptance criteria. The rules and thresholds, the set/break/miss state machine and the panel's wording come from the prototype; the logic moved out of `index.html` into `fix.js` (pure, tested in Node like `practicelog.js`). Changes from the prototype:
+  - hands-free start is off during a fix (holding the drill's first note could start a run mid-fix);
+  - a wrong note followed by quiet is a miss at once, instead of waiting for the next landing;
+  - a shift only counts as one between two stopped notes when choosing the progression's approach note;
+  - each fix keeps every repetition's cents and wrong note, for telling false misses from real ones;
+  - the panel's Stop button keeps working while the break counts down (the countdown no longer redraws it).
+  The fix works in Path and Free practice alike: it reads the per-spot note history, not the path.
+- Rejected: merging or cherry-picking prototype #24 — a prototype is throwaway (Promote rule). Serial practice across several flagged spots (Gebrian's tick marks) — the Watch line flags one note; a later "fix my spots" could add it.
+- Revisit if: the owner's real try with a violin shows false misses emptying sets (the brief's strongest objection): first look at the logged cents, then consider a wider capture or a second listen before a miss counts.
+
+## 2026-11-21 · Fix entries sync record by record
+- Decided by: the build session, on the owner's behalf (reversible)
+- Decision: `DB.fixes` is a flat list, newest first, each entry with `t` (its id), kept 90 days and at most 200 (`fix.js`; `sync.js` caps it at 200 too). Sync merges it record by record, so fixes done on two devices are both kept, and "Fixed N× today" counts both.
+- Rejected: the prototype's object of lists without ids — sync merges plain lists as "this device wins", so fixes on the other device were lost. Keeping fixes on one device (`LOCAL_ONLY`) — the count of today's fixes and the practice-log export would differ by device, and the progress file would leave them out.
+- Revisit if: the list grows large enough to matter in the synced document.
+
+## 2026-11-21 · Fix repetitions stay out of the note history
+- Decided by: the owner's acceptance criterion 9 ("Fix repetitions are logged apart from the note history, XP and the path"); the reasoning recorded by the build session
+- Decision: a fix never writes `DB.notes`, XP, medals, the path, the per-drill reports or the practice log's runs. It writes only its own `DB.fixes` entry.
+- Why: the Watch line is a test of real playing. Fix repetitions are the note in isolation, after a cue, often after a break; counting them would pull the note's average in after one good fix and hide the habit the drill still shows. Keeping them apart leaves the next real runs as the measure of whether the fix carried over, and lets XP and medals keep meaning drills passed.
+- Rejected: counting clean fix repetitions toward the note history — it would let the Watch line clear itself without a real run.
+- Revisit if: the owner wants fixes to count toward the day's goal or streak (they don't now).
 
 ## 2026-11-20 · A scheduled scout run asks first and can take a focus area
 - Decided by: the owner ("scout should ask me before it runs. I'd love to be able to assign it a focus area"); the "keep" rule by the scout session, on the owner's behalf (reversible)

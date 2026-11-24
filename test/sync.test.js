@@ -102,5 +102,17 @@ const m7 = merge3(pb, pa, pm);
 check("plan seconds add up", m7.planLog["2026-11-09"].secs[1] === 360, m7.planLog);
 check("plan tick and new day kept", m7.planLog["2026-11-09"].done[0] === true && m7.planLog["2026-11-10"].secs[0] === 60, m7.planLog);
 
+// Fix mode's log (DB.fixes): fixes done on two devices are both kept, newest first, at most 200
+const fb = { fixes: [{ t: 100, key: "F#4D", done: true, reps: [{ c: 3, ok: true }] }] };
+const fa = clone(fb), fm = clone(fb);
+fa.fixes.unshift({ t: 300, key: "F#4D", done: false, reps: [{ c: 22, ok: false }] });
+fm.fixes.unshift({ t: 200, key: "C5A", done: true, reps: [{ c: -4, ok: true }] });
+const m8 = merge3(fb, fa, fm);
+check("fixes from both devices kept, newest first", eq(m8.fixes.map((x) => x.t), [300, 200, 100]), m8.fixes);
+const fixesOf = (from) => Array.from({ length: 200 }, (_, i) => ({ t: from + i, key: "x", done: true }));
+const m9 = merge3({ fixes: [] }, { fixes: fixesOf(1000) }, { fixes: fixesOf(5000) });
+check("fixes capped at 200, newest kept", m9.fixes.length === 200 && m9.fixes[0].t === 5199, m9.fixes.length);
+check("fixes are synced, not device-only", "fixes" in shared({ fixes: [], settings: {} }));
+
 console.log(fails ? `${fails} failed` : "sync merge: all passed");
 process.exit(fails ? 1 : 0);

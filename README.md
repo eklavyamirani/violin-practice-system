@@ -122,10 +122,9 @@ The **Why it works** tab in the app explains the research behind each choice:
 - **Accuracy first, then speed.** The tempo goes up in small steps, and only once the notes are clean.
 - **Coming down is its own skill.** String players play descending passages measurably sharper (Kantorski 1986; Sogin 1989), so scales are also practised from the top.
 - **Take the help away gradually.** Once a drill is done, hide the fingering or the needle so you don't come to depend on the feedback.
+- **Short sets, short breaks** (Molly Gebrian's microbreaks). Before a run, a *Watch* line names the note a drill keeps missing on one side. *Fix this note* and *Fix this progression* run that note, or the move into it, as three clean repetitions, a 10-second break and three more ([guide](docs/guide.md#watch-line-and-fix-a-note)).
 
 Every card on that tab names its sources and how strong they are (a study, a review, an expert's book, or established teaching advice), and says so when a rule is the app's own. The full list, with what each source was used for and whether it was read in full, is in [docs/references.md](docs/references.md). Thresholds that don't come from a published source are labelled as starting defaults. You can tune them, and synthetic audio in the tests checks them.
-
-**Next, from Gebrian's book:** *Fix this note* and *Fix this progression*. They take the note a drill keeps missing, or the move into it, and run it as her microbreaks: three clean repetitions, a 10-second break, three more. It's a prototype for now.
 
 ## Try it
 
