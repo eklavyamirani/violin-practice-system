@@ -84,5 +84,21 @@ check("report", rep.format === P.REPORT_FORMAT && rep.notes.length === tune.leng
 // Silence
 check("silence", P.analyze([{ t: 0, m: null, rms: 0 }, { t: 16, m: null, rms: 0 }], {}).coachNotes[0].startsWith("No notes"));
 
+// After an out-of-key note: in D major, an F natural (low 1 on the E string) drags the next G and A flat;
+// the same G and A elsewhere are in tune. And the same notes coming down run sharp.
+{
+  const Ctx = require("../context.js"), S = require("../scales.js");
+  const D = Ctx.keyPcs([S.spell("D", S.SCALE_TYPES.major).acc]);
+  const phrase = [[76, 0], [78, 2], [79, 0], [81, 1], [79, 14], [78, 15], [76, 0], [77, -2], [79, -19], [81, -21], [79, 13], [78, 14], [76, 0]];
+  const t = [];
+  for (let r = 0; r < 2; r++) phrase.forEach(([midi, cents]) => t.push({ midi, cents, ms: 350, gapMs: 20 }));
+  const b = P.analyze(perform(t), { tol: 15, keyPcs: D, keyName: "D major", name: (m) => (m % 12 === 5 ? "F" : m % 12 === 6 ? "F♯" : "X") + (Math.floor(m / 12) - 1) });
+  const f = b.context.afterOutOfKey[0];
+  check("after F natural, the notes sag", f && f.note === "F5" && f.lowered === true && f.avgDeltaCents <= -12 && f.comparedNotes === 6, b.context.afterOutOfKey);
+  check("coach names the hand going back", b.coachNotes.some((c) => c.startsWith("After F5") && c.includes("go back")), b.coachNotes);
+  check("coming down sharper", b.context.direction && b.context.direction.diff > 10, b.context.direction);
+  check("report carries context", P.buildReport(b, { t0: 1000, date: 0, a4: 440, tol: 15 }).context.afterOutOfKey[0].note === "F5");
+}
+
 console.log(fails ? `${fails} failures` : "all pass");
 process.exit(fails ? 1 : 0);

@@ -23,7 +23,7 @@ A skill unlocks when its groundwork is mastered: the finger patterns its fingeri
 - **Tempo** starts at ♩=45 and goes up 6% after 3 clean runs in a row that include both directions and a first try of the session. Two misses in a row take it down 8%. After a run with a median miss over 25¢ the next run is offered at 85% speed.
 - **Reviews:** a mastered skill comes back after 1, 2, 4, 7, 14 and 30 days. Only the first try of a session counts. Miss it and it drops back two boxes; miss twice in a row and it goes back to consolidating, and its pattern and shift groundwork comes up for review.
 - **Next up** plans the session: due reviews first (up to 4, in mixed order), then the lowest-stage skill you're working on, up to 3 tries each way, starting from the top when coming down is weaker, then its weakest groundwork, then the next skill.
-- Lock-in runs are for learning the notes and don't count. Use Flow or Tempo.
+- Lock-in and Place runs are for learning the notes and their spots, and don't count. Use Flow or Tempo.
 
 The thresholds are starting defaults, not published norms. They live in `LEVELS` in `curriculum.js`; adjust them once you've seen your own numbers.
 
@@ -74,6 +74,27 @@ To add one, save it as `packs/<id>.json` and add the file name to `packs/index.j
 
 So you don't have to put the violin down between runs: play and hold a drill's first note (about ¾ s) to start it. On the results, every button that starts a drill has its own note: the drill's own first note goes again and the next drill's (or the **Move on** drill's) first note moves on. When two of them start on the same note, the next drill keeps it (after a miss, going again does) and the other one gets an open string that none of them start on ("or play open D to go again"); the notes to play are shown at the top of the results. It waits for a moment without any start note first, so the last note of a run ringing on doesn't restart it. The first note you hold counts as the run's first landing (in Tempo mode it starts the count-in). Turn it off with **Hands-free start** in Settings.
 
+## Clean landings and Place mode
+
+**How a landing is scored (Flow, Tempo, Lock-in).** Each note is scored from where the finger first touched down: the median of its first ~80 ms (skipping the attack's first frame). If the steady pitch the app then hears is 15¢ or more away from that, the finger slid in, and the touchdown is what's scored. In Flow it also watches the note while you hold it: moving it 15¢ or more toward in tune before the next note counts as a correction too. Corrected notes are marked ↝ on the chart, their tooltip says how far they moved, and the coach counts them ("You moved the finger after it landed on 4 of 9 notes…") once it's 2 or more notes and at least 15% of the run. After a shift (or a wrong note) the way in is a slide anyway, so there only an adjustment while the note is held counts. Lock-in still scores the touchdown but doesn't count its corrections: correcting is what Lock-in is for. The 80 ms and 15¢ are starting defaults (`landing.js`), checked with synthetic audio, not published norms.
+
+**Place mode** (under Mode, between Lock-in and Flow) practises landing cleanly, after the "Place and Play" exercise (*The Instrumentalist*, May 2019):
+
+- Stop the bow, put the finger down, then play. The app waits for ¼ s of quiet before each note.
+- A try is judged 0.32 s after it starts: clean if it touched down within the target accuracy, didn't slide 15¢ or more, and was the right note.
+- Clean: the next note. Not clean: the note stays. Lift the finger, and place it again; don't wiggle it into tune. After two misses on a note, the app plays it before the next try (as does **Hear it first**).
+- The run's score and medals count first tries only. The results list the notes that needed more tries. Place runs don't count toward the Path.
+
+## When it goes off: coach's notes by context
+
+Besides which notes were off, the coach looks at *when* they were off (`context.js`):
+
+- **After a frame change:** an accidental (outside the drill's key), a finger moved off the spot it usually plays on that string and position (a low or high variant), or a 4x stretch. The next 3 notes in that position are compared with the *same notes in the same direction* elsewhere in the run, so a note that's always a little sharp isn't blamed on the accidental. If they're 10¢ or more off that way (2 or more notes, ¾ of them the same side), it says which way the hand went: back with a lowered finger, forward with a raised one or a stretch. Fischer: "keep the left hand in one basic position and reach the accidentals by moving the finger… Keep the thumb in one place on the neck" (*Basics*, "Chromatic scales").
+- **After a shift:** the note the shift lands on, then the next 3 notes in the new position. A clean landing followed by notes off one way means the frame isn't set after arriving; the landing and the notes after it off the same way means the whole hand arrived in the wrong place.
+- **Coming down vs going up:** only notes heard both ways in the run count (3 or more), and the notes after a frame change are left out. (Path skills keep their own version.)
+- The **Piece tab** does the first and last for notes outside the chosen key (it has no fingering, so no shifts).
+- The **practice log** adds the same across runs: `corrections`, `place`, `byDirection`, `afterShiftFrame` and `afterFrameChange`.
+
 ## Tempo mode
 
 Choose **⏱ Tempo** under Mode to practise with a metronome. After a four-click count-in, the drill moves on with the beat. A note counts only if it's in tune *and* on time; the on-time window gets tighter at each medal level.
@@ -86,7 +107,7 @@ Choose **⏱ Tempo** under Mode to practise with a metronome. After a four-click
 
 Record yourself playing a whole piece; you don't need to enter the music. The app splits the recording into notes and reports:
 
-- **Intonation:** each note against the nearest equal-tempered pitch, measured on the steady middle of the note (vibrato is measured at its centre). It also lists notes that are consistently sharp or flat, and notes outside the key if you pick one.
+- **Intonation:** each note against the nearest equal-tempered pitch, measured on the steady middle of the note (vibrato is measured at its centre). It also lists notes that are consistently sharp or flat, and notes outside the key if you pick one. With a key, it compares the notes after an out-of-key note with the same notes elsewhere, and the same notes going up and coming down (see *When it goes off*).
 - **Timing:** with the metronome on, each note against the click grid (beat, half, triplet or quarter beat) and any drift ahead of or behind the click. With it off, your own pulse, how steady it was, and the stretches where you sped up or slowed down.
 - **Moments to check**, each with a ▶ button that plays that spot of the recording. The analysis is kept (the last 10 performances), but the audio only lasts until you leave the page.
 - **📋 Copy report for Claude**, to talk through the performance and get drills for the weak spots.
@@ -140,7 +161,7 @@ Built-in drills keep reports too, and any report can be imported as a drill.
 
 Per-drill reports hold one drill's last 5 runs. To find habits that repeat across drills, and to see whether Claude's drills helped, use **📋 Copy practice log for Claude** on My drills. Pick **This session**, **Today**, the last 3, 7, 14 or 30 days, or everything kept. The app keeps every run, note by note, for 90 days (up to 1,000 runs). The log starts from each drill's last 5 runs if you practised before this feature existed.
 
-- **Patterns:** intonation after shifts up and down, by finger, position and string; the worst spots (a pitch on a string, across every drill and spelling); common wrong notes; timing in tempo runs.
+- **Patterns:** intonation after shifts up and down, by finger, position and string; corrections after landing; Place mode tries; the same notes up against down; the notes after a shift and after a frame change (see *When it goes off*); the worst spots (a pitch on a string, across every drill and spelling); common wrong notes; timing in tempo runs.
 - **Progress:** the range split into an earlier and a later half, overall and per spot, plus each drill's scores and tempos in order.
 - **Claude's drills:** for each imported drill, its target notes before and after you added it, measured across all your practice and not just that drill.
 - **Every note of every run** adds each run's landings and coach notes. It's on by default for a session or a day; leave it off for longer ranges to keep the log short.

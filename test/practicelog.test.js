@@ -16,6 +16,25 @@ check("landing round-trips", JSON.stringify(out.sessions[0].list[0].landings[0])
 check("bpm kept", out.sessions[0].list[0].bpm === 72 && out.sessions[0].list[0].notesPerBeat === 2);
 check("path pass overrides score pass", L.record("k", "x", run(NOW, [tempo], { passed: false, path: { passed: true } })).passed === true);
 
+// Corrections and Place tries round-trip, with and without tempo fields
+for (const l of [landing("C#5", "A", -20, { fixCents: 18 }), landing("C#5", "A", 4, { tries: 3 }), { ...tempo, fixCents: -16, tries: null }]) {
+  const o = L.build([L.record("k", "Drill", run(NOW, [l]))], "all", { now: NOW, customs: [], pieces: [], detail: true }).sessions[0].list[0].landings[0];
+  const want = { ...l }; if (want.tries === null) delete want.tries;
+  check("fix/tries round-trip", JSON.stringify(o) === JSON.stringify(want), [o, want]);
+}
+
+// Context patterns: corrections, direction, after a frame change (F natural on the E string in D major).
+// Direction leaves out the notes after the F natural, so only F#5 is compared both ways.
+{
+  const E = (note, cents, finger, extra = {}) => landing(note, "E", cents, { finger, position: finger === 0 ? null : 1, ...extra });
+  const scale = (t) => run(t, [E("E5", 0, 0), E("F#5", 2, 1), E("G5", 1, 2), E("A5", 0, 3), E("E5", 0, 0), E("F5", -3, 1), E("G5", -18, 2, { fixCents: 16 }), E("A5", -20, 3, { fixCents: 17 }), E("G5", 12, 2), E("F#5", 14, 1)], { keyAcc: [[0, 0, 0, 1, 0, 0, 0].map((a, i) => (i === 0 || i === 3 ? 1 : 0))] });
+  const out = L.build([L.record("k", "F natural", scale(NOW - 2 * H)), L.record("k", "F natural", scale(NOW - H))], "all", { now: NOW, customs: [], pieces: [] }).patterns;
+  check("corrections rate", out.corrections && out.corrections.landings === 4 && out.corrections.rate === 0.2 && out.corrections.spots.length === 2, out.corrections);
+  check("by direction", out.byDirection && out.byDirection.spotsHeardBothWays === 1 && out.byDirection.downMinusUp > 10, out.byDirection);
+  const f = out.afterFrameChange && out.afterFrameChange[0];
+  check("after F natural", f && f.note === "F5" && f.why.includes("accidental") && f.lowered === true && f.times === 2 && f.comparedNotes === 4 && f.avgDeltaCents <= -19, out.afterFrameChange);
+}
+
 // Pruning: newest first, nothing past 90 days, at most 1000 runs, no duplicate ids
 let log = [];
 for (let i = 0; i < 1100; i++) log = L.add(log, L.record("k", "x", run(NOW - i * 60000, [landing("A4", "D", 0)])), NOW);
