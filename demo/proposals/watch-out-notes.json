@@ -3,32 +3,33 @@
   "app": "violin",
   "created_at": "2026-11-19T21:00:00Z",
   "ttl": "P14D",
-  "title": "Watch-out notes before you start",
-  "problem": "The app remembers where every note has been landing, but shows it only on the Progress tab. Before a run, the practice page shows plain note names, so a habit like a sharp second finger only comes up again after the run is over.",
+  "title": "Fix this note, fix this progression",
+  "problem": "The Watch line (round 1) names the note a drill keeps missing, but a warning alone doesn't change the habit. The owner, after round 1: \"Research Molly Gebrian's method of repetition to reinforce the correct muscle memory. It should be a 'fix this note' or 'fix this progression' mode.\" (2026-11-21)",
   "evidence": [
     {
-      "source_url": "https://github.com/eklavyamirani/violin-practice-system/blob/8facc7fb5646c289a3f66dfa127a25f0c6068015/index.html#L622-L625",
-      "quote_or_summary": "The Progress tab's note map averages each note's last 20 landings and says: \"Consistent bars one side = a habit to fix.\""
+      "source_url": "https://static1.squarespace.com/static/62d41f4e5352371c9d792542/t/66aa5bfa8bbdee7b22dd1dc4/1722440698583/Gebrian+Appendix+A.pdf",
+      "quote_or_summary": "Gebrian, Learn Faster, Perform Better (OUP 2024), Appendix A, ch. 4 Microbreaks: three correct repetitions, a 10-second break, three more; if any had errors, start over."
     },
     {
-      "source_url": "https://github.com/eklavyamirani/violin-practice-system/blob/8facc7fb5646c289a3f66dfa127a25f0c6068015/index.html#L1967-L1979",
-      "quote_or_summary": "Before a run, the practice page's note strip draws each note as a plain chip with its name and octave, and no history."
+      "source_url": "https://www.musical-u.com/learn/learn-music-faster-by-doing-less-with-dr-molly-gebrian/",
+      "quote_or_summary": "Gebrian: take breaks within the repetitions, not just do them over and over; she aims for three times in a row without mistakes."
     },
     {
-      "source_url": "https://github.com/eklavyamirani/violin-practice-system/blob/8facc7fb5646c289a3f66dfa127a25f0c6068015/index.html#L1554-L1565",
-      "quote_or_summary": "The coach's notes look for habits only in the run just played, once it is over."
+      "source_url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC6482074",
+      "quote_or_summary": "Bönstrup et al. 2019, Current Biology: early skill gains came during short rests between practice periods, not during practice."
     }
   ],
-  "hypothesis": "If the practice page names the note in this drill you have been landing off lately, and which way to move, you fix it on the first try instead of after a missed run.",
+  "hypothesis": "If the Watch line opens a short fix for its note, or for the two-note progression into it, run as Gebrian's microbreaks (3 clean, 10-second break, 3 clean, a miss restarts the set), the note lands in tune in the next day's drills more often than with the warning alone.",
   "acceptance_criteria": [
-    "Before a run, when a note in the selected drill has averaged 6 cents or more off, on the same side, over its recent landings, a Watch line under the note strip names it, the amount and which way to move.",
-    "That note's chip is marked sharp or flat.",
-    "Nothing shows for a drill with no consistent miss, and nothing changes during a run.",
-    "The line updates after every run."
+    "From the Watch line, 'Fix this note' runs repetitions of the flagged note alone; 'Fix this progression' runs the note before it in the drill, then the flagged note.",
+    "A repetition is clean when the target's first steady pitch is within the medal tolerance and no wrong note was heard; the app waits for the bow to stop between repetitions.",
+    "Three clean in a row fill a set; a miss empties the current set; after set 1 a 10-second break with a countdown, during which nothing is scored; after set 2 the fix is done.",
+    "Three misses in a row also give a 10-second break.",
+    "Fix repetitions are logged apart from the note history, so the Watch line still judges the note from real runs; the line says how many fixes were done today."
   ],
-  "success_signal": "Fewer first-try misses on flagged notes over the next two weeks, in the practice log.",
+  "success_signal": "On flagged notes, more first-landing hits in the next day's drills after a fix than before it, in the practice log.",
   "effort_estimate": "S",
-  "strongest_reason_not_to_build": "It adds words to the practice screen, and a warning before you play can make you tense and over-correct. The Progress tab already shows the same history.",
+  "strongest_reason_not_to_build": "A miss the microphone hears wrongly also empties the set, so a noisy room or a borderline tolerance can turn the fix into a loop that builds tension, not the habit.",
   "status": "prototype",
   "decision_reason": null
 }
