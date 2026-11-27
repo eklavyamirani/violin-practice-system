@@ -151,6 +151,57 @@
       spans, curve, uneven: notes.filter((n) => n.uneven).length };
   }
 
+  // Tempo drift against the click. Each onset's offset from the grid is unwrapped (a player drifting by more than
+  // half a grid step would otherwise snap to the next line), then the trend of those offsets over time is the drift:
+  // offsets that grow mean each note comes later than the click, so the player is slower. pts: [{ t, off }] in ms,
+  // sorted by t; q: grid step in ms. Returns the tempo as % against the click (> 0 rushing), or null.
+  function clickDrift(pts, q) {
+    if (pts.length < 3) return null;
+    const u = [pts[0].off];
+    for (let i = 1; i < pts.length; i++) {
+      let o = pts[i].off;
+      while (o - u[i - 1] > q / 2) o -= q;
+      while (o - u[i - 1] < -q / 2) o += q;
+      u.push(o);
+    }
+    const ts = pts.map((p) => p.t), mt = mean(ts), mo = mean(u);
+    const sxx = ts.reduce((s, t) => s + (t - mt) ** 2, 0);
+    if (ts[ts.length - 1] - ts[0] < q) return null;
+    const slope = ts.reduce((s, t, i) => s + (t - mt) * (u[i] - mo), 0) / sxx;
+    return Math.round(-slope * 1000) / 10;
+  }
+
+  // The same over a whole take: at each onset, the drift across the window around it (default 6 beats)
+  function clickDriftCurve(pts, q, winMs) {
+    const out = [];
+    for (const p of pts) {
+      const w = pts.filter((x) => Math.abs(x.t - p.t) <= winMs / 2);
+      const pct = w.length >= 4 ? clickDrift(w, q) : null;
+      if (pct !== null) out.push({ t: p.t, pct });
+    }
+    return out;
+  }
+
+  // Tempo right now, for the live view: not beat by beat, but over the last few beats. With the metronome, against
+  // the click; without it, against the player's own usual pulse (freeTiming's rolling curve, its latest point).
+  // notes: segment() output; opts: { now, metronome: { t0, beatMs, sub, lat } | null }. Returns { pct, ref } or null.
+  function liveDrift(notes, opts) {
+    const g = opts.metronome, now = opts.now;
+    if (g) {
+      const q = g.beatMs / g.sub;
+      const pts = notes.map((n) => n.t - g.lat).filter((on) => on >= g.t0 - q / 2)
+        .map((on) => ({ t: on, off: on - (g.t0 + Math.round((on - g.t0) / q) * q) }));
+      let w = pts.filter((p) => p.t >= now - 6 * g.beatMs);
+      if (w.length < 4) w = pts.filter((p) => p.t >= now - 12 * g.beatMs).slice(-4);
+      if (w.length < 4) return null;
+      const pct = clickDrift(w, q);
+      return pct === null ? null : { pct, ref: "click" };
+    }
+    const f = freeTiming(notes.map((n) => ({ ...n })));
+    const last = f.curve && f.curve[f.curve.length - 1];
+    return last && last.t >= now - 4000 ? { pct: last.pct, ref: "pulse", perMin: f.pulsePerMin } : null;
+  }
+
   // Everything the report needs. opts: { tol, name(midi), keyPcs (Set) | null, keyName, metronome: { t0, beatMs, sub, lat } | null, t0 }
   function analyze(frames, opts) {
     const name = opts.name || defaultName, tol = opts.tol ?? 15;
@@ -262,7 +313,7 @@
     };
   }
 
-  const api = { clock, REPORT_FORMAT, segment, metronomeTiming, freeTiming, analyze, buildReport };
+  const api = { clock, REPORT_FORMAT, segment, metronomeTiming, freeTiming, clickDrift, clickDriftCurve, liveDrift, analyze, buildReport };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else root.PieceIO = api;
 })(this);

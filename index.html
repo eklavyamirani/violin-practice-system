@@ -207,30 +207,6 @@ main { max-width: 1280px; margin: 0 auto; padding: 1rem; }
 #board.hideguide .guide { display: none; }
 #mm { font-size: 1.15rem; font-weight: 700; min-height: 2.4em; margin-top: .3rem; }
 
-/* Piece */
-.pcgrid { display: grid; grid-template-columns: 320px minmax(0, 1fr); gap: 1rem; align-items: start; }
-.textin { width: 100%; font: inherit; color: var(--ink); background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: .45rem .6rem; margin-bottom: .7rem; }
-.bpmrange { width: 100%; accent-color: var(--accent); margin-bottom: .6rem; }
-.pclive-top { display: flex; align-items: center; gap: 1rem; margin-bottom: .6rem; }
-.pcnote { font-size: 2.6rem; font-weight: 800; min-width: 3.5em; }
-.pcnote sub { font-size: .4em; color: var(--muted); }
-.pccents { font-size: 1.4rem; font-weight: 800; font-variant-numeric: tabular-nums; }
-.pcclock { margin-left: auto; font-size: 1.4rem; font-variant-numeric: tabular-nums; color: var(--muted); }
-.pcclock.rec { color: var(--bad); }
-.small-gauge { height: 30px; margin-bottom: .7rem; }
-#pcRoll { width: 100%; height: 240px; display: block; background: var(--panel-2); border-radius: 10px; }
-.pcrep { margin-top: 1rem; }
-.pcrep .tiles { margin-bottom: .8rem; }
-.pcscroll { overflow-x: auto; border-radius: 10px; background: var(--panel-2); margin-bottom: .8rem; }
-.pcscroll svg { display: block; height: 240px; }
-.pcscroll svg rect.n { cursor: pointer; }
-.pccols { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-.moment { display: flex; gap: .6rem; align-items: center; padding: .35rem 0; border-bottom: 1px solid var(--line); font-size: .9rem; }
-.moment:last-child { border-bottom: 0; }
-.moment button { border: 1px solid var(--line); background: var(--panel-2); border-radius: 50%; width: 30px; height: 30px; flex-shrink: 0; }
-.moment .at { font-variant-numeric: tabular-nums; color: var(--muted); width: 3em; }
-.pcrep audio { width: 100%; margin: .4rem 0 .8rem; }
-
 /* My drills */
 .dgrid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 1rem; align-items: start; }
 .small { font-size: .84rem; margin: .1rem 0 .6rem; }
@@ -363,7 +339,7 @@ main { max-width: 1280px; margin: 0 auto; padding: 1rem; }
 @media (max-width: 980px) {
   #tab-practice.active, #tab-ear.active { grid-template-columns: 1fr; }
   .side { order: 2; }
-  .pgrid, .dgrid, .pcgrid, .pccols { grid-template-columns: 1fr; }
+  .pgrid, .dgrid { grid-template-columns: 1fr; }
 }
 @media (max-width: 640px) {
   main { padding: .75rem 1rem; }
@@ -376,6 +352,7 @@ main { max-width: 1280px; margin: 0 auto; padding: 1rem; }
   .nrow .fx { display: none; }
 }
 </style>
+<link rel="stylesheet" href="piece-view.css">
 </head>
 <body>
 <header class="top">
@@ -489,6 +466,33 @@ main { max-width: 1280px; margin: 0 auto; padding: 1rem; }
 
   <!-- PIECE -->
   <section id="tab-piece" class="tab">
+    <!-- Small windows (Stage Manager over the sheet music): a pill under 200 px, a compact tuner up to 450 px. piece-view.js picks one by width. -->
+    <div class="pcw" id="pcWidget">
+      <div class="pcw-pill">
+        <button class="pcw-rec" data-act="rec" aria-label="Start recording"><i></i></button>
+        <span class="pcw-clock" data-k="clock">0:00</span>
+        <span class="pcw-dot" data-k="dot" role="img" aria-label="No note"></span>
+      </div>
+      <div class="pcw-compact">
+        <div class="pcw-top"><span class="pcw-recdot" aria-hidden="true"></span><span class="pcw-clock" data-k="clock">0:00</span><span class="pcw-target" data-k="target"></span></div>
+        <div class="pcw-live">
+          <div class="pcw-noterow"><b class="pcw-note" data-k="note">—</b><b class="pcw-cents" data-k="cents"></b></div>
+          <div class="pcw-gauge" role="img" aria-label="Pitch against the nearest note"><i class="pcw-zone" data-k="zone"></i><i class="pcw-mid"></i><i class="pcw-tick" style="left:25%"></i><i class="pcw-tick" style="left:75%"></i><span class="pcw-flat" aria-hidden="true">♭</span><span class="pcw-sharp" aria-hidden="true">♯</span><i class="pcw-needle" data-k="needle"></i></div>
+          <div class="pcw-tempo"><div class="pcw-cap"><span>Tempo</span><b data-k="drift"></b></div>
+            <div class="pcw-bar" role="img" aria-label="Rushing or dragging against the tempo"><i class="pcw-bzone"></i><i class="pcw-bmid"></i><i class="pcw-fill" data-k="fill"></i><span class="l">Drag</span><span class="r">Rush</span></div></div>
+        </div>
+        <div class="pcw-done">
+          <div class="pcw-noterow"><b class="pcw-note" data-k="pct">—</b><span class="muted">in tune</span></div>
+          <canvas id="pcwStrip" class="pcw-strip" role="img" aria-label="Every note of the last take, coloured by intonation"></canvas>
+          <div class="pcw-tempo"><div class="pcw-cap"><span>Tempo, whole take</span><b data-k="takeDrift"></b></div>
+            <div class="pcw-bar" role="img" aria-label="Tempo over the whole take"><i class="pcw-bzone"></i><i class="pcw-bmid"></i><i class="pcw-fill" data-k="takeFill"></i><span class="l">Drag</span><span class="r">Rush</span></div></div>
+        </div>
+        <div class="pcw-ctrls">
+          <button class="pcw-play" data-act="play" aria-label="Play the last take" disabled><i></i></button>
+          <button class="pcw-rec" data-act="rec" aria-label="Start recording"><i></i></button>
+        </div>
+      </div>
+    </div>
     <div class="pcgrid">
       <div class="card">
         <h3>Play a piece</h3>
@@ -716,6 +720,7 @@ window.addEventListener("error", (e) => {
 <script src="practicelog.js"></script>
 <script src="plan.js"></script>
 <script src="piece.js"></script>
+<script src="piece-view.js"></script>
 <script src="rhythm.js"></script>
 <script src="sync.js"></script>
 <script src="ear.js"></script>
@@ -1834,6 +1839,7 @@ async function startPiece() {
   $("#pcClock").classList.add("rec");
   $("#pcStatus").textContent = P.metro ? "Count-in… then play" : "Recording. Play when you're ready.";
   $("#pcReport").innerHTML = "";
+  PieceView.state(P.metro ? "countin" : "rec", { tol: P.tol, bpm: P.metro ? P.bpm : null });
 }
 
 function stopPiece() {
@@ -1845,12 +1851,13 @@ function stopPiece() {
   $("#pcStart").hidden = false; $("#pcStop").hidden = true;
   $("#pcClock").classList.remove("rec");
   $("#pcStatus").textContent = "Analysing…";
+  PieceView.state("analysing");
   const finish = (audioURL) => {
     if (pieceAudioURL) URL.revokeObjectURL(pieceAudioURL);
     pieceAudioURL = audioURL;
     // leading and trailing silence isn't part of the performance
     const voiced = p.frames.filter((f) => f.m !== null);
-    if (voiced.length < 10) { $("#pcStatus").textContent = "No notes heard. Check the mic and try again."; return; }
+    if (voiced.length < 10) { $("#pcStatus").textContent = "No notes heard. Check the mic and try again."; PieceView.state("idle"); return; }
     const t0 = p.metro ? p.metro.t0 : voiced[0].t;
     const a = PieceIO.analyze(p.frames.filter((f) => f.t >= t0 - 1000 && f.t <= voiced[voiced.length - 1].t + 200), {
       tol: p.tol, name: pieceNoteName(), keyPcs: p.key && p.key.pcs, keyName: p.key && p.key.name, metronome: p.metro, t0 });
@@ -1861,6 +1868,7 @@ function stopPiece() {
     DB.pieces = [entry, ...(DB.pieces || [])].slice(0, 10);
     save();
     $("#pcStatus").textContent = "Done. See the report below.";
+    PieceView.state("done");
     renderPieceReport(entry, audioURL);
     renderPieceHistory();
   };
@@ -1884,21 +1892,24 @@ function pieceLive(t, m) {
     $("#pcCents").textContent = `${dev > 0 ? "+" : dev < 0 ? "−" : ""}${Math.abs(dev).toFixed(0)}¢`;
     $("#pcCents").style.color = colorFor(Math.abs(dev), tol);
     needle.style.opacity = 1; needle.style.left = 50 + Math.max(-50, Math.min(50, dev)) + "%"; needle.style.background = colorFor(Math.abs(dev), tol);
-  } else { needle.style.opacity = 0; $("#pcCents").textContent = ""; }
+    PieceView.live({ since, tol, note: name.replace(/-?\d+$/, ""), oct: oct(n), cents: dev });
+  } else { needle.style.opacity = 0; $("#pcCents").textContent = ""; PieceView.live({ since, tol, cents: null }); }
   if (p.metro && since >= 0 && $("#pcStatus").textContent.startsWith("Count")) $("#pcStatus").textContent = `Recording with the click at ${p.metro.bpm} BPM`;
-  if (t - (p.lastDraw || 0) > 33) { p.lastDraw = t; drawRoll(p, t); }
+  if (t - (p.lastDraw || 0) > 33) { p.lastDraw = t; pcRollLast = { p, now: t }; if (PieceView.layout() === "full") drawRoll(p, t); }
   if (t - p.lastStats > 1000) {
     p.lastStats = t;
-    const notes = PieceIO.segment(p.frames.slice(-60 * 60 * 3)).filter((n) => n.cents !== null); // last ~3 minutes
+    const all = PieceIO.segment(p.frames.slice(-60 * 60 * 3)), notes = all.filter((n) => n.cents !== null); // last ~3 minutes
+    PieceView.drift(since >= 0 ? PieceIO.liveDrift(all, { now: t, metronome: p.metro }) : null);
     const ok = notes.filter((n) => Math.abs(n.cents) <= tol).length;
     $("#pcLiveStats").innerHTML = notes.length ? `<span>Notes <b>${notes.length}</b></span><span>In tune <b>${Math.round((100 * ok) / notes.length)}%</b></span>` : "";
   }
 }
 
+let pcRollLast = null; // the last trace drawn, so a resize can redraw it after the take ends
 // Scrolling trace of the last 8 seconds, coloured by how far each moment is from the nearest note
 function drawRoll(p, now) {
   const cv = $("#pcRoll"), dpr = window.devicePixelRatio || 1, w = cv.clientWidth, h = cv.clientHeight;
-  if (cv.width !== w * dpr) { cv.width = w * dpr; cv.height = h * dpr; }
+  if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) { cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); }
   const g = cv.getContext("2d");
   g.setTransform(dpr, 0, 0, dpr, 0, 0);
   g.clearRect(0, 0, w, h);
@@ -1966,6 +1977,7 @@ function renderPieceReport(entry, audioURL) {
     <div class="row" style="justify-content:space-between;margin:0 0 .6rem"><h2 style="margin:0">${esc(r.title || "Your performance")} <span class="muted" style="font-size:.9rem;font-weight:400">${new Date(r.date).toLocaleString()}${r.key ? " · " + esc(r.key) : ""}</span></h2>
       <div class="row" style="margin:0"><button class="btn ghost" id="pcCopy">📋 Copy report for Claude</button><button class="btn ghost" id="pcSave">⬇ Report</button></div></div>
     <div class="tiles">${tiles.map(([v, l]) => `<div class="card tile"><div class="v">${v}</div><div class="l">${l}</div></div>`).join("")}</div>
+    <h3>Review${audioURL ? " (tap a numbered spot to hear it)" : ""}</h3>${PieceView.reviewHTML(!!audioURL)}
     ${audioURL ? `<audio id="pcAudio" controls src="${audioURL}"></audio>` : `<p class="muted small">The recording itself isn't kept after you leave the page; the analysis is.</p>`}
     <h3>Every note${audioURL ? " (click one to hear it)" : ""}</h3>
     <div class="pcscroll" id="pcScroll"><svg viewBox="0 0 ${W} ${H}" width="${W}">${roll}</svg>${timingSvg ? `<svg viewBox="0 0 ${W} ${TH}" width="${W}" style="height:${TH}px">${timingSvg}</svg>` : ""}</div>
@@ -1978,12 +1990,15 @@ function renderPieceReport(entry, audioURL) {
   $("#pcCopy").onclick = (e) => copyText(text(), e.target);
   $("#pcSave").onclick = () => download(`${DrillIO.slug(r.title || "performance")}-${r.date.slice(0, 10)}.json`, text());
   const audio = $("#pcAudio");
+  let playFrom = null;
   if (audio) {
-    let stopAt = null;
-    const playFrom = (sec) => { audio.currentTime = Math.max(0, sec + entry.audioOffset - 1); audio.play(); clearTimeout(stopAt); stopAt = setTimeout(() => audio.pause(), 3500); };
+    playFrom = (sec) => { audio.currentTime = Math.max(0, sec + entry.audioOffset - 1); audio.play(); clearTimeout(pcClipTimer); pcClipTimer = setTimeout(() => audio.pause(), 3500); };
     $("#pcReport").querySelectorAll("[data-t]").forEach((el) => (el.onclick = () => playFrom(+el.dataset.t)));
   }
+  PieceView.mountReview($("#pcReport"), r, playFrom);
+  PieceView.take({ report: r, audio });
 }
+let pcClipTimer = null;
 
 function renderPieceHistory() {
   const list = DB.pieces || [];
@@ -3509,6 +3524,9 @@ $("#pcBpmRange").oninput = (e) => ($("#pcBpmVal").textContent = e.target.value);
 document.querySelectorAll("#pcBarSeg button").forEach((b) => (b.onclick = () => pcSet("bar", +b.dataset.v)));
 document.querySelectorAll("#pcSubSeg button").forEach((b) => (b.onclick = () => pcSet("sub", +b.dataset.v)));
 $("#pcStart").onclick = startPiece;
+PieceView.init({ start: startPiece, stop: stopPiece, isRecording: () => !!piece, cancelClip: () => clearTimeout(pcClipTimer),
+  redrawRoll: () => pcRollLast && drawRoll(pcRollLast.p, pcRollLast.now) });
+PieceView.watchCanvas($("#pcRoll"), () => pcRollLast && drawRoll(pcRollLast.p, pcRollLast.now));
 $("#pcStop").onclick = stopPiece;
 $("#pcHistory").onclick = (e) => {
   const b = e.target.closest("button"), row = e.target.closest(".drow");

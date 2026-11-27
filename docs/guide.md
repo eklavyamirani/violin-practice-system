@@ -112,6 +112,18 @@ Record yourself playing a whole piece; you don't need to enter the music. The ap
 - **Moments to check**, each with a ▶ button that plays that spot of the recording. The analysis is kept (the last 10 performances), but the audio only lasts until you leave the page.
 - **📋 Copy report for Claude**, to talk through the performance and get drills for the weak spots.
 
+- **Review:** after each take, a timeline of every note's intonation and of your tempo (against the click, or your own pulse), with a numbered spot for each moment to check. Tap a spot to hear that moment.
+
+### In a small window
+
+On an iPad with Stage Manager you can float the app over your sheet music (forScore, say) and play with it there. The Piece tab changes with the window's width:
+
+- **Under 200 px, a pill:** record/stop, the clock, and one dot for the note you're playing: green in tune, amber within twice the tolerance, red beyond, with ▲ for sharp and ▼ for flat. Under 150 px the clock goes.
+- **200–450 px, a tuner:** the note and how many cents off, a big needle, and a tempo bar showing whether you're rushing or dragging over the last few beats (against the click, or your own usual pulse without it). After a take: how many notes were in tune, every note as a coloured tick, and ▶ to hear the take.
+- **Wider:** the full tab, with the review timeline.
+
+Resizing never stops or loses a recording. The app's header is hidden in the two small layouts; widen the window to switch tabs.
+
 Calibrate timing once in the metronome panel of this tab. It listens across all four strings, so it has its own calibration, separate from Tempo mode's.
 
 ## Ear tab

@@ -100,5 +100,30 @@ check("silence", P.analyze([{ t: 0, m: null, rms: 0 }, { t: 16, m: null, rms: 0 
   check("report carries context", P.buildReport(b, { t0: 1000, date: 0, a4: 440, tol: 15 }).context.afterOutOfKey[0].note === "F5");
 }
 
+// Tempo drift for the live view and the review timeline
+{
+  const q = 375; // 80 BPM, eighth notes
+  const at = (f, n, jitter = 0) => Array.from({ length: n }, (_, k) => { const t = 10000 + (k * q) / f + (rand() - 0.5) * jitter; return { t, off: t - (10000 + Math.round((t - 10000) / q) * q) }; });
+  const steady = P.clickDrift(at(1, 12, 30), q);
+  check("steady with jitter: drift near 0", Math.abs(steady) < 2, steady);
+  const fast = P.clickDrift(at(1.05, 12, 20), q);
+  check("5% fast reads about +5", Math.abs(fast - 5) < 1.5, fast);
+  const slow = P.clickDrift(at(0.9, 16), q);
+  check("10% slow reads about -10, across a grid wrap", Math.abs(slow + 10) < 0.5, slow);
+  check("too few onsets: null", P.clickDrift(at(1, 2), q) === null);
+  const curve = P.clickDriftCurve([...at(1, 16, 10), ...at(1.08, 16, 10).map((p) => ({ ...p, t: p.t + 6000 }))].map((p) => ({ t: p.t, off: p.t - (10000 + Math.round((p.t - 10000) / q) * q) })), q, 6 * 750);
+  check("curve: steady then rushing", curve.length > 20 && Math.abs(curve[2].pct) < 3 && curve[curve.length - 3].pct > 5, curve.map((c) => c.pct));
+
+  const g = { t0: 10000, beatMs: 750, sub: 2, lat: 40 };
+  const ns = at(0.94, 20, 10).map((p) => ({ t: p.t + g.lat }));
+  const live = P.liveDrift(ns, { now: ns[ns.length - 1].t, metronome: g });
+  check("live vs click: dragging 6%", live && live.ref === "click" && Math.abs(live.pct + 6) < 1.5, live);
+  const free = []; let tt = 1000;
+  for (let k = 0; k < 30; k++) { free.push({ t: tt }); tt += k < 18 ? 500 : 440; }
+  const lf = P.liveDrift(free, { now: tt, metronome: null });
+  check("live vs own pulse: speeding up reads positive", lf && lf.ref === "pulse" && lf.pct > 6, lf);
+  check("live: nothing recent, null", P.liveDrift(free, { now: tt + 20000, metronome: null }) === null);
+}
+
 console.log(fails ? `${fails} failures` : "all pass");
 process.exit(fails ? 1 : 0);

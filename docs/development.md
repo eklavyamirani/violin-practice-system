@@ -14,7 +14,8 @@ Then open http://localhost:8765 and allow microphone access. Chrome and Safari b
 - `mic-check.html` runs a few microphone setups side by side and produces a report. Use it when the app can't hear the mic on a particular device.
 - `?sim` in the URL replaces the mic with a synthetic tone generator (useful for trying it without a violin).
 - `node test/pitch.test.js` checks the pitch detector against synthesized violin-like tones (A3–B6).
-- `node test/piece.test.js` checks note splitting, intonation (including vibrato) and timing analysis on synthetic performances.
+- `node test/piece.test.js` checks note splitting, intonation (including vibrato), timing analysis and tempo drift (live and over a take) on synthetic performances.
+- `node test/piece-view.test.js` checks the Piece tab's layout choice by window width, the review timeline's notes, tempo and moments, and its tap targets.
 - `node test/drills.test.js` checks drill import/export, including that every built-in drill exports and re-imports unchanged.
 - `node test/practicelog.test.js` checks the practice log: storage limits, backfill, ranges and sessions, patterns, and before/after for imported drills.
 - `node test/plan.test.js` checks practice plan import (keys, strings, parts, errors), the session rotation, the calendar and the streak.
@@ -29,7 +30,8 @@ Then open http://localhost:8765 and allow microphone access. Chrome and Safari b
 ## Files
 
 - `index.html`: the app (UI, drills, scoring, progress)
-- `piece.js`: Piece tab analysis (note splitting, intonation, metronome and free timing, reports)
+- `piece.js`: Piece tab analysis (note splitting, intonation, metronome and free timing, tempo drift, reports)
+- `piece-view.js`, `piece-view.css`: the Piece tab's layouts by window width (pill, compact tuner, full with the review timeline) and its styles
 - `practicelog.js`: the 90-day practice log and its export for Claude (patterns, progress, before/after for imported drills)
 - `plan.js`: practice plan format (documentation, validation), session rotation, calendar, streak and report days
 - `drills.js`: custom drill format (documentation, validation, import/export)
