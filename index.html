@@ -207,30 +207,6 @@ main { max-width: 1280px; margin: 0 auto; padding: 1rem; }
 #board.hideguide .guide { display: none; }
 #mm { font-size: 1.15rem; font-weight: 700; min-height: 2.4em; margin-top: .3rem; }
 
-/* Piece */
-.pcgrid { display: grid; grid-template-columns: 320px minmax(0, 1fr); gap: 1rem; align-items: start; }
-.textin { width: 100%; font: inherit; color: var(--ink); background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: .45rem .6rem; margin-bottom: .7rem; }
-.bpmrange { width: 100%; accent-color: var(--accent); margin-bottom: .6rem; }
-.pclive-top { display: flex; align-items: center; gap: 1rem; margin-bottom: .6rem; }
-.pcnote { font-size: 2.6rem; font-weight: 800; min-width: 3.5em; }
-.pcnote sub { font-size: .4em; color: var(--muted); }
-.pccents { font-size: 1.4rem; font-weight: 800; font-variant-numeric: tabular-nums; }
-.pcclock { margin-left: auto; font-size: 1.4rem; font-variant-numeric: tabular-nums; color: var(--muted); }
-.pcclock.rec { color: var(--bad); }
-.small-gauge { height: 30px; margin-bottom: .7rem; }
-#pcRoll { width: 100%; height: 240px; display: block; background: var(--panel-2); border-radius: 10px; }
-.pcrep { margin-top: 1rem; }
-.pcrep .tiles { margin-bottom: .8rem; }
-.pcscroll { overflow-x: auto; border-radius: 10px; background: var(--panel-2); margin-bottom: .8rem; }
-.pcscroll svg { display: block; height: 240px; }
-.pcscroll svg rect.n { cursor: pointer; }
-.pccols { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-.moment { display: flex; gap: .6rem; align-items: center; padding: .35rem 0; border-bottom: 1px solid var(--line); font-size: .9rem; }
-.moment:last-child { border-bottom: 0; }
-.moment button { border: 1px solid var(--line); background: var(--panel-2); border-radius: 50%; width: 30px; height: 30px; flex-shrink: 0; }
-.moment .at { font-variant-numeric: tabular-nums; color: var(--muted); width: 3em; }
-.pcrep audio { width: 100%; margin: .4rem 0 .8rem; }
-
 /* My drills */
 .dgrid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 1rem; align-items: start; }
 .small { font-size: .84rem; margin: .1rem 0 .6rem; }
@@ -363,7 +339,7 @@ main { max-width: 1280px; margin: 0 auto; padding: 1rem; }
 @media (max-width: 980px) {
   #tab-practice.active, #tab-ear.active { grid-template-columns: 1fr; }
   .side { order: 2; }
-  .pgrid, .dgrid, .pcgrid, .pccols { grid-template-columns: 1fr; }
+  .pgrid, .dgrid { grid-template-columns: 1fr; }
 }
 @media (max-width: 640px) {
   main { padding: .75rem 1rem; }
@@ -375,7 +351,24 @@ main { max-width: 1280px; margin: 0 auto; padding: 1rem; }
   .nrow { grid-template-columns: 50px 1fr 44px; }
   .nrow .fx { display: none; }
 }
+/* Settings: one dialog for what every tab shares */
+.gear { background: none; border: 1px solid var(--line); border-radius: 8px; color: var(--muted); font-size: 1.05rem; line-height: 1; padding: .35rem .5rem; }
+.gear:hover { color: var(--ink); background: var(--panel-2); }
+.inlink { background: none; border: 0; padding: 0; color: var(--accent); font: inherit; text-decoration: underline; cursor: pointer; }
+.setdlg { width: min(440px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); box-sizing: border-box; border: 1px solid var(--line); border-radius: 16px; background: var(--panel); color: var(--ink); padding: 1rem 1.2rem 1.2rem; box-shadow: var(--shadow); }
+.setdlg::backdrop { background: rgba(20, 14, 10, .45); }
+.setdlg h3 { margin: 1.1rem 0 .4rem; }
+.setdlg .seg { margin-bottom: .3rem; }
+.setdlg .calib { justify-content: space-between; }
+.setdlg .calib > span { margin-right: auto; }
+.sethead { display: flex; align-items: center; justify-content: space-between; margin: 0; }
+.sethead h2 { margin: 0; font-size: 1.15rem; }
+.setlive { font-size: 2rem; font-weight: 800; text-align: center; font-variant-numeric: tabular-nums; min-height: 0; }
+.setlive:empty { display: none; }
+#setStatus { font-size: .95rem; min-height: 0; margin-top: .8rem; }
+#setStatus:empty { display: none; }
 </style>
+<link rel="stylesheet" href="piece-view.css">
 </head>
 <body>
 <header class="top">
@@ -389,12 +382,31 @@ main { max-width: 1280px; margin: 0 auto; padding: 1rem; }
     <button data-tab="progress">Progress</button>
     <button data-tab="how">Why it works</button>
   </nav>
+  <button class="gear" id="setBtn" data-open-settings aria-label="Settings" title="Settings">⚙</button>
   <div class="hud">
     <div title="Daily goal: 3 runs" id="dayGoalBox"><div class="daygoal" id="dayGoal"></div></div>
     <div id="hudStreak" title="Days in a row">🔥 0</div>
     <div><span id="hudLevel">Level 1</span><div class="xpbar"><i id="hudXp"></i></div></div>
   </div>
 </header>
+<dialog id="settingsDlg" class="setdlg" aria-labelledby="setTitle">
+  <form method="dialog" class="sethead"><h2 id="setTitle">Settings</h2><button class="btn ghost" aria-label="Close settings">✕</button></form>
+  <p class="muted small">For every tab. They stay on this device and don't sync.</p>
+  <h3>Tuning</h3>
+  <div class="calib"><span>A4 = <b id="a4Val">440</b> Hz</span> <button id="calibBtn">Tune from open A</button></div>
+  <p class="muted small">Bow your open A for 2–3 seconds. Every note, drone and Ear question is measured from it.</p>
+  <h3>Count-in</h3>
+  <div class="seg" id="countInSeg" role="group" aria-label="Count-in"><button data-v="1">1 bar</button><button data-v="2">2 bars</button><button data-v="4">4 bars</button></div>
+  <p class="muted small">Clicks before you play, wherever the metronome counts you in: Tempo mode and rhythm drills, and the Piece tab with the metronome on. In Tempo mode a bar is 4 beats.</p>
+  <h3>Timing offset</h3>
+  <div class="calib"><span>Drills <b id="latVal">auto</b></span> <button id="tcalBtn">Calibrate</button></div>
+  <div class="calib"><span>Piece tab <b id="pcLatVal">auto</b></span> <button id="pcCalBtn">Calibrate</button></div>
+  <p class="muted small">The delay from a click to the app hearing your note. Drills and the Piece tab find note starts differently, so each has its own. Calibrate on the device and speakers you practise with.</p>
+  <h3>Microphone</h3>
+  <label class="toggle"><input type="checkbox" id="optVoiceMic"><span><b>iPad mic mode</b><small>Uses Safari's voice-processed mic. Turn this on if the app can't hear you on iPad (its raw mic is too quiet). Leave it off on other devices.</small></span></label>
+  <div class="setlive" id="setLive" aria-hidden="true"></div>
+  <div class="msg" id="setStatus" aria-live="polite"></div>
+</dialog>
 
 <main>
   <!-- PRACTICE -->
@@ -432,7 +444,6 @@ main { max-width: 1280px; margin: 0 auto; padding: 1rem; }
           </div>
           <label class="toggle" id="ladderBox"><input type="checkbox" id="optLadder"><span><b>Tempo ladder</b><small>Pass 3 runs in a row and the next one is 6% faster; miss 2 in a row and it's 8% slower. Speed only goes up once the notes are clean, and not on one lucky run.</small></span></label>
           <p class="muted small" id="pathTempoNote" hidden>The path sets the tempo for each skill: 6% faster after 3 clean runs in a row (both directions, one of them your first try of the session), 8% slower after 2 misses.</p>
-          <div class="calib">Timing offset <b id="latVal">auto</b> <button id="tcalBtn">Calibrate timing</button></div>
         </div>
         <h3>Target accuracy</h3>
         <div class="seg" id="tierSeg">
@@ -445,8 +456,7 @@ main { max-width: 1280px; margin: 0 auto; padding: 1rem; }
         <label class="toggle"><input type="checkbox" id="optEars"><span><b>Ears first</b><small>Needle stays hidden until you land. Wean yourself off the screen.</small></span></label>
         <label class="toggle"><input type="checkbox" id="optChime"><span><b>Chime on lock</b></span></label>
         <label class="toggle"><input type="checkbox" id="optHandsFree"><span><b>Hands-free start</b><small>Play and hold a drill's first note to start it, so you don't have to put the violin down between runs. After a run, its first note goes again and the next drill's first note moves on.</small></span></label>
-        <label class="toggle"><input type="checkbox" id="optVoiceMic"><span><b>iPad mic mode</b><small>Uses Safari's voice-processed mic. Turn this on if the app can't hear you on iPad (its raw mic is too quiet). Leave it off on other devices.</small></span></label>
-        <div class="calib">A4 = <b id="a4Val">440</b> Hz <button id="calibBtn">Tune from open A</button></div>
+        <p class="muted small">Tuning, count-in, timing offset and iPad mic mode are in <button class="inlink" data-open-settings>⚙ Settings</button>.</p>
       </div>
     </aside>
 
@@ -489,10 +499,43 @@ main { max-width: 1280px; margin: 0 auto; padding: 1rem; }
 
   <!-- PIECE -->
   <section id="tab-piece" class="tab">
+    <!-- Small windows (Stage Manager over the sheet music): a pill under 200 px, a compact tuner up to 450 px. piece-view.js picks one by width. -->
+    <div class="pcw" id="pcWidget">
+      <div class="pcw-pill">
+        <button class="pcw-rec" data-act="rec" aria-label="Start recording"><i></i></button>
+        <span class="pcw-clock" data-k="clock">0:00</span>
+        <span class="pcw-dot" data-k="dot" role="img" aria-label="No note"></span>
+      </div>
+      <div class="pcw-compact">
+        <div class="pcw-head">
+          <div class="pcw-mode" role="group" aria-label="Piece mode"><button data-v="rec">Record</button><button data-v="live">Live coaching</button></div>
+          <button class="pcw-gear" data-open-settings aria-label="Settings" title="Settings">⚙</button>
+        </div>
+        <div class="pcw-top"><span class="pcw-recdot" aria-hidden="true"></span><span class="pcw-clock" data-k="clock">0:00</span><span class="pcw-target" data-k="target"></span></div>
+        <div class="pcw-live">
+          <div class="pcw-noterow"><b class="pcw-note" data-k="note">—</b><b class="pcw-cents" data-k="cents"></b></div>
+          <div class="pcw-gauge" role="img" aria-label="Pitch against the nearest note"><i class="pcw-zone" data-k="zone"></i><i class="pcw-mid"></i><i class="pcw-tick" style="left:25%"></i><i class="pcw-tick" style="left:75%"></i><span class="pcw-flat" aria-hidden="true">♭</span><span class="pcw-sharp" aria-hidden="true">♯</span><i class="pcw-needle" data-k="needle"></i></div>
+          <div class="pcw-tempo"><div class="pcw-cap"><span>Tempo</span><b data-k="drift"></b></div>
+            <div class="pcw-bar" role="img" aria-label="Rushing or dragging against the tempo"><i class="pcw-bzone"></i><i class="pcw-bmid"></i><i class="pcw-fill" data-k="fill"></i><span class="l">Drag</span><span class="r">Rush</span></div></div>
+          <p class="pcw-tip" data-k="tip" aria-live="polite"></p>
+        </div>
+        <div class="pcw-done">
+          <div class="pcw-noterow"><b class="pcw-note" data-k="pct">—</b><span class="muted">in tune</span></div>
+          <canvas id="pcwStrip" class="pcw-strip" role="img" aria-label="Every note of the last take, coloured by intonation"></canvas>
+          <div class="pcw-tempo"><div class="pcw-cap"><span>Tempo, whole take</span><b data-k="takeDrift"></b></div>
+            <div class="pcw-bar" role="img" aria-label="Tempo over the whole take"><i class="pcw-bzone"></i><i class="pcw-bmid"></i><i class="pcw-fill" data-k="takeFill"></i><span class="l">Drag</span><span class="r">Rush</span></div></div>
+        </div>
+        <div class="pcw-ctrls">
+          <button class="pcw-play" data-act="play" aria-label="Play the last take" disabled><i></i></button>
+          <button class="pcw-rec" data-act="rec" aria-label="Start recording"><i></i></button>
+        </div>
+      </div>
+    </div>
     <div class="pcgrid">
       <div class="card">
         <h3>Play a piece</h3>
-        <p class="muted small">Record yourself playing anything. You get feedback on intonation and timing, and you can listen back to each flagged moment. You don't need to enter the music.</p>
+        <div class="seg" id="pcModeSeg" role="group" aria-label="Piece mode"><button data-v="rec">● Record &amp; analyse</button><button data-v="live">Live coaching</button></div>
+        <p class="muted small" id="pcModeNote">Record yourself playing anything. You get feedback on intonation and timing, and you can listen back to each flagged moment. You don't need to enter the music.</p>
         <input id="pcTitle" class="textin" placeholder="Piece name (optional, to track progress)" maxlength="80">
         <div class="cfgrow"><span class="muted">Key</span><select id="pcKey" aria-label="Key"></select></div>
         <h3>In tune within</h3>
@@ -505,8 +548,7 @@ main { max-width: 1280px; margin: 0 auto; padding: 1rem; }
           <div class="seg" id="pcBarSeg"><button data-v="2">2</button><button data-v="3">3</button><button data-v="4">4</button><button data-v="6">6</button></div>
           <h3>Shortest note to time against</h3>
           <div class="seg" id="pcSubSeg"><button data-v="1">♩ beat</button><button data-v="2">♪ half</button><button data-v="3">triplet</button><button data-v="4">♬ quarter</button></div>
-          <p class="muted small">One bar of clicks counts you in.</p>
-          <div class="calib">Timing offset <b id="pcLatVal">auto</b> <button id="pcCalBtn">Calibrate timing</button></div>
+          <p class="muted small"><span id="pcCountInNote">One bar of clicks counts</span> you in. Count-in and timing offset are in <button class="inlink" data-open-settings>⚙ Settings</button>.</p>
         </div>
         <div class="row"><button class="btn" id="pcStart">● Start recording</button><button class="btn ghost" id="pcStop" hidden>■ Stop &amp; analyse</button></div>
       </div>
@@ -519,6 +561,7 @@ main { max-width: 1280px; margin: 0 auto; padding: 1rem; }
         <div class="gtrack small-gauge"><div class="gzone" id="pcZone"></div><div class="gcenter"></div><div class="gneedle" id="pcNeedle"></div></div>
         <canvas id="pcRoll" width="900" height="240" aria-label="Live pitch trace"></canvas>
         <div class="runstats" id="pcLiveStats"></div>
+        <div class="pccoach" id="pcCoach" aria-live="polite" hidden></div>
       </div>
     </div>
     <div id="pcReport"></div>
@@ -716,6 +759,7 @@ window.addEventListener("error", (e) => {
 <script src="practicelog.js"></script>
 <script src="plan.js"></script>
 <script src="piece.js"></script>
+<script src="piece-view.js"></script>
 <script src="rhythm.js"></script>
 <script src="sync.js"></script>
 <script src="ear.js"></script>
@@ -799,7 +843,7 @@ function applyRange() {
 // ---------- Storage ----------
 const STORE_KEY = "fingerboard-coach.v1";
 const defaults = () => ({ ear: { stages: {}, hist: [], strings: {} }, xp: 0, notes: {}, ex: {}, days: {}, sessions: [], selected: "p3-A", cfg: { ...DEFAULT_CFG }, custom: [], customMeta: {}, runs: {}, log: [], path: { states: {}, session: null }, goals: {}, plan: null, planLog: {},
-  settings: { view: "path", mode: "lock", tier: 1, drone: false, hear: false, hide: false, ears: false, chime: true, a4: 440, bpm: 60, per: 1, ladder: true, latencyMs: null, voiceMic: false, handsFree: true, clicks: 2, earMode: "pitch", earStage: null, earDur: 0.5, earVib: false, earSrc: "synth", earStrStage: null, earStrKind: null } });
+  settings: { view: "path", mode: "lock", tier: 1, drone: false, hear: false, hide: false, ears: false, chime: true, a4: 440, bpm: 60, per: 1, ladder: true, latencyMs: null, voiceMic: false, countIn: 1, handsFree: true, clicks: 2, earMode: "pitch", earStage: null, earDur: 0.5, earVib: false, earSrc: "synth", earStrStage: null, earStrKind: null } });
 function loadDB() {
   const d = defaults();
   try {
@@ -868,6 +912,7 @@ async function startAudio() {
       micStream = await navigator.mediaDevices.getUserMedia({ audio: micConstraints() });
     } catch (e) {
       setMsg(`🎤 Can't use the microphone (${e.name}). Allow mic access for this page and try again.`, "bad");
+      setSay(`🎤 Can't use the microphone (${e.name}). Allow mic access for this page and try again.`, "bad");
       return false;
     }
     const rate = (micStream.getAudioTracks()[0].getSettings() || {}).sampleRate;
@@ -913,7 +958,7 @@ async function restartAudio() {
   ctx = null; micStream = null; droneNodes = null; noiseBuf = null; frames = []; smooth = null;
   audioGen++;
   try { await old.close(); } catch (e) {}
-  if (await startAudio()) setMsg(DB.settings.voiceMic ? "🎤 iPad mic mode on. Play a note to check the meter moves." : "🎤 Back to the standard raw mic.", "good");
+  if (await startAudio()) { const t = DB.settings.voiceMic ? "🎤 iPad mic mode on. Play a note to check the meter moves." : "🎤 Back to the standard raw mic."; setMsg(t, "good"); setSay(t, "good"); }
 }
 
 // iOS pauses audio when the app goes to the background, a call comes in, or Siri speaks ("interrupted"),
@@ -1010,6 +1055,17 @@ function click(at, level) {
 const outLatencyMs = () => ((ctx.outputLatency || 0) + (ctx.baseLatency || 0)) * 1000;
 // Delay from a scheduled click to detecting a note played on it: speaker output + mic input + analysis
 const latencyMs = () => (DB.settings.latencyMs !== null ? DB.settings.latencyMs : Math.round(outLatencyMs() + 40));
+// While Settings is open, calibration and the mic report there too: the tab they belong to is behind the dialog
+function setSay(html, kind = "") {
+  const el = $("#setStatus");
+  if (!html) { el.innerHTML = ""; el.className = "msg"; return; }
+  if (!$("#settingsDlg").open) return;
+  el.innerHTML = html; el.className = "msg " + kind;
+}
+const setLive = (txt) => { if ($("#settingsDlg").open || !txt) $("#setLive").textContent = txt; };
+// Count-in before the first note, in bars (Settings): Tempo mode and rhythm drills, and the Piece tab's metronome
+const countInBars = () => ([1, 2, 4].includes(DB.settings.countIn) ? DB.settings.countIn : 1);
+const countInText = () => (countInBars() === 1 ? "One bar" : `${countInBars()} bars`);
 // On-time window: a share of each note's length that shrinks with the medal level, 30–120 ms
 const timingTol = (slot, tier) => Math.round(Math.max(30, Math.min(120, [0, 0.25, 0.18, 0.12][tier] * slot)));
 
@@ -1027,7 +1083,7 @@ async function calibrateTiming(forPiece = false) {
   tcal = { forPiece, frames: [], start, beatMs, clicks: Array.from({ length: n }, (_, k) => start + (count + k) * beatMs), end: start + (count + n) * beatMs + 600 };
   tcalSay("⏱ After 4 clicks, play 8 short notes on the click, alternating two open strings (A, E, A, E…).");
 }
-const tcalSay = (text, kind = "") => (tcal && tcal.forPiece ? ($("#pcStatus").textContent = text) : setMsg(text, kind));
+const tcalSay = (text, kind = "") => { if (tcal && tcal.forPiece) $("#pcStatus").textContent = text; else setMsg(text, kind); setSay(text, kind); };
 const pieceLatencyMs = () => (DB.settings.pieceLatencyMs != null ? DB.settings.pieceLatencyMs : Math.round(outLatencyMs() + 15));
 // A note starts where the rounded pitch changes and holds for most of the next few frames
 function noteOnsets(fr) {
@@ -1043,7 +1099,9 @@ function noteOnsets(fr) {
 function tcalStep(t) {
   const k = Math.floor((t - tcal.start) / tcal.beatMs);
   $(tcal.forPiece ? "#pcNote" : "#bigNote").textContent = k < 4 ? String(4 - Math.max(0, k)) : "♪";
+  setLive(k < 4 ? String(4 - Math.max(0, k)) : "♪");
   if (t < tcal.end) return;
+  setLive("");
   const on = tcal.forPiece ? PieceIO.segment(tcal.frames, { minNoteMs: 60 }).map((n) => n.t) : noteOnsets(tcal.frames), offs = [];
   for (const c of tcal.clicks) { const o = on.find((x) => x > c - 250 && x < c + 450); if (o !== undefined) offs.push(o - c); }
   const forPiece = tcal.forPiece;
@@ -1073,7 +1131,11 @@ function loop(t, gen) {
   frames.push({ t, m, f: r.freq });
   while (frames.length && frames[0].t < t - 5000) frames.shift(); // Tempo mode scores notes from recent history
   if (metro) metroTick();
-  if (piece) { piece.frames.push({ t, m, rms: r.rms }); return pieceLive(t, m); }
+  if (piece) {
+    piece.frames.push({ t, m, rms: r.rms });
+    if (piece.live) while (piece.frames[0].t < t - 90000) piece.frames.shift(); // live coaching keeps no take
+    return pieceLive(t, m);
+  }
   if (tcal) { tcal.frames.push({ t, m, rms: r.rms }); return tcalStep(t); }
 
   if (calib) return calibStep(t);
@@ -1101,26 +1163,28 @@ function stableMedian(t) {
 }
 
 // ---------- Calibration ----------
+const calSay = (html, kind = "") => { setMsg(html, kind); setSay(html, kind); };
 // Waits up to CALIB_WAIT_MS for the A to start, then measures 2.5 s from when it's first heard steadily
 const CALIB_WAIT_MS = 20000, CALIB_MS = 2500;
 function calibStep(t) {
   const x = frames[frames.length - 1], isA = x.f > 400 && x.f < 480;
   $("#bigNote").innerHTML = "A";
   $("#cents").textContent = isA ? x.f.toFixed(1) + " Hz" : "…";
+  setLive(isA ? x.f.toFixed(1) + " Hz" : "…");
   if (!calib.heard) {
     calib.streak = isA ? (calib.streak || 0) + 1 : 0;
-    if (calib.streak >= 6) { calib.heard = t; setMsg("🎻 Hearing your A. Keep bowing…"); }
-    else if (t - calib.start > CALIB_WAIT_MS) { calib = null; setMsg("I didn't hear an open A. Press <b>Tune from open A</b> to try again.", "bad"); }
+    if (calib.streak >= 6) { calib.heard = t; setMsg("🎻 Hearing your A. Keep bowing…"); setSay("🎻 Hearing your A. Keep bowing…"); }
+    else if (t - calib.start > CALIB_WAIT_MS) { calib = null; setLive(""); calSay("I didn't hear an open A. Press <b>Tune from open A</b> to try again.", "bad"); }
     return;
   }
   if (isA) calib.samples.push(x.f);
   if (t - calib.heard < CALIB_MS) return;
   const s = calib.samples;
-  calib = null;
-  if (s.length < 40) { setMsg("I couldn't hear a steady open A. Try again, bowing a long, even note.", "bad"); return; }
+  calib = null; setLive("");
+  if (s.length < 40) { calSay("I couldn't hear a steady open A. Try again, bowing a long, even note.", "bad"); return; }
   DB.settings.a4 = Math.round(median(s) * 2) / 2;
   save(); syncSettingsUI();
-  setMsg(`✓ Your A is ${DB.settings.a4} Hz. All notes are now measured from it.`, "good");
+  calSay(`✓ Your A is ${DB.settings.a4} Hz. All notes are now measured from it.`, "good");
   applyDrone();
 }
 
@@ -1156,14 +1220,14 @@ function startRun(seq) {
   run = { ex, seq: seq || (ex.hunt ? buildHunt() : ex.notes), idx: 0, mode, tier: P ? (P.level === "learning" ? 1 : 2) : s.tier, tol: P ? P.L.window : TIERS[s.tier].tol,
     results: [], combo: 0, maxCombo: 0, xp: 0, t0: performance.now() };
   if (ex.rhythm) {
-    // One bar of clicks counts in; the notes are scored together once the last one has had its full length
-    const beatMs = 60000 / s.bpm, bar = ex.rhythm.bar, clicks = s.clicks;
-    const first = startMetronome(s.bpm, bar + Math.ceil(ex.rhythm.total) + 1, bar, clicks);
-    run.tempo = { bpm: s.bpm, per: 1, beatMs, slot: beatMs, bar, t0: first + bar * beatMs, lat: latencyMs(), outLat: outLatencyMs(), tolMs: timingTol(beatMs / 2, run.tier), counting: true, onTime: 0 };
+    // The count-in (Settings, in bars), then the notes are scored together once the last one has had its full length
+    const beatMs = 60000 / s.bpm, bar = ex.rhythm.bar, clicks = s.clicks, lead = bar * countInBars();
+    const first = startMetronome(s.bpm, lead + Math.ceil(ex.rhythm.total) + 1, bar, clicks);
+    run.tempo = { bpm: s.bpm, per: 1, beatMs, slot: beatMs, bar, lead, t0: first + lead * beatMs, lat: latencyMs(), outLat: outLatencyMs(), tolMs: timingTol(beatMs / 2, run.tier), counting: true, onTime: 0 };
     run.rhythm = { clicks, frames: [], total: ex.rhythm.total, bar, holdFrac: HOLD_FRAC[run.tier] };
     $("#beatDot").hidden = false;
   } else if (mode === "tempo") {
-    const beatMs = 60000 / s.bpm, slot = beatMs / s.per, countIn = 4;
+    const beatMs = 60000 / s.bpm, slot = beatMs / s.per, countIn = 4 * countInBars();
     const first = startMetronome(s.bpm, countIn + Math.ceil(run.seq.length / s.per) + 1);
     run.tempo = { bpm: s.bpm, per: s.per, beatMs, slot, t0: first + countIn * beatMs, lat: latencyMs(), outLat: outLatencyMs(), tolMs: P ? P.L.onsetMs : timingTol(slot, s.tier), evalIdx: 0, counting: true, onTime: 0 };
     $("#beatDot").hidden = false;
@@ -1172,9 +1236,9 @@ function startRun(seq) {
   $("#startBtn").textContent = "↻ Restart"; $("#stopBtn").hidden = false; $("#hearBtn").hidden = true;
   buildPath(); buildBoard();
   newTarget(performance.now());
-  setMsg(ex.rhythm ? `🎵 ${s.bpm} BPM, clicks on ${run.rhythm.clicks === 2 ? "8ths" : "beats"}. One bar counts you in; then play each note for its full length. You get the results at the end.`
+  setMsg(ex.rhythm ? `🎵 ${s.bpm} BPM, clicks on ${run.rhythm.clicks === 2 ? "8ths" : "beats"}. ${countInText()} count${countInBars() > 1 ? "" : "s"} you in; then play each note for its full length. You get the results at the end.`
     : ex.path && (mode === "lock" || mode === "place") ? `${mode === "lock" ? "Lock-in: learn the notes" : "Place: stop, place each finger, then bow"}. Only Flow and Tempo runs count toward the path.` : mode === "lock" ? "Play the note and hold it in tune until the ring fills." : mode === "place" ? "Place: stop the bow, put the finger down, then play. Where it touches down is the score; if it's off, lift it and place it again, don't slide." : mode === "flow" ? "Flow: play through at your own pace. Each note is scored where it first lands."
-    : `⏱ ${s.bpm} BPM, ${s.per} note${s.per > 1 ? "s" : ""} per beat. Four clicks count you in, then play each note on its beat.`);
+    : `⏱ ${s.bpm} BPM, ${s.per} note${s.per > 1 ? "s" : ""} per beat. ${4 * countInBars()} clicks count you in, then play each note on its beat.`);
 }
 
 function stopRun() {
@@ -1794,7 +1858,7 @@ function tempoTips(r, res) {
 
 // ---------- Piece mode ----------
 let piece = null, pieceAudioURL = null;
-const pcS = () => (DB.settings.piece ||= { title: "", key: "", tol: 15, metro: false, bpm: 80, bar: 4, sub: 2 });
+const pcS = () => (DB.settings.piece ||= { title: "", key: "", tol: 15, metro: false, bpm: 80, bar: 4, sub: 2, live: false });
 const PIECE_RANGE = { lowHz: 196, min: 175, max: 2700, hp: 150, key: "piece" }; // all four strings
 function pieceKey() {
   const k = pcS().key;
@@ -1811,16 +1875,17 @@ async function startPiece() {
   if (!(await startAudio())) return;
   if (run) stopRun();
   if (tcal) { tcal = null; stopMetronome(); }
-  const P = pcS();
+  const P = pcS(), live = !!P.live;
   RANGE = PIECE_RANGE; hp.frequency.value = RANGE.hp;
-  piece = { frames: [], start: performance.now(), title: $("#pcTitle").value.trim(), tol: P.tol, key: pieceKey(), metro: null, lastStats: 0 };
+  // live: coaching as you play, with nothing recorded or saved (only the last 90 s of pitch is kept)
+  piece = { frames: [], start: performance.now(), title: $("#pcTitle").value.trim(), tol: P.tol, key: pieceKey(), metro: null, lastStats: 0, live, tip: null };
   if (P.metro) {
-    const beatMs = 60000 / P.bpm, first = startMetronome(P.bpm, Infinity, P.bar);
-    piece.metro = { t0: first + P.bar * beatMs, beatMs, sub: P.sub, lat: pieceLatencyMs(), bpm: P.bpm, beatsPerBar: P.bar };
-    piece.start = first + P.bar * beatMs;
+    const beatMs = 60000 / P.bpm, first = startMetronome(P.bpm, Infinity, P.bar), lead = P.bar * countInBars();
+    piece.metro = { t0: first + lead * beatMs, beatMs, sub: P.sub, lat: pieceLatencyMs(), bpm: P.bpm, beatsPerBar: P.bar };
+    piece.start = piece.metro.t0;
   }
   // Record the raw input so flagged moments can be played back
-  try {
+  if (!live) try {
     const dest = ctx.createMediaStreamDestination();
     inputNode.connect(dest);
     piece.rec = new MediaRecorder(dest.stream);
@@ -1832,8 +1897,11 @@ async function startPiece() {
   } catch (e) { piece.rec = null; }
   $("#pcStart").hidden = true; $("#pcStop").hidden = false;
   $("#pcClock").classList.add("rec");
-  $("#pcStatus").textContent = P.metro ? "Count-in… then play" : "Recording. Play when you're ready.";
-  $("#pcReport").innerHTML = "";
+  $("#pcStatus").textContent = P.metro ? "Count-in… then play" : live ? "Live coaching. Play, and tips appear as you go." : "Recording. Play when you're ready.";
+  if (!live) $("#pcReport").innerHTML = "";
+  $("#pcCoach").hidden = !live; $("#pcCoach").textContent = "Tips appear here once you've played a few notes."; $("#pcCoach").dataset.kind = "";
+  PieceView.state(P.metro ? "countin" : "rec", { tol: P.tol, bpm: P.metro ? P.bpm : null, live, beatMs: piece.metro && piece.metro.beatMs });
+  syncPieceUI(); // the mode switches lock while it runs
 }
 
 function stopPiece() {
@@ -1844,13 +1912,16 @@ function stopPiece() {
   stopMetronome(); applyRange();
   $("#pcStart").hidden = false; $("#pcStop").hidden = true;
   $("#pcClock").classList.remove("rec");
+  syncPieceUI();
+  if (p.live) { $("#pcStatus").textContent = "Live coaching stopped. Nothing was recorded."; PieceView.state("idle"); return; }
   $("#pcStatus").textContent = "Analysing…";
+  PieceView.state("analysing");
   const finish = (audioURL) => {
     if (pieceAudioURL) URL.revokeObjectURL(pieceAudioURL);
     pieceAudioURL = audioURL;
     // leading and trailing silence isn't part of the performance
     const voiced = p.frames.filter((f) => f.m !== null);
-    if (voiced.length < 10) { $("#pcStatus").textContent = "No notes heard. Check the mic and try again."; return; }
+    if (voiced.length < 10) { $("#pcStatus").textContent = "No notes heard. Check the mic and try again."; PieceView.state("idle"); return; }
     const t0 = p.metro ? p.metro.t0 : voiced[0].t;
     const a = PieceIO.analyze(p.frames.filter((f) => f.t >= t0 - 1000 && f.t <= voiced[voiced.length - 1].t + 200), {
       tol: p.tol, name: pieceNoteName(), keyPcs: p.key && p.key.pcs, keyName: p.key && p.key.name, metronome: p.metro, t0 });
@@ -1861,6 +1932,7 @@ function stopPiece() {
     DB.pieces = [entry, ...(DB.pieces || [])].slice(0, 10);
     save();
     $("#pcStatus").textContent = "Done. See the report below.";
+    PieceView.state("done");
     renderPieceReport(entry, audioURL);
     renderPieceHistory();
   };
@@ -1875,7 +1947,7 @@ const summaryTiming = (t) => (t.kind === "metronome" ? (t.onTimePct !== undefine
 function pieceLive(t, m) {
   const p = piece, tol = p.tol;
   const since = t - p.start;
-  $("#pcClock").textContent = since < 0 ? `-${Math.ceil(-since / 1000)}` : PieceIO.clock(since);
+  $("#pcClock").textContent = since < 0 ? (p.metro ? String(Math.ceil(-since / p.metro.beatMs)) : `-${Math.ceil(-since / 1000)}`) : PieceIO.clock(since); // count-in: beats to go
   const recent = p.frames.slice(-6).filter((f) => f.m !== null).map((f) => f.m);
   const needle = $("#pcNeedle");
   if (recent.length >= 3) {
@@ -1884,21 +1956,41 @@ function pieceLive(t, m) {
     $("#pcCents").textContent = `${dev > 0 ? "+" : dev < 0 ? "−" : ""}${Math.abs(dev).toFixed(0)}¢`;
     $("#pcCents").style.color = colorFor(Math.abs(dev), tol);
     needle.style.opacity = 1; needle.style.left = 50 + Math.max(-50, Math.min(50, dev)) + "%"; needle.style.background = colorFor(Math.abs(dev), tol);
-  } else { needle.style.opacity = 0; $("#pcCents").textContent = ""; }
-  if (p.metro && since >= 0 && $("#pcStatus").textContent.startsWith("Count")) $("#pcStatus").textContent = `Recording with the click at ${p.metro.bpm} BPM`;
-  if (t - (p.lastDraw || 0) > 33) { p.lastDraw = t; drawRoll(p, t); }
+    PieceView.live({ since, tol, note: name.replace(/-?\d+$/, ""), oct: oct(n), cents: dev });
+  } else { needle.style.opacity = 0; $("#pcCents").textContent = ""; PieceView.live({ since, tol, cents: null }); }
+  if (p.metro && since >= 0 && $("#pcStatus").textContent.startsWith("Count")) $("#pcStatus").textContent = `${p.live ? "Live coaching" : "Recording"} with the click at ${p.metro.bpm} BPM`;
+  if (t - (p.lastDraw || 0) > 33) { p.lastDraw = t; pcRollLast = { p, now: t }; if (PieceView.layout() === "full") drawRoll(p, t); }
   if (t - p.lastStats > 1000) {
     p.lastStats = t;
-    const notes = PieceIO.segment(p.frames.slice(-60 * 60 * 3)).filter((n) => n.cents !== null); // last ~3 minutes
+    const all = PieceIO.segment(p.frames.slice(-60 * 60 * 3)), notes = all.filter((n) => n.cents !== null); // last ~3 minutes
+    const drift = since >= 0 ? PieceIO.liveDrift(all, { now: t, metronome: p.metro }) : null;
+    PieceView.drift(drift);
     const ok = notes.filter((n) => Math.abs(n.cents) <= tol).length;
-    $("#pcLiveStats").innerHTML = notes.length ? `<span>Notes <b>${notes.length}</b></span><span>In tune <b>${Math.round((100 * ok) / notes.length)}%</b></span>` : "";
+    $("#pcLiveStats").innerHTML = notes.length ? `<span>Notes${p.live ? " (last 90 s)" : ""} <b>${notes.length}</b></span><span>In tune <b>${Math.round((100 * ok) / notes.length)}%</b></span>` : "";
+    if (p.live && since >= 0) pieceCoach(p, all.filter((n) => n.t >= t - 60000), drift, t);
   }
 }
 
+// Live coaching: the most urgent tip, held at least 4 s so it can be read while playing. The same kind of tip
+// (say, rushing) updates its numbers in place without restarting the hold.
+const TIP_HOLD_MS = 4000;
+function pieceCoach(p, notes, drift, t) {
+  const c = PieceIO.liveCoach(notes, { tol: p.tol, name: pieceNoteName(), drift });
+  const next = c.tips[0] || null, cur = p.tip;
+  if (!next) return;
+  const same = cur && cur.kind === next.kind && cur.midi === next.midi;
+  if (cur && !same && t - cur.at < TIP_HOLD_MS) return;
+  p.tip = { ...next, at: same ? cur.at : t };
+  const el = $("#pcCoach");
+  el.textContent = next.text; el.dataset.kind = next.kind;
+  PieceView.coach(next);
+}
+
+let pcRollLast = null; // the last trace drawn, so a resize can redraw it after the take ends
 // Scrolling trace of the last 8 seconds, coloured by how far each moment is from the nearest note
 function drawRoll(p, now) {
   const cv = $("#pcRoll"), dpr = window.devicePixelRatio || 1, w = cv.clientWidth, h = cv.clientHeight;
-  if (cv.width !== w * dpr) { cv.width = w * dpr; cv.height = h * dpr; }
+  if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) { cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); }
   const g = cv.getContext("2d");
   g.setTransform(dpr, 0, 0, dpr, 0, 0);
   g.clearRect(0, 0, w, h);
@@ -1966,6 +2058,7 @@ function renderPieceReport(entry, audioURL) {
     <div class="row" style="justify-content:space-between;margin:0 0 .6rem"><h2 style="margin:0">${esc(r.title || "Your performance")} <span class="muted" style="font-size:.9rem;font-weight:400">${new Date(r.date).toLocaleString()}${r.key ? " · " + esc(r.key) : ""}</span></h2>
       <div class="row" style="margin:0"><button class="btn ghost" id="pcCopy">📋 Copy report for Claude</button><button class="btn ghost" id="pcSave">⬇ Report</button></div></div>
     <div class="tiles">${tiles.map(([v, l]) => `<div class="card tile"><div class="v">${v}</div><div class="l">${l}</div></div>`).join("")}</div>
+    <h3>Review${audioURL ? " (tap a numbered spot to hear it)" : ""}</h3>${PieceView.reviewHTML(!!audioURL)}
     ${audioURL ? `<audio id="pcAudio" controls src="${audioURL}"></audio>` : `<p class="muted small">The recording itself isn't kept after you leave the page; the analysis is.</p>`}
     <h3>Every note${audioURL ? " (click one to hear it)" : ""}</h3>
     <div class="pcscroll" id="pcScroll"><svg viewBox="0 0 ${W} ${H}" width="${W}">${roll}</svg>${timingSvg ? `<svg viewBox="0 0 ${W} ${TH}" width="${W}" style="height:${TH}px">${timingSvg}</svg>` : ""}</div>
@@ -1978,12 +2071,15 @@ function renderPieceReport(entry, audioURL) {
   $("#pcCopy").onclick = (e) => copyText(text(), e.target);
   $("#pcSave").onclick = () => download(`${DrillIO.slug(r.title || "performance")}-${r.date.slice(0, 10)}.json`, text());
   const audio = $("#pcAudio");
+  let playFrom = null;
   if (audio) {
-    let stopAt = null;
-    const playFrom = (sec) => { audio.currentTime = Math.max(0, sec + entry.audioOffset - 1); audio.play(); clearTimeout(stopAt); stopAt = setTimeout(() => audio.pause(), 3500); };
+    playFrom = (sec) => { audio.currentTime = Math.max(0, sec + entry.audioOffset - 1); audio.play(); clearTimeout(pcClipTimer); pcClipTimer = setTimeout(() => audio.pause(), 3500); };
     $("#pcReport").querySelectorAll("[data-t]").forEach((el) => (el.onclick = () => playFrom(+el.dataset.t)));
   }
+  PieceView.mountReview($("#pcReport"), r, playFrom);
+  PieceView.take({ report: r, audio });
 }
+let pcClipTimer = null;
 
 function renderPieceHistory() {
   const list = DB.pieces || [];
@@ -2007,6 +2103,15 @@ function syncPieceUI() {
   document.querySelectorAll("#pcBarSeg button").forEach((b) => b.classList.toggle("on", +b.dataset.v === P.bar));
   document.querySelectorAll("#pcSubSeg button").forEach((b) => b.classList.toggle("on", +b.dataset.v === P.sub));
   $("#pcZone").style.width = P.tol + "%";
+  $("#pcCountInNote").textContent = `${countInText()} of clicks count${countInBars() > 1 ? "" : "s"}`;
+  $("#pcTitle").hidden = !!P.live; // live coaching saves nothing, so there's no progress to track by name
+  document.querySelectorAll("#pcModeSeg button, .pcw-mode button").forEach((b) => { b.classList.toggle("on", (b.dataset.v === "live") === !!P.live); b.disabled = !!piece; });
+  $("#pcModeNote").textContent = P.live
+    ? "Play, and the app coaches you as you go: a note that keeps coming out sharp or flat, rushing or dragging. Nothing is recorded or saved."
+    : "Record yourself playing anything. You get feedback on intonation and timing, and you can listen back to each flagged moment. You don't need to enter the music.";
+  $("#pcStart").textContent = P.live ? "▶ Start live coaching" : "● Start recording";
+  $("#pcStop").textContent = P.live ? "■ Stop" : "■ Stop & analyse";
+  PieceView.render();
   $("#pcLatVal").textContent = DB.settings.pieceLatencyMs != null ? DB.settings.pieceLatencyMs + " ms" : "auto";
 }
 
@@ -2074,7 +2179,7 @@ function render() {
     const bar = T.bar || 4;
     dot.classList.toggle("down", Math.round(since / T.beatMs) % bar === 0);
     if (run.rhythm) moveHead(since / T.beatMs);
-    if (since < 0) { T.counting = true; $("#bigNote").textContent = String(Math.min(bar, Math.ceil(-since / T.beatMs))); }
+    if (since < 0) { T.counting = true; $("#bigNote").textContent = String(((Math.ceil(-since / T.beatMs) - 1) % bar) + 1); } // 4 3 2 1 in each bar of the count-in
     else if (T.counting) { T.counting = false; renderTarget(); }
   } else if (run && run.mode === "lock") $("#holdArc").style.strokeDashoffset = 414.7 * (1 - Math.min(1, run.st.hold / HOLD_MS));
   else if (run) $("#holdArc").style.strokeDashoffset = 414.7;
@@ -2590,6 +2695,7 @@ function syncSettingsUI() {
   if (P) $("#pathTarget").innerHTML = `${P.level === "learning" ? "Learning" : "Mastery"} level: ±${P.L.window}¢${P.L.ring !== P.L.window ? ` (±${P.L.ring}¢ on G, D, A and E)` : ""}, ${Math.round(P.L.pct * 100)}% of notes clean${s.mode === "tempo" ? `, ±${P.L.onsetMs} ms on the beat` : ""}. Set by the path.`;
   $("#latVal").textContent = s.latencyMs === null ? "auto" : s.latencyMs + " ms";
   $("#a4Val").textContent = s.a4;
+  document.querySelectorAll("#countInSeg button").forEach((b) => b.classList.toggle("on", +b.dataset.v === countInBars()));
   const tol = P ? P.L.window : TIERS[s.tier].tol;
   $("#gzone").style.width = tol + "%"; // track spans ±50¢ = 100%
 }
@@ -3452,7 +3558,7 @@ $("#calibBtn").onclick = async () => {
   if (!(await startAudio())) return;
   if (run) stopRun();
   calib = { start: performance.now(), samples: [] }; markActivity();
-  setMsg("🎻 Bow your open A string steadily for 2–3 seconds. Take your time to get set: it waits for the A.");
+  calSay("🎻 Bow your open A string steadily for 2–3 seconds. Take your time to get set: it waits for the A.");
 };
 $("#resetBtn").onclick = () => {
   if (!confirm("Erase all medals, XP, streak and note history?")) return;
@@ -3497,6 +3603,13 @@ if (SIM) {
 }
 
 const pcSet = (k, v) => { pcS()[k] = v; save(); syncPieceUI(); };
+document.querySelectorAll("#pcModeSeg button, .pcw-mode button").forEach((b) => (b.onclick = () => { if (!piece) pcSet("live", b.dataset.v === "live"); }));
+document.querySelectorAll("#countInSeg button").forEach((b) => (b.onclick = () => { DB.settings.countIn = +b.dataset.v; save(); syncSettingsUI(); syncPieceUI(); }));
+document.querySelectorAll("[data-open-settings]").forEach((b) => (b.onclick = () => {
+  syncSettingsUI(); syncPieceUI();
+  setSay(""); $("#setLive").textContent = "";
+  $("#settingsDlg").showModal();
+}));
 $("#pcTitle").onchange = (e) => pcSet("title", e.target.value.trim());
 $("#pcKey").onchange = (e) => pcSet("key", e.target.value);
 document.querySelectorAll("#pcTolSeg button").forEach((b) => (b.onclick = () => pcSet("tol", +b.dataset.v)));
@@ -3509,6 +3622,9 @@ $("#pcBpmRange").oninput = (e) => ($("#pcBpmVal").textContent = e.target.value);
 document.querySelectorAll("#pcBarSeg button").forEach((b) => (b.onclick = () => pcSet("bar", +b.dataset.v)));
 document.querySelectorAll("#pcSubSeg button").forEach((b) => (b.onclick = () => pcSet("sub", +b.dataset.v)));
 $("#pcStart").onclick = startPiece;
+PieceView.init({ start: startPiece, stop: stopPiece, isRecording: () => !!piece, live: () => !!pcS().live, cancelClip: () => clearTimeout(pcClipTimer),
+  redrawRoll: () => pcRollLast && drawRoll(pcRollLast.p, pcRollLast.now) });
+PieceView.watchCanvas($("#pcRoll"), () => pcRollLast && drawRoll(pcRollLast.p, pcRollLast.now));
 $("#pcStop").onclick = stopPiece;
 $("#pcHistory").onclick = (e) => {
   const b = e.target.closest("button"), row = e.target.closest(".drow");

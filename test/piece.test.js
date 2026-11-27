@@ -100,5 +100,52 @@ check("silence", P.analyze([{ t: 0, m: null, rms: 0 }, { t: 16, m: null, rms: 0 
   check("report carries context", P.buildReport(b, { t0: 1000, date: 0, a4: 440, tol: 15 }).context.afterOutOfKey[0].note === "F5");
 }
 
+// Tempo drift for the live view and the review timeline
+{
+  const q = 375; // 80 BPM, eighth notes
+  const at = (f, n, jitter = 0) => Array.from({ length: n }, (_, k) => { const t = 10000 + (k * q) / f + (rand() - 0.5) * jitter; return { t, off: t - (10000 + Math.round((t - 10000) / q) * q) }; });
+  const steady = P.clickDrift(at(1, 12, 30), q);
+  check("steady with jitter: drift near 0", Math.abs(steady) < 2, steady);
+  const fast = P.clickDrift(at(1.05, 12, 20), q);
+  check("5% fast reads about +5", Math.abs(fast - 5) < 1.5, fast);
+  const slow = P.clickDrift(at(0.9, 16), q);
+  check("10% slow reads about -10, across a grid wrap", Math.abs(slow + 10) < 0.5, slow);
+  check("too few onsets: null", P.clickDrift(at(1, 2), q) === null);
+  const curve = P.clickDriftCurve([...at(1, 16, 10), ...at(1.08, 16, 10).map((p) => ({ ...p, t: p.t + 6000 }))].map((p) => ({ t: p.t, off: p.t - (10000 + Math.round((p.t - 10000) / q) * q) })), q, 6 * 750);
+  check("curve: steady then rushing", curve.length > 20 && Math.abs(curve[2].pct) < 3 && curve[curve.length - 3].pct > 5, curve.map((c) => c.pct));
+
+  const g = { t0: 10000, beatMs: 750, sub: 2, lat: 40 };
+  const ns = at(0.94, 20, 10).map((p) => ({ t: p.t + g.lat }));
+  const live = P.liveDrift(ns, { now: ns[ns.length - 1].t, metronome: g });
+  check("live vs click: dragging 6%", live && live.ref === "click" && Math.abs(live.pct + 6) < 1.5, live);
+  const free = []; let tt = 1000;
+  for (let k = 0; k < 30; k++) { free.push({ t: tt }); tt += k < 18 ? 500 : 440; }
+  const lf = P.liveDrift(free, { now: tt, metronome: null });
+  check("live vs own pulse: speeding up reads positive", lf && lf.ref === "pulse" && lf.pct > 6, lf);
+  check("live: nothing recent, null", P.liveDrift(free, { now: tt + 20000, metronome: null }) === null);
+}
+
+// Live coaching: one tip at a time from the last minute's notes
+{
+  const mk = (list) => list.map(([midi, cents], i) => ({ t: i * 400, midi, cents, dur: 380 }));
+  const clean = mk(Array.from({ length: 12 }, (_, i) => [74 + (i % 5), (i % 3) - 1]));
+  const lc = P.liveCoach(clean, { tol: 15 });
+  check("live coach: clean playing says keep it", lc.inTunePct === 100 && lc.tips.length === 1 && lc.tips[0].kind === "good", lc);
+  check("live coach: too few notes, no tips", P.liveCoach(clean.slice(0, 3), { tol: 15 }).tips.length === 0);
+  const mixed = mk(Array.from({ length: 12 }, (_, i) => [74 + (i % 6), i % 3 === 0 ? (i % 2 ? 22 : -22) : 0]));
+  const tm = P.liveCoach(mixed, { tol: 15 });
+  check("live coach: scattered misses, a neutral count", tm.tips.length === 1 && tm.tips[0].kind === "info" && /8 of the last 12/.test(tm.tips[0].text), tm);
+  const fs = mk([74, 76, 78, 79, 78, 74, 76, 78, 79, 81, 78, 76].map((m) => [m, m === 78 ? 20 : 0]));
+  const t1 = P.liveCoach(fs, { tol: 15 });
+  check("live coach: F#5 sharp habit, finger back", t1.tips[0] && t1.tips[0].kind === "note" && t1.tips[0].midi === 78 && /F♯5 keeps coming out sharp/.test(t1.tips[0].text) && /toward the scroll/.test(t1.tips[0].text), t1.tips);
+  const flat = mk(Array.from({ length: 12 }, (_, i) => [74 + (i % 4), -14]));
+  const t2 = P.liveCoach(flat, { tol: 15 });
+  check("live coach: all flat is one overall tip, not a tip per note", t2.tips[0].kind === "overall" && /running flat/.test(t2.tips[0].text) && !t2.tips.some((x) => x.kind === "note"), t2.tips);
+  const t3 = P.liveCoach(clean, { tol: 15, drift: { pct: 7, ref: "click" } });
+  check("live coach: rushing against the click", t3.tips[0].kind === "tempo" && /rushing \(\+7%/.test(t3.tips[0].text) && !t3.tips.some((x) => x.kind === "good"), t3.tips);
+  const t4 = P.liveCoach(fs, { tol: 15, drift: { pct: -12, ref: "pulse", perMin: 90 } });
+  check("live coach: a big tempo swing comes first", t4.tips[0].kind === "tempo" && /slowing down \(−12%/.test(t4.tips[0].text) && t4.tips[1].kind === "note", t4.tips);
+}
+
 console.log(fails ? `${fails} failures` : "all pass");
 process.exit(fails ? 1 : 0);

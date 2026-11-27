@@ -129,7 +129,7 @@ Every card on that tab names its sources and how strong they are (a study, a rev
 
 ## Try it
 
-- **In your browser:** [github.ekkylab.uk/violin-practice-system](https://github.ekkylab.uk/violin-practice-system/). Chrome and Safari both work. On an iPad, turn on **iPad mic mode** in Settings.
+- **In your browser:** [github.ekkylab.uk/violin-practice-system](https://github.ekkylab.uk/violin-practice-system/). Chrome and Safari both work. On an iPad, turn on **iPad mic mode** in ⚙ Settings.
 - **Locally:**
 
   ```bash

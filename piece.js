@@ -151,6 +151,93 @@
       spans, curve, uneven: notes.filter((n) => n.uneven).length };
   }
 
+  // Tempo drift against the click. Each onset's offset from the grid is unwrapped (a player drifting by more than
+  // half a grid step would otherwise snap to the next line), then the trend of those offsets over time is the drift:
+  // offsets that grow mean each note comes later than the click, so the player is slower. pts: [{ t, off }] in ms,
+  // sorted by t; q: grid step in ms. Returns the tempo as % against the click (> 0 rushing), or null.
+  function clickDrift(pts, q) {
+    if (pts.length < 3) return null;
+    const u = [pts[0].off];
+    for (let i = 1; i < pts.length; i++) {
+      let o = pts[i].off;
+      while (o - u[i - 1] > q / 2) o -= q;
+      while (o - u[i - 1] < -q / 2) o += q;
+      u.push(o);
+    }
+    const ts = pts.map((p) => p.t), mt = mean(ts), mo = mean(u);
+    const sxx = ts.reduce((s, t) => s + (t - mt) ** 2, 0);
+    if (ts[ts.length - 1] - ts[0] < q) return null;
+    const slope = ts.reduce((s, t, i) => s + (t - mt) * (u[i] - mo), 0) / sxx;
+    return Math.round(-slope * 1000) / 10;
+  }
+
+  // The same over a whole take: at each onset, the drift across the window around it (default 6 beats)
+  function clickDriftCurve(pts, q, winMs) {
+    const out = [];
+    for (const p of pts) {
+      const w = pts.filter((x) => Math.abs(x.t - p.t) <= winMs / 2);
+      const pct = w.length >= 4 ? clickDrift(w, q) : null;
+      if (pct !== null) out.push({ t: p.t, pct });
+    }
+    return out;
+  }
+
+  // Tempo right now, for the live view: not beat by beat, but over the last few beats. With the metronome, against
+  // the click; without it, against the player's own usual pulse (freeTiming's rolling curve, its latest point).
+  // notes: segment() output; opts: { now, metronome: { t0, beatMs, sub, lat } | null }. Returns { pct, ref } or null.
+  function liveDrift(notes, opts) {
+    const g = opts.metronome, now = opts.now;
+    if (g) {
+      const q = g.beatMs / g.sub;
+      const pts = notes.map((n) => n.t - g.lat).filter((on) => on >= g.t0 - q / 2)
+        .map((on) => ({ t: on, off: on - (g.t0 + Math.round((on - g.t0) / q) * q) }));
+      let w = pts.filter((p) => p.t >= now - 6 * g.beatMs);
+      if (w.length < 4) w = pts.filter((p) => p.t >= now - 12 * g.beatMs).slice(-4);
+      if (w.length < 4) return null;
+      const pct = clickDrift(w, q);
+      return pct === null ? null : { pct, ref: "click" };
+    }
+    const f = freeTiming(notes.map((n) => ({ ...n })));
+    const last = f.curve && f.curve[f.curve.length - 1];
+    return last && last.t >= now - 4000 ? { pct: last.pct, ref: "pulse", perMin: f.pulsePerMin } : null;
+  }
+
+  // Live coaching: what to fix right now, from the notes of the last minute, without a recording or a report.
+  // notes: segment() output, oldest first; opts: { tol, name(midi), drift: liveDrift() result | null }.
+  // Returns { judged, inTunePct (last 12 judged notes) | null, tips: [{ kind, text }] most urgent first }.
+  function liveCoach(notes, opts = {}) {
+    const tol = opts.tol ?? 15, name = opts.name || defaultName;
+    const ev = notes.filter((n) => n.cents !== null).slice(-40);
+    if (ev.length < 4) return { judged: ev.length, inTunePct: null, tips: [] };
+    const last = ev.slice(-12), ok = last.filter((n) => Math.abs(n.cents) <= tol).length;
+    const inTunePct = Math.round((100 * ok) / last.length);
+    const tips = [];
+    // Everything off the same way: tuning, or the whole hand
+    const recent = ev.slice(-10), avg = mean(recent.map((n) => n.cents));
+    const overall = recent.length >= 10 && Math.abs(avg) >= Math.max(8, tol * 0.6) ? Math.sign(avg) : 0;
+    if (overall) tips.push({ kind: "overall", text: `Everything is running ${avg > 0 ? "sharp" : "flat"} (${sgn(avg)}¢ over the last ${recent.length} notes). Check your tuning, then whether the hand ${avg > 0 ? "creeps toward the bridge" : "reaches each position fully"}.` });
+    // One note that keeps coming out the same way: its last 5 hearings, mostly on one side
+    const byNote = new Map();
+    for (const n of ev) (byNote.get(n.midi) || byNote.set(n.midi, []).get(n.midi)).push(n.cents);
+    const habits = [...byNote].map(([m, all]) => {
+      const c = all.slice(-5), a = mean(c), side = c.filter((x) => Math.sign(x) === Math.sign(a) && Math.abs(x) > tol / 2).length;
+      return { m, c, a, side };
+    }).filter((h) => h.c.length >= 3 && Math.abs(h.a) >= Math.max(8, tol * 0.6) && h.side >= Math.ceil(h.c.length * 0.6) && Math.sign(h.a) !== overall)
+      .sort((x, y) => Math.abs(y.a) * Math.sqrt(y.c.length) - Math.abs(x.a) * Math.sqrt(x.c.length));
+    for (const h of habits.slice(0, 2)) tips.push({ kind: "note", midi: h.m, text: `${name(h.m)} keeps coming out ${h.a > 0 ? "sharp" : "flat"} (${sgn(h.a)}¢, ${h.side} of the last ${h.c.length}). Place that finger a touch ${h.a > 0 ? "back, toward the scroll" : "forward, toward the bridge"}.` });
+    // Tempo: against the click, or against the player's own pulse
+    const d = opts.drift;
+    if (d && Math.abs(d.pct) >= 5) {
+      const tip = { kind: "tempo", text: d.ref === "click"
+        ? `You're ${d.pct > 0 ? "rushing" : "dragging"} (${sgn(d.pct)}% against the click). ${d.pct > 0 ? "Let each note wait for its click." : "Play right on the click, not after it."}`
+        : `You're ${d.pct > 0 ? "speeding up" : "slowing down"} (${sgn(d.pct)}% against your own pulse${d.perMin ? ` of about ${d.perMin} a minute` : ""}).` };
+      if (Math.abs(d.pct) >= 10) tips.unshift(tip); else tips.push(tip); // a big tempo swing matters more than a few cents
+    }
+    if (!tips.length && last.length >= 8 && inTunePct >= 80) tips.push({ kind: "good", text: `${ok} of the last ${last.length} notes in tune. Keep it there.` });
+    if (!tips.length) tips.push({ kind: "info", text: `${ok} of the last ${last.length} notes in tune. No one note stands out yet.` });
+    return { judged: ev.length, inTunePct, tips };
+  }
+
   // Everything the report needs. opts: { tol, name(midi), keyPcs (Set) | null, keyName, metronome: { t0, beatMs, sub, lat } | null, t0 }
   function analyze(frames, opts) {
     const name = opts.name || defaultName, tol = opts.tol ?? 15;
@@ -262,7 +349,7 @@
     };
   }
 
-  const api = { clock, REPORT_FORMAT, segment, metronomeTiming, freeTiming, analyze, buildReport };
+  const api = { clock, REPORT_FORMAT, segment, metronomeTiming, freeTiming, clickDrift, clickDriftCurve, liveDrift, liveCoach, analyze, buildReport };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else root.PieceIO = api;
 })(this);
