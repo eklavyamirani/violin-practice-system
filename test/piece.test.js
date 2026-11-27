@@ -125,5 +125,27 @@ check("silence", P.analyze([{ t: 0, m: null, rms: 0 }, { t: 16, m: null, rms: 0 
   check("live: nothing recent, null", P.liveDrift(free, { now: tt + 20000, metronome: null }) === null);
 }
 
+// Live coaching: one tip at a time from the last minute's notes
+{
+  const mk = (list) => list.map(([midi, cents], i) => ({ t: i * 400, midi, cents, dur: 380 }));
+  const clean = mk(Array.from({ length: 12 }, (_, i) => [74 + (i % 5), (i % 3) - 1]));
+  const lc = P.liveCoach(clean, { tol: 15 });
+  check("live coach: clean playing says keep it", lc.inTunePct === 100 && lc.tips.length === 1 && lc.tips[0].kind === "good", lc);
+  check("live coach: too few notes, no tips", P.liveCoach(clean.slice(0, 3), { tol: 15 }).tips.length === 0);
+  const mixed = mk(Array.from({ length: 12 }, (_, i) => [74 + (i % 6), i % 3 === 0 ? (i % 2 ? 22 : -22) : 0]));
+  const tm = P.liveCoach(mixed, { tol: 15 });
+  check("live coach: scattered misses, a neutral count", tm.tips.length === 1 && tm.tips[0].kind === "info" && /8 of the last 12/.test(tm.tips[0].text), tm);
+  const fs = mk([74, 76, 78, 79, 78, 74, 76, 78, 79, 81, 78, 76].map((m) => [m, m === 78 ? 20 : 0]));
+  const t1 = P.liveCoach(fs, { tol: 15 });
+  check("live coach: F#5 sharp habit, finger back", t1.tips[0] && t1.tips[0].kind === "note" && t1.tips[0].midi === 78 && /F♯5 keeps coming out sharp/.test(t1.tips[0].text) && /toward the scroll/.test(t1.tips[0].text), t1.tips);
+  const flat = mk(Array.from({ length: 12 }, (_, i) => [74 + (i % 4), -14]));
+  const t2 = P.liveCoach(flat, { tol: 15 });
+  check("live coach: all flat is one overall tip, not a tip per note", t2.tips[0].kind === "overall" && /running flat/.test(t2.tips[0].text) && !t2.tips.some((x) => x.kind === "note"), t2.tips);
+  const t3 = P.liveCoach(clean, { tol: 15, drift: { pct: 7, ref: "click" } });
+  check("live coach: rushing against the click", t3.tips[0].kind === "tempo" && /rushing \(\+7%/.test(t3.tips[0].text) && !t3.tips.some((x) => x.kind === "good"), t3.tips);
+  const t4 = P.liveCoach(fs, { tol: 15, drift: { pct: -12, ref: "pulse", perMin: 90 } });
+  check("live coach: a big tempo swing comes first", t4.tips[0].kind === "tempo" && /slowing down \(−12%/.test(t4.tips[0].text) && t4.tips[1].kind === "note", t4.tips);
+}
+
 console.log(fails ? `${fails} failures` : "all pass");
 process.exit(fails ? 1 : 0);

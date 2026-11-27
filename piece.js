@@ -202,6 +202,42 @@
     return last && last.t >= now - 4000 ? { pct: last.pct, ref: "pulse", perMin: f.pulsePerMin } : null;
   }
 
+  // Live coaching: what to fix right now, from the notes of the last minute, without a recording or a report.
+  // notes: segment() output, oldest first; opts: { tol, name(midi), drift: liveDrift() result | null }.
+  // Returns { judged, inTunePct (last 12 judged notes) | null, tips: [{ kind, text }] most urgent first }.
+  function liveCoach(notes, opts = {}) {
+    const tol = opts.tol ?? 15, name = opts.name || defaultName;
+    const ev = notes.filter((n) => n.cents !== null).slice(-40);
+    if (ev.length < 4) return { judged: ev.length, inTunePct: null, tips: [] };
+    const last = ev.slice(-12), ok = last.filter((n) => Math.abs(n.cents) <= tol).length;
+    const inTunePct = Math.round((100 * ok) / last.length);
+    const tips = [];
+    // Everything off the same way: tuning, or the whole hand
+    const recent = ev.slice(-10), avg = mean(recent.map((n) => n.cents));
+    const overall = recent.length >= 10 && Math.abs(avg) >= Math.max(8, tol * 0.6) ? Math.sign(avg) : 0;
+    if (overall) tips.push({ kind: "overall", text: `Everything is running ${avg > 0 ? "sharp" : "flat"} (${sgn(avg)}¢ over the last ${recent.length} notes). Check your tuning, then whether the hand ${avg > 0 ? "creeps toward the bridge" : "reaches each position fully"}.` });
+    // One note that keeps coming out the same way: its last 5 hearings, mostly on one side
+    const byNote = new Map();
+    for (const n of ev) (byNote.get(n.midi) || byNote.set(n.midi, []).get(n.midi)).push(n.cents);
+    const habits = [...byNote].map(([m, all]) => {
+      const c = all.slice(-5), a = mean(c), side = c.filter((x) => Math.sign(x) === Math.sign(a) && Math.abs(x) > tol / 2).length;
+      return { m, c, a, side };
+    }).filter((h) => h.c.length >= 3 && Math.abs(h.a) >= Math.max(8, tol * 0.6) && h.side >= Math.ceil(h.c.length * 0.6) && Math.sign(h.a) !== overall)
+      .sort((x, y) => Math.abs(y.a) * Math.sqrt(y.c.length) - Math.abs(x.a) * Math.sqrt(x.c.length));
+    for (const h of habits.slice(0, 2)) tips.push({ kind: "note", midi: h.m, text: `${name(h.m)} keeps coming out ${h.a > 0 ? "sharp" : "flat"} (${sgn(h.a)}¢, ${h.side} of the last ${h.c.length}). Place that finger a touch ${h.a > 0 ? "back, toward the scroll" : "forward, toward the bridge"}.` });
+    // Tempo: against the click, or against the player's own pulse
+    const d = opts.drift;
+    if (d && Math.abs(d.pct) >= 5) {
+      const tip = { kind: "tempo", text: d.ref === "click"
+        ? `You're ${d.pct > 0 ? "rushing" : "dragging"} (${sgn(d.pct)}% against the click). ${d.pct > 0 ? "Let each note wait for its click." : "Play right on the click, not after it."}`
+        : `You're ${d.pct > 0 ? "speeding up" : "slowing down"} (${sgn(d.pct)}% against your own pulse${d.perMin ? ` of about ${d.perMin} a minute` : ""}).` };
+      if (Math.abs(d.pct) >= 10) tips.unshift(tip); else tips.push(tip); // a big tempo swing matters more than a few cents
+    }
+    if (!tips.length && last.length >= 8 && inTunePct >= 80) tips.push({ kind: "good", text: `${ok} of the last ${last.length} notes in tune. Keep it there.` });
+    if (!tips.length) tips.push({ kind: "info", text: `${ok} of the last ${last.length} notes in tune. No one note stands out yet.` });
+    return { judged: ev.length, inTunePct, tips };
+  }
+
   // Everything the report needs. opts: { tol, name(midi), keyPcs (Set) | null, keyName, metronome: { t0, beatMs, sub, lat } | null, t0 }
   function analyze(frames, opts) {
     const name = opts.name || defaultName, tol = opts.tol ?? 15;
@@ -313,7 +349,7 @@
     };
   }
 
-  const api = { clock, REPORT_FORMAT, segment, metronomeTiming, freeTiming, clickDrift, clickDriftCurve, liveDrift, analyze, buildReport };
+  const api = { clock, REPORT_FORMAT, segment, metronomeTiming, freeTiming, clickDrift, clickDriftCurve, liveDrift, liveCoach, analyze, buildReport };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else root.PieceIO = api;
 })(this);

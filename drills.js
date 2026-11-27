@@ -216,7 +216,7 @@ A drill is a JSON object. Paste it into the **My drills** tab (Import), or save 
 Give every note a length and the drill becomes a rhythm drill, for practising the rhythm of a passage from a piece:
 - beats (on every note): its written length in beats. 0.25 = 16th, 0.5 = 8th, 0.75 = dotted 8th, 1 = quarter, 1.5 = dotted quarter, 2 = half, 3 = dotted half, 4 = whole; triplet 8ths are 1/3 (0.333 is fine).
 - Rests are entries of their own in "notes": {"rest": 0.5}. Write tied notes as one note with the combined length.
-- The drill starts on the first downbeat after a one-bar count-in. For a pickup, start with a rest.
+- The drill starts on the first downbeat after the count-in (one bar unless the player sets more). For a pickup, start with a rest.
 - The same pitch may repeat (repeated notes, hooked bowings). The app hears a repeat as a dip in loudness, so each repeated note needs its own bow or a small stop in the bow.
 - It is always played with the metronome, clicking on 8ths at first and then only on beats. The player can listen to it first.
 - Each note is scored on pitch, on when it starts (against the click) and, for notes of 1½ beats or more, on how long it sounds.

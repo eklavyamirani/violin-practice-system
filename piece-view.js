@@ -76,7 +76,7 @@
   const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
   const TONE_VAR = { good: "--good", near: "--near", bad: "--bad" };
   const clockOf = (ms) => PieceIO.clock(ms);
-  const model = { state: "idle", since: 0, note: null, oct: null, cents: null, tol: 15, heardAt: 0, drift: null, target: "", take: null };
+  const model = { state: "idle", since: 0, note: null, oct: null, cents: null, tol: 15, heardAt: 0, drift: null, target: "", take: null, live: false, beatMs: 0, tip: null };
   let hooks = null, layout = null, tab = null, swapTimer = 0;
 
   // Canvases keep their bitmap at the element's size × devicePixelRatio and redraw whenever either changes
@@ -118,7 +118,10 @@
     if (!tab) return;
     const m = model, rec = m.state === "rec" || m.state === "countin";
     tab.dataset.state = m.state;
-    $$("[data-k=clock]", tab).forEach((el) => { el.textContent = m.state === "countin" ? `−${Math.ceil(-m.since / 1000)}` : clockOf(Math.max(0, m.since)); el.classList.toggle("cnt", m.state === "countin"); });
+    tab.dataset.live = m.live && rec ? "1" : "";
+    // Count-in: beats to go with the click, else seconds
+    const countin = m.state === "countin" ? (m.beatMs ? String(Math.max(1, Math.ceil(-m.since / m.beatMs))) : `−${Math.ceil(-m.since / 1000)}`) : null;
+    $$("[data-k=clock]", tab).forEach((el) => { el.textContent = countin !== null ? countin : clockOf(Math.max(0, m.since)); el.classList.toggle("cnt", m.state === "countin"); });
     // The dot holds through short rests and goes hollow after 1.5 s without a note
     const fresh = rec && m.cents !== null && performance.now() - m.heardAt < 1500;
     const tn = fresh ? tone(Math.abs(m.cents), m.tol) : null;
@@ -132,8 +135,10 @@
     const d = rec ? m.drift : null;
     $$("[data-k=drift]", tab).forEach((el) => { const v = d === null ? 0 : Math.round(d.pct); el.textContent = d === null ? "" : `${v > 0 ? "+" : v < 0 ? "−" : ""}${Math.abs(v)}%`; el.dataset.tone = d === null ? "" : Math.abs(d.pct) <= DRIFT_OK ? "good" : "near"; });
     $$("[data-k=fill]", tab).forEach((el) => { const f = driftFill(d ? d.pct : 0); el.style.left = f.left + "%"; el.style.width = f.width + "%"; el.dataset.tone = d && Math.abs(d.pct) > DRIFT_OK ? "near" : "good"; el.dataset.side = d && d.pct < 0 ? "l" : "r"; });
+    $$("[data-k=tip]", tab).forEach((el) => { el.textContent = m.tip ? m.tip.text : m.live ? "Tips appear once you've played a few notes." : ""; el.dataset.kind = m.tip ? m.tip.kind : ""; });
     // Controls
-    $$("[data-act=rec]", tab).forEach((b) => { b.dataset.on = rec ? "1" : ""; b.disabled = m.state === "analysing"; b.setAttribute("aria-label", rec ? "Stop and analyse" : "Start recording"); });
+    const live = rec ? m.live : !!(hooks && hooks.live && hooks.live());
+    $$("[data-act=rec]", tab).forEach((b) => { b.dataset.on = rec ? "1" : ""; b.disabled = m.state === "analysing"; b.setAttribute("aria-label", rec ? (live ? "Stop live coaching" : "Stop and analyse") : live ? "Start live coaching" : "Start recording"); });
     const audio = m.take && m.take.audio;
     $$("[data-act=play]", tab).forEach((b) => { b.disabled = rec || !audio; b.dataset.on = audio && !audio.paused ? "1" : ""; b.setAttribute("aria-label", audio && !audio.paused ? "Pause" : "Play the last take"); });
     // After a take: how it went, at a glance
@@ -277,13 +282,17 @@
       render();
     },
     drift(d) { model.drift = d; if (d && d.ref === "pulse" && d.perMin) model.target = `♩ ~${d.perMin}`; render(); },
-    // state: countin | rec | analysing | done | idle; with a take on done
+    // Live coaching: the tip to show now ({ kind, text })
+    coach(tip) { model.tip = tip; render(); },
+    // state: countin | rec | analysing | done | idle; with a take on done. o.live: coaching only, no take; o.beatMs: count-in by beats
     state(s, o = {}) {
       model.state = s;
       if (o.tol) model.tol = o.tol;
-      if (s === "rec" || s === "countin") { model.since = s === "countin" ? -1 : 0; model.cents = null; model.drift = null; model.take = null; model.target = o.bpm ? `♩ ${o.bpm}` : ""; }
+      if (s === "rec" || s === "countin") { model.since = s === "countin" ? -1 : 0; model.cents = null; model.drift = null; model.take = null; model.target = o.bpm ? `♩ ${o.bpm}` : ""; model.live = !!o.live; model.beatMs = o.beatMs || 0; model.tip = null; }
+      else model.live = false;
       render(); drawStrip();
     },
+    render,
     // The take the compact view summarises and plays: { report, audio }
     take(t) {
       model.take = t;

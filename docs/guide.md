@@ -51,7 +51,7 @@ Use the **Scale** card to pick a key (12 per scale type), a scale type (major, n
 
 A drill whose notes have lengths (`beats`) is a rhythm drill. It's for practising the rhythm of a passage from a piece: dotted rhythms, long notes, repeated notes and rests.
 
-- It is always played with the metronome. After one bar of count-in, a playhead moves over the written rhythm, with the count ("1 & 2 &") underneath.
+- It is always played with the metronome. After the count-in (one bar unless you change it in ⚙ Settings), a playhead moves over the written rhythm, with the count ("1 & 2 &") underneath.
 - **🔊 Hear it** plays the passage with the click first, each note lasting its full written length.
 - The same pitch may repeat. The app hears a repeated note as a dip in loudness, so each one needs its own bow or a small stop in the bow (as in a hooked bowing).
 - After the run, the whole recording is lined up with the written rhythm. Each note is scored on pitch, on when it starts (±60–120 ms, depending on tempo and medal level) and, for notes of 1½ beats or more, on how long it sounds (80 / 85 / 90% of its length at 🥉 / 🥈 / 🥇).
@@ -72,7 +72,7 @@ To add one, save it as `packs/<id>.json` and add the file name to `packs/index.j
 
 ## Hands-free start
 
-So you don't have to put the violin down between runs: play and hold a drill's first note (about ¾ s) to start it. On the results, every button that starts a drill has its own note: the drill's own first note goes again and the next drill's (or the **Move on** drill's) first note moves on. When two of them start on the same note, the next drill keeps it (after a miss, going again does) and the other one gets an open string that none of them start on ("or play open D to go again"); the notes to play are shown at the top of the results. It waits for a moment without any start note first, so the last note of a run ringing on doesn't restart it. The first note you hold counts as the run's first landing (in Tempo mode it starts the count-in). Turn it off with **Hands-free start** in Settings.
+So you don't have to put the violin down between runs: play and hold a drill's first note (about ¾ s) to start it. On the results, every button that starts a drill has its own note: the drill's own first note goes again and the next drill's (or the **Move on** drill's) first note moves on. When two of them start on the same note, the next drill keeps it (after a miss, going again does) and the other one gets an open string that none of them start on ("or play open D to go again"); the notes to play are shown at the top of the results. It waits for a moment without any start note first, so the last note of a run ringing on doesn't restart it. The first note you hold counts as the run's first landing (in Tempo mode it starts the count-in). Turn it off with **Hands-free start** in the Practice tab's options.
 
 ## Clean landings and Place mode
 
@@ -97,13 +97,37 @@ Besides which notes were off, the coach looks at *when* they were off (`context.
 
 ## Tempo mode
 
-Choose **⏱ Tempo** under Mode to practise with a metronome. After a four-click count-in, the drill moves on with the beat. A note counts only if it's in tune *and* on time; the on-time window gets tighter at each medal level.
+Choose **⏱ Tempo** under Mode to practise with a metronome. After the count-in (4 clicks, or 8 or 16 with a longer count-in in ⚙ Settings), the drill moves on with the beat. A note counts only if it's in tune *and* on time; the on-time window gets tighter at each medal level.
 
 - Set the BPM and notes per beat (1–4). With **Tempo ladder** on, 3 passed runs in a row raise the tempo 6% and 2 misses in a row lower it 8%. In Path the skill sets the tempo.
-- Press **Calibrate timing** once: after the count-in, play 8 notes on the click, alternating two open strings. This measures the delay your speakers and mic add, so early and late are judged against the click you hear.
+- In ⚙ Settings, press **Calibrate** next to *Drills* under Timing offset once: after 4 clicks, play 8 notes on the click, alternating two open strings. This measures the delay your speakers and mic add, so early and late are judged against the click you hear.
 - Results show a timing chart next to the pitch chart, and the coach flags rushing, dragging, and shifts that make you late.
 
+## Settings
+
+The ⚙ button in the header opens the settings every tab shares. They stay on the device and don't sync.
+
+- **Tuning:** *Tune from open A* sets A4 from your open A string. Every note, the drone and the Ear tab are measured from it.
+- **Count-in:** 1, 2 or 4 bars of clicks before you play, wherever the metronome counts you in: Tempo mode (a bar is 4 beats), rhythm drills (their own bar) and the Piece tab with the metronome on (its beats per bar). The count shows the beats left.
+- **Timing offset:** the delay from a click to the app hearing your note, calibrated separately for drills and for the Piece tab. While Settings is open, calibrating shows its countdown and result there.
+- **iPad mic mode:** Safari's voice-processed mic, for iPads whose raw mic is too quiet. Changing it restarts the mic.
+
 ## Piece tab
+
+The Piece tab has two modes: **Record & analyse** and **Live coaching**.
+
+### Live coaching
+
+Play, and the app coaches you as you go, with no recording and no report. You get the tuner, the pitch trace and the tempo bar as when recording, plus one tip at a time from the notes of the last minute:
+
+- a note that keeps coming out sharp or flat (most of its last 5 hearings, 8¢ or more, or 60% of the tolerance if that's more), and which way to move the finger;
+- everything running sharp or flat (the last 10 notes): check the tuning, then the hand;
+- rushing or dragging by 5% or more, against the click or your own pulse (10% or more comes first);
+- otherwise, how many of the last 12 notes were in tune.
+
+A tip stays up for at least 4 seconds so you can read it while you play; the same tip updates its numbers in place. Only the last 90 seconds of pitch are kept while it runs, and nothing is saved when you stop. It works in the small-window layouts too: the tuner layout shows the tip under the tempo bar.
+
+### Record & analyse
 
 Record yourself playing a whole piece; you don't need to enter the music. The app splits the recording into notes and reports:
 
@@ -124,7 +148,7 @@ On an iPad with Stage Manager you can float the app over your sheet music (forSc
 
 Resizing never stops or loses a recording. The app's header is hidden in the two small layouts; widen the window to switch tabs.
 
-Calibrate timing once in the metronome panel of this tab. It listens across all four strings, so it has its own calibration, separate from Tempo mode's.
+Calibrate timing once in ⚙ Settings (*Piece tab* under Timing offset). It listens across all four strings, so it has its own calibration, separate from Tempo mode's.
 
 ## Ear tab
 
@@ -197,7 +221,7 @@ The **Plan** tab holds a practice schedule written for you by Claude: which days
 
 On the app platform (`eklavyamirani/app-platform`, record 0046) the **Progress** tab has a **Sync across devices** card: sign in once per device and your progress follows you. The app still keeps everything in the browser and works offline; it syncs when it starts, a few seconds after each change, and when you come back to the tab.
 
-- What syncs: XP, streak days, medals, note history, recent runs, the practice log, path progress, goals, your drills, your practice plan and what you practised of it, and piece analyses. Settings (iPad mic mode, timing calibration, A4, …) and the selected drill stay on each device.
+- What syncs: XP, streak days, medals, note history, recent runs, the practice log, path progress, goals, your drills, your practice plan and what you practised of it, and piece analyses. Settings (iPad mic mode, timing calibration, A4, count-in, …) and the selected drill stay on each device.
 - If you practised on two devices before they synced, both are kept: XP, practice counts and plan minutes add up, runs from both devices are listed, and something you deleted on one device stays deleted unless you changed it on the other.
 - Without the platform (GitHub Pages, `python3 -m http.server`) there is no sign-in and nothing leaves the browser, as before.
 
