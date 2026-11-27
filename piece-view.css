@@ -130,7 +130,16 @@ body.pc-widget #simPanel { display: none; }
 .pcrev-pin.on::before { box-shadow: 0 0 0 3px var(--panel), 0 0 0 5px var(--ink); }
 .pcrev [data-tone="good"] { --tone: var(--good); } .pcrev [data-tone="near"] { --tone: var(--near); } .pcrev [data-tone="bad"] { --tone: var(--bad); }
 .pcrev-cv { display: block; width: 100%; height: 258px; cursor: pointer; }
-/* Live coaching: the current tip under the tempo bar (compact layout) */
-.pcw-tip { margin: 0; font-size: .9rem; line-height: 1.3; color: var(--ink); min-height: 2.6em; display: none; }
-#tab-piece[data-live="1"] .pcw-tip { display: block; }
-.pcw-tip[data-kind="good"] { color: var(--good); }
+/* Compact: Record / Live coaching switch and Settings (the app header is hidden in the small layouts) */
+.pcw-head { display: flex; align-items: center; gap: 8px; }
+.pcw-mode { flex: 1; display: flex; padding: 3px; border-radius: 12px; background: var(--panel-2); }
+.pcw-mode button { flex: 1; min-height: 44px; border: 0; border-radius: 9px; background: none; color: var(--muted); font: inherit; font-weight: 600; font-size: 15px; padding: 0 6px; }
+.pcw-mode button.on { background: var(--panel); color: var(--ink); box-shadow: 0 1px 2px rgba(0, 0, 0, .12); }
+.pcw-mode button:disabled:not(.on) { opacity: .45; }
+.pcw-gear { flex: none; width: 50px; height: 50px; border-radius: 12px; border: 1px solid var(--line); background: var(--panel-2); color: var(--ink); font-size: 22px; line-height: 1; padding: 0; }
+/* Live coaching: the current tip under the tempo bar */
+.pcw-tip { display: none; margin: 0; padding: 12px 14px; border-radius: 14px; background: var(--panel-2); border-left: 5px solid var(--near); font-size: 17px; font-weight: 600; line-height: 1.3; color: var(--ink); min-height: 2.6em; }
+#tab-piece[data-mode="live"]:not([data-state="done"]) .pcw-tip { display: block; }
+.pcw-tip[data-kind=""] { border-left-color: var(--line); color: var(--muted); font-weight: 500; }
+.pcw-tip[data-kind="good"] { border-left-color: var(--good); }
+.pcw-tip[data-kind="info"] { border-left-color: var(--line); }

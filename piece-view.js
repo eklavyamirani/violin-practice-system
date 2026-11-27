@@ -119,6 +119,8 @@
     const m = model, rec = m.state === "rec" || m.state === "countin";
     tab.dataset.state = m.state;
     tab.dataset.live = m.live && rec ? "1" : "";
+    const liveMode = rec ? m.live : !!(hooks && hooks.live && hooks.live());
+    tab.dataset.mode = liveMode ? "live" : "rec";
     // Count-in: beats to go with the click, else seconds
     const countin = m.state === "countin" ? (m.beatMs ? String(Math.max(1, Math.ceil(-m.since / m.beatMs))) : `−${Math.ceil(-m.since / 1000)}`) : null;
     $$("[data-k=clock]", tab).forEach((el) => { el.textContent = countin !== null ? countin : clockOf(Math.max(0, m.since)); el.classList.toggle("cnt", m.state === "countin"); });
@@ -135,9 +137,9 @@
     const d = rec ? m.drift : null;
     $$("[data-k=drift]", tab).forEach((el) => { const v = d === null ? 0 : Math.round(d.pct); el.textContent = d === null ? "" : `${v > 0 ? "+" : v < 0 ? "−" : ""}${Math.abs(v)}%`; el.dataset.tone = d === null ? "" : Math.abs(d.pct) <= DRIFT_OK ? "good" : "near"; });
     $$("[data-k=fill]", tab).forEach((el) => { const f = driftFill(d ? d.pct : 0); el.style.left = f.left + "%"; el.style.width = f.width + "%"; el.dataset.tone = d && Math.abs(d.pct) > DRIFT_OK ? "near" : "good"; el.dataset.side = d && d.pct < 0 ? "l" : "r"; });
-    $$("[data-k=tip]", tab).forEach((el) => { el.textContent = m.tip ? m.tip.text : m.live ? "Tips appear once you've played a few notes." : ""; el.dataset.kind = m.tip ? m.tip.kind : ""; });
+    $$("[data-k=tip]", tab).forEach((el) => { el.textContent = m.tip ? m.tip.text : rec ? "Tips appear once you've played a few notes." : liveMode ? "Press ● and play: a tip appears here as you go. Nothing is recorded." : ""; el.dataset.kind = m.tip ? m.tip.kind : ""; });
     // Controls
-    const live = rec ? m.live : !!(hooks && hooks.live && hooks.live());
+    const live = liveMode;
     $$("[data-act=rec]", tab).forEach((b) => { b.dataset.on = rec ? "1" : ""; b.disabled = m.state === "analysing"; b.setAttribute("aria-label", rec ? (live ? "Stop live coaching" : "Stop and analyse") : live ? "Start live coaching" : "Start recording"); });
     const audio = m.take && m.take.audio;
     $$("[data-act=play]", tab).forEach((b) => { b.disabled = rec || !audio; b.dataset.on = audio && !audio.paused ? "1" : ""; b.setAttribute("aria-label", audio && !audio.paused ? "Pause" : "Play the last take"); });

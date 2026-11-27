@@ -507,6 +507,10 @@ main { max-width: 1280px; margin: 0 auto; padding: 1rem; }
         <span class="pcw-dot" data-k="dot" role="img" aria-label="No note"></span>
       </div>
       <div class="pcw-compact">
+        <div class="pcw-head">
+          <div class="pcw-mode" role="group" aria-label="Piece mode"><button data-v="rec">Record</button><button data-v="live">Live coaching</button></div>
+          <button class="pcw-gear" data-open-settings aria-label="Settings" title="Settings">⚙</button>
+        </div>
         <div class="pcw-top"><span class="pcw-recdot" aria-hidden="true"></span><span class="pcw-clock" data-k="clock">0:00</span><span class="pcw-target" data-k="target"></span></div>
         <div class="pcw-live">
           <div class="pcw-noterow"><b class="pcw-note" data-k="note">—</b><b class="pcw-cents" data-k="cents"></b></div>
@@ -1897,6 +1901,7 @@ async function startPiece() {
   if (!live) $("#pcReport").innerHTML = "";
   $("#pcCoach").hidden = !live; $("#pcCoach").textContent = "Tips appear here once you've played a few notes."; $("#pcCoach").dataset.kind = "";
   PieceView.state(P.metro ? "countin" : "rec", { tol: P.tol, bpm: P.metro ? P.bpm : null, live, beatMs: piece.metro && piece.metro.beatMs });
+  syncPieceUI(); // the mode switches lock while it runs
 }
 
 function stopPiece() {
@@ -1907,6 +1912,7 @@ function stopPiece() {
   stopMetronome(); applyRange();
   $("#pcStart").hidden = false; $("#pcStop").hidden = true;
   $("#pcClock").classList.remove("rec");
+  syncPieceUI();
   if (p.live) { $("#pcStatus").textContent = "Live coaching stopped. Nothing was recorded."; PieceView.state("idle"); return; }
   $("#pcStatus").textContent = "Analysing…";
   PieceView.state("analysing");
@@ -2099,7 +2105,7 @@ function syncPieceUI() {
   $("#pcZone").style.width = P.tol + "%";
   $("#pcCountInNote").textContent = `${countInText()} of clicks count${countInBars() > 1 ? "" : "s"}`;
   $("#pcTitle").hidden = !!P.live; // live coaching saves nothing, so there's no progress to track by name
-  document.querySelectorAll("#pcModeSeg button").forEach((b) => { b.classList.toggle("on", (b.dataset.v === "live") === !!P.live); b.disabled = !!piece; });
+  document.querySelectorAll("#pcModeSeg button, .pcw-mode button").forEach((b) => { b.classList.toggle("on", (b.dataset.v === "live") === !!P.live); b.disabled = !!piece; });
   $("#pcModeNote").textContent = P.live
     ? "Play, and the app coaches you as you go: a note that keeps coming out sharp or flat, rushing or dragging. Nothing is recorded or saved."
     : "Record yourself playing anything. You get feedback on intonation and timing, and you can listen back to each flagged moment. You don't need to enter the music.";
@@ -3597,7 +3603,7 @@ if (SIM) {
 }
 
 const pcSet = (k, v) => { pcS()[k] = v; save(); syncPieceUI(); };
-document.querySelectorAll("#pcModeSeg button").forEach((b) => (b.onclick = () => { if (!piece) pcSet("live", b.dataset.v === "live"); }));
+document.querySelectorAll("#pcModeSeg button, .pcw-mode button").forEach((b) => (b.onclick = () => { if (!piece) pcSet("live", b.dataset.v === "live"); }));
 document.querySelectorAll("#countInSeg button").forEach((b) => (b.onclick = () => { DB.settings.countIn = +b.dataset.v; save(); syncSettingsUI(); syncPieceUI(); }));
 document.querySelectorAll("[data-open-settings]").forEach((b) => (b.onclick = () => {
   syncSettingsUI(); syncPieceUI();

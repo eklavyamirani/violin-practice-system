@@ -143,10 +143,10 @@ Record yourself playing a whole piece; you don't need to enter the music. The ap
 On an iPad with Stage Manager you can float the app over your sheet music (forScore, say) and play with it there. The Piece tab changes with the window's width:
 
 - **Under 200 px, a pill:** record/stop, the clock, and one dot for the note you're playing: green in tune, amber within twice the tolerance, red beyond, with ▲ for sharp and ▼ for flat. Under 150 px the clock goes.
-- **200–450 px, a tuner:** the note and how many cents off, a big needle, and a tempo bar showing whether you're rushing or dragging over the last few beats (against the click, or your own usual pulse without it). After a take: how many notes were in tune, every note as a coloured tick, and ▶ to hear the take.
+- **200–450 px, a tuner:** at the top, a *Record / Live coaching* switch and ⚙ Settings (the app header is hidden here). Then the note and how many cents off, a big needle, and a tempo bar showing whether you're rushing or dragging over the last few beats (against the click, or your own usual pulse without it). After a take: how many notes were in tune, every note as a coloured tick, and ▶ to hear the take. In Live coaching, the current tip sits under the tempo bar.
 - **Wider:** the full tab, with the review timeline.
 
-Resizing never stops or loses a recording. The app's header is hidden in the two small layouts; widen the window to switch tabs.
+Resizing never stops or loses a recording. The app's header is hidden in the two small layouts; widen the window to switch tabs. The pill has no room for the mode switch or tips: it starts whichever mode the tuner layout or the full tab last chose.
 
 Calibrate timing once in ⚙ Settings (*Piece tab* under Timing offset). It listens across all four strings, so it has its own calibration, separate from Tempo mode's.
 
