@@ -24,6 +24,7 @@ Then open http://localhost:8765 and allow microphone access. Chrome and Safari b
 - `node test/landing.test.js` checks where a note touched down, slides into it, corrections while it's held, and Place mode tries, on synthetic pitch tracks.
 - `node test/context.test.js` checks intonation by context: the same notes up against down, after shifts, and after frame changes (accidentals, moved fingers, stretches) against the same notes elsewhere.
 - `node demo/test/landing.mjs` runs the app in headless Chromium with scripted violin-like audio as the mic: slides in Flow, Place mode's lift-and-place, and the accidental coach's note. `--shots <dir>` saves the results screens; `--url` tests a deployed copy.
+- `node test/staff.test.js` checks the treble staff: note placement, key signatures for every kind of key, accidentals (including courtesy accidentals) and ledger lines.
 - `node test/curriculum.test.js` checks the Path graph (every skill can be fingered, prerequisites come first, keys need the positions claimed), its drills in both directions, the run metrics, and how skills progress.
 
 ## Files
@@ -39,6 +40,7 @@ Then open http://localhost:8765 and allow microphone access. Chrome and Safari b
 - `scales.js`: scale spelling, position fingerings (including open strings), finger patterns and scale-run routing through the chosen positions
 - `landing.js`: where a finger touched down, slides into a note and corrections while it's held, and Place mode tries
 - `context.js`: intonation by context (up vs down, after shifts, after frame changes), for the coach's notes, the practice log and the Piece tab
+- `staff.js`: the drill's notes on a treble staff (key signature, accidentals, ledger lines), drawn as SVG with Bravura glyph outlines (SIL Open Font License)
 - `pitch.js`: McLeod pitch detector; the app narrows its frequency range to the current drill's notes so it doesn't jump octaves
 
 ## Sources for design claims

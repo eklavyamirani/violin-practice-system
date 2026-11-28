@@ -70,6 +70,14 @@ Packs are JSON files in `packs/`. A pack is a drill import file (see the format 
 
 To add one, save it as `packs/<id>.json` and add the file name to `packs/index.json`. `node test/rhythm.test.js` checks that every pack is listed and imports cleanly. The same file can also be pasted into Import.
 
+## Notes on the staff
+
+Every drill also shows on a treble staff above the target, with the key signature of the drill's key (a minor key gets its natural-minor signature, so a melodic or harmonic minor's raised notes show as accidentals). The staff follows along: the current note is orange and each note you've played turns green, amber or red like its chip. Long drills scroll to keep the current note in view. Imported drills without a `key` get no signature and show every sharp or flat.
+
+There are no barlines, so a note that differs from the key signature always shows its accidental, and a note that goes back to the signature after an altered one on the same line or space gets a courtesy accidental (coming down A melodic minor: G♮ after G♯). Noteheads have no stems: the staff shows pitch only. Rhythm drills still show their rhythm in the lanes above it.
+
+**Read from the staff** (Settings) turns it into sight-reading practice: the note name stays hidden (**?**) and the chips show **·** until you land each note, then it's revealed. In Tempo mode the names stay hidden for the whole run, since there's no landing to wait for. Messages after a wrong note still name the target. Turn the staff off with **Notes on the staff**.
+
 ## Hands-free start
 
 So you don't have to put the violin down between runs: play and hold a drill's first note (about ¾ s) to start it. On the results, every button that starts a drill has its own note: the drill's own first note goes again and the next drill's (or the **Move on** drill's) first note moves on. When two of them start on the same note, the next drill keeps it (after a miss, going again does) and the other one gets an open string that none of them start on ("or play open D to go again"); the notes to play are shown at the top of the results. It waits for a moment without any start note first, so the last note of a run ringing on doesn't restart it. The first note you hold counts as the run's first landing (in Tempo mode it starts the count-in). Turn it off with **Hands-free start** in Settings.
