@@ -163,6 +163,18 @@ main { max-width: 1280px; margin: 0 auto; padding: 1rem; }
 .lens .lbar { position: relative; height: 10px; background: var(--panel-2); border-radius: 5px; min-width: 90px; }
 .lens .lbar i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 5px; }
 .lens .lbar b { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--ink); }
+.staff { grid-column: 1 / -1; display: flex; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 4px 0; overflow: hidden; }
+.staffhead { flex: none; padding-left: 4px; }
+.staffbody { flex: 1; min-width: 0; overflow-x: auto; scrollbar-width: thin; }
+.staff svg { display: block; }
+.staff .sl, .staff .ll { stroke: var(--ink); stroke-width: 1; opacity: .55; }
+.staff path { fill: var(--ink); }
+.staff .col { fill: transparent; }
+.staff .sn.cur .col { fill: var(--accent); opacity: .14; }
+.staff .sn.cur path { fill: var(--accent); }
+.staff .sn.ok path { fill: var(--good); }
+.staff .sn.near path { fill: var(--near); }
+.staff .sn.bad path { fill: var(--bad); }
 .chip { min-width: 42px; text-align: center; padding: .3rem .45rem; border-radius: 8px; background: var(--panel-2); font-weight: 600; font-size: .88rem; border: 2px solid transparent; transition: background .2s; }
 .chip sub { font-size: .65em; opacity: .6; }
 .chip.cur { border-color: var(--accent); background: var(--panel); animation: pulse 1.2s infinite; }
@@ -441,6 +453,8 @@ main { max-width: 1280px; margin: 0 auto; padding: 1rem; }
         <p class="muted small" id="pathTarget" hidden></p>
         <label class="toggle"><input type="checkbox" id="optHear"><span><b>Hear it first</b><small>Plays each note before you play it (Lock-in and Place). Trains your inner ear.</small></span></label>
         <label class="toggle"><input type="checkbox" id="optDrone"><span><b id="droneName">Tonic drone</b><small>Hear intervals against the tonic. Headphones help.</small></span></label>
+        <label class="toggle"><input type="checkbox" id="optStaff"><span><b>Notes on the staff</b><small>Shows the drill on a treble staff, with its key signature, and follows along as you play.</small></span></label>
+        <label class="toggle"><input type="checkbox" id="optReadStaff"><span><b>Read from the staff</b><small>Sight-reading practice: note names stay hidden until you land each note, so you read it off the staff.</small></span></label>
         <label class="toggle"><input type="checkbox" id="optHide"><span><b>Hide fingering</b><small>Memory test: find the note without the map.</small></span></label>
         <label class="toggle"><input type="checkbox" id="optEars"><span><b>Ears first</b><small>Needle stays hidden until you land. Wean yourself off the screen.</small></span></label>
         <label class="toggle"><input type="checkbox" id="optChime"><span><b>Chime on lock</b></span></label>
@@ -460,6 +474,7 @@ main { max-width: 1280px; margin: 0 auto; padding: 1rem; }
         <button class="btn" id="startBtn">▶ Start</button>
       </div>
       <div class="path" id="path"></div>
+      <div class="staff" id="staff" hidden><div class="staffhead" id="staffHead"></div><div class="staffbody" id="staffBody"></div></div>
 
       <div class="focus">
         <div class="card target">
@@ -717,6 +732,7 @@ window.addEventListener("error", (e) => {
 <script src="plan.js"></script>
 <script src="piece.js"></script>
 <script src="rhythm.js"></script>
+<script src="staff.js"></script>
 <script src="sync.js"></script>
 <script src="ear.js"></script>
 <script>
@@ -799,7 +815,7 @@ function applyRange() {
 // ---------- Storage ----------
 const STORE_KEY = "fingerboard-coach.v1";
 const defaults = () => ({ ear: { stages: {}, hist: [], strings: {} }, xp: 0, notes: {}, ex: {}, days: {}, sessions: [], selected: "p3-A", cfg: { ...DEFAULT_CFG }, custom: [], customMeta: {}, runs: {}, log: [], path: { states: {}, session: null }, goals: {}, plan: null, planLog: {},
-  settings: { view: "path", mode: "lock", tier: 1, drone: false, hear: false, hide: false, ears: false, chime: true, a4: 440, bpm: 60, per: 1, ladder: true, latencyMs: null, voiceMic: false, handsFree: true, clicks: 2, earMode: "pitch", earStage: null, earDur: 0.5, earVib: false, earSrc: "synth", earStrStage: null, earStrKind: null } });
+  settings: { view: "path", mode: "lock", tier: 1, drone: false, hear: false, hide: false, staff: true, readStaff: false, ears: false, chime: true, a4: 440, bpm: 60, per: 1, ladder: true, latencyMs: null, voiceMic: false, handsFree: true, clicks: 2, earMode: "pitch", earStage: null, earDur: 0.5, earVib: false, earSrc: "synth", earStrStage: null, earStrKind: null } });
 function loadDB() {
   const d = defaults();
   try {
@@ -2019,7 +2035,7 @@ function renderTarget() {
   const hide = DB.settings.hide;
   if (!run) return renderIdle();
   const cur = run.seq[run.idx], prev = run.seq[run.idx - 1];
-  $("#bigNote").innerHTML = itemHTML(cur);
+  $("#bigNote").innerHTML = readingNow() ? "?" : itemHTML(cur);
   const showMap = !hide || run.st.landed;
   const dir = shiftDir(prev, cur);
   const shift = dir ? `<div class="badge">${dir === "down" ? "⇣" : "⇡"} Shift ${dir} to ${ord(cur.pos)} position</div>${cur.guide ? `<div class="guide">Slide ${prev.finger} to <b>${cur.guide.label}${cur.guide.oct}</b> (guide note), then drop ${cur.finger}</div>` : ""}` : "";
@@ -2111,7 +2127,7 @@ function renderStats(pop) {
 let LANES = null;
 function buildLanes() {
   const ex = run ? run.ex : exById(DB.selected);
-  LANES = Rhythm.lanes(run ? run.seq : ex.notes, { total: ex.rhythm.total, bar: ex.rhythm.bar, clicks: run ? run.rhythm.clicks : DB.settings.clicks, cur: run ? run.idx : -1, label: (e) => e.label });
+  LANES = Rhythm.lanes(run ? run.seq : ex.notes, { total: ex.rhythm.total, bar: ex.rhythm.bar, clicks: run ? run.rhythm.clicks : DB.settings.clicks, cur: run ? run.idx : -1, label: (e) => (reading() ? "" : e.label) });
   $("#path").innerHTML = LANES.svg;
 }
 function moveHead(beats) {
@@ -2123,8 +2139,42 @@ function moveHead(beats) {
 }
 
 // Path chips
+// Sight-reading: names hidden until the note has landed (Flow has no landing, so they stay hidden for the run)
+const reading = () => DB.settings.staff && DB.settings.readStaff;
+const readingNow = () => reading() && run && !(run.mode !== "tempo" && run.st.landed);
+
+// The drill on a treble staff, with the key signature of the drill's key (none for an imported drill without one)
+function staffSig(ex) {
+  const k = ex.custom ? (ex.key ? Scales.parseKey(ex.key) : null) : curKey();
+  return k ? Scales.spell(k.tonic, Scales.SCALE_TYPES[k.type === "major" ? "major" : "natural"]).acc : null;
+}
+let STAFF = null;
+function buildStaff(seq) {
+  const el = $("#staff");
+  el.hidden = !DB.settings.staff || !seq.length;
+  if (el.hidden) { STAFF = null; return; }
+  STAFF = Staff.render(seq, { sigAcc: staffSig(run ? run.ex : exById(DB.selected)) });
+  $("#staffHead").innerHTML = STAFF.head;
+  $("#staffBody").innerHTML = STAFF.body;
+  $("#staffBody").scrollLeft = 0;
+}
+function updateStaff() {
+  if (!STAFF || !run) return;
+  document.querySelectorAll("#staffBody .sn").forEach((g) => {
+    const i = +g.dataset.i, r = run.results[i];
+    const near = r && !r.missed && r.wrong === null && (run.tempo ? r.inTune || r.onTime : Math.abs(r.cents) <= run.tol * 2);
+    g.setAttribute("class", "sn" + (i === run.idx ? " cur" : "") + (r ? (r.ok ? " ok" : near ? " near" : " bad") : ""));
+  });
+  // Keep the current note in view, a little left of centre so the next notes show
+  const body = $("#staffBody"), x = STAFF.x(Math.min(run.idx, run.seq.length - 1));
+  const left = Math.max(0, x - body.clientWidth * 0.35);
+  if (Math.abs(body.scrollLeft - left) > 4) body.scrollTo({ left, behavior: "smooth" });
+}
+
 function buildPath() {
-  if ((run ? run.ex : exById(DB.selected)).rhythm) return buildLanes();
+  const ex0 = run ? run.ex : exById(DB.selected);
+  buildStaff(run ? run.seq : ex0.hunt ? [] : ex0.notes);
+  if (ex0.rhythm) return buildLanes();
   const seq = run ? run.seq : (exById(DB.selected).hunt ? [] : exById(DB.selected).notes);
   const el = $("#path");
   el.innerHTML = "";
@@ -2132,16 +2182,18 @@ function buildPath() {
   seq.forEach((it, i) => {
     const dir = shiftDir(seq[i - 1], it);
     if (dir) el.insertAdjacentHTML("beforeend", `<span class="shiftmark">${dir === "down" ? "⇣" : "⇡"}${ord(it.pos)}</span>`);
-    el.insertAdjacentHTML("beforeend", `<span class="chip" data-i="${i}">${itemHTML(it)}</span>`);
+    el.insertAdjacentHTML("beforeend", `<span class="chip" data-i="${i}">${reading() ? "·" : itemHTML(it)}</span>`);
   });
 }
 function updatePath() {
   if (!run) return;
+  updateStaff();
   if (run.rhythm) { buildLanes(); return renderStats(); }
   document.querySelectorAll("#path .chip").forEach((c) => {
     const i = +c.dataset.i, r = run.results[i];
     const near = r && !r.missed && r.wrong === null && (run.tempo ? r.inTune || r.onTime : Math.abs(r.cents) <= run.tol * 2);
     c.className = "chip" + (i === run.idx ? " cur" : "") + (r ? (r.ok ? " ok" : near ? " near" : " bad") : "");
+    if (reading()) c.innerHTML = r ? itemHTML(run.seq[i]) : "·";
     c.title = !r ? "" : r.missed ? (r.wrong !== null ? `wrong note: ${noteName(r.wrong)}` : "not heard on its beat")
       : `${r.cents > 0 ? "+" : ""}${r.cents.toFixed(0)}¢${r.timing !== null && r.timing !== undefined ? `, ${r.timing > 0 ? "+" : ""}${r.timing.toFixed(0)} ms` : ""}${r.wrong !== null ? " (wrong note first)" : ""}`;
   });
@@ -2575,7 +2627,7 @@ function syncSettingsUI() {
   const s = DB.settings, selEx = exById(DB.selected), mode = modeOf(selEx), rh = !!(selEx && selEx.rhythm);
   document.querySelectorAll("#modeSeg button").forEach((b) => { b.classList.toggle("on", b.dataset.v === mode); b.disabled = rh && b.dataset.v !== "tempo"; });
   document.querySelectorAll("#tierSeg button").forEach((b) => b.classList.toggle("on", +b.dataset.v === s.tier));
-  $("#optHear").checked = s.hear; $("#optDrone").checked = s.drone; $("#optHide").checked = s.hide; $("#optEars").checked = s.ears; $("#optChime").checked = s.chime; $("#optVoiceMic").checked = !!s.voiceMic; $("#optHandsFree").checked = s.handsFree;
+  $("#optHear").checked = s.hear; $("#optDrone").checked = s.drone; $("#optHide").checked = s.hide; $("#optStaff").checked = s.staff; $("#optReadStaff").checked = s.readStaff; $("#optReadStaff").disabled = !s.staff; $("#optEars").checked = s.ears; $("#optChime").checked = s.chime; $("#optVoiceMic").checked = !!s.voiceMic; $("#optHandsFree").checked = s.handsFree;
   $("#optHear").disabled = mode !== "lock" && mode !== "place";
   $("#tempoPanel").hidden = mode !== "tempo";
   $("#clickBox").hidden = !rh;
@@ -3433,7 +3485,9 @@ $("#stopBtn").onclick = stopRun;
 document.querySelectorAll("#modeSeg button").forEach((b) => (b.onclick = () => { DB.settings.mode = b.dataset.v; save(); syncSettingsUI(); if (run) startRun(); }));
 document.querySelectorAll("#tierSeg button").forEach((b) => (b.onclick = () => { DB.settings.tier = +b.dataset.v; save(); syncSettingsUI(); if (run) startRun(); }));
 const bindOpt = (id, key, after) => ($(id).onchange = (e) => { DB.settings[key] = e.target.checked; save(); if (after) after(); if (run) renderTarget(); });
-bindOpt("#optHear", "hear"); bindOpt("#optHide", "hide"); bindOpt("#optEars", "ears"); bindOpt("#optChime", "chime");
+bindOpt("#optHear", "hear"); bindOpt("#optHide", "hide");
+bindOpt("#optStaff", "staff", () => { syncSettingsUI(); buildPath(); updatePath(); });
+bindOpt("#optReadStaff", "readStaff", () => { buildPath(); updatePath(); }); bindOpt("#optEars", "ears"); bindOpt("#optChime", "chime");
 bindOpt("#optDrone", "drone", async () => { if (await startAudio()) applyDrone(); });
 bindOpt("#optVoiceMic", "voiceMic", restartAudio);
 bindOpt("#optHandsFree", "handsFree");

@@ -20,6 +20,12 @@ request of its own. Format:
 - Revisit if: <what would change the answer>
 ```
 
+## 2026-11-28 · The staff is drawn by the app, with Bravura glyph outlines
+- Decided by: an agent session, on the owner's behalf (the owner asked to see the notes in sheet music while playing scales, to practise reading)
+- Decision: `staff.js` draws the staff, key signature, accidentals and noteheads as inline SVG. The treble clef, accidentals and notehead are glyph outlines from the Bravura font (SIL Open Font License 1.1), taken from VexFlow 4.2.5's `src/fonts/bravura_glyphs.ts`. Pitch only: no stems, no barlines; accidentals are shown on every note that differs from the key signature, with courtesy accidentals when a line or space returns to it.
+- Rejected: VexFlow or abcjs as a dependency — the app is plain files with no build step and works offline; a notation library is hundreds of KB to draw one line of noteheads. The Unicode 𝄞 and ♯/♭ characters — whether and how they render depends on the device's fonts. Stems and note values — most drills have no written rhythm, and quarter notes would claim one; rhythm drills already show their rhythm in the lanes. Barlines with standard carry-through accidentals — without a real meter they'd be arbitrary, and a missing sharp on the way down is the kind of thing a sight-reader trips on.
+- Revisit if: the staff needs real rhythm (stems, beams, ties, rests) — then a notation library earns its weight.
+
 ---
 
 ## 2026-11-24 · Score where the finger touched down; Place mode; coaching by context
